@@ -23,7 +23,7 @@ export const SettingEditModal: React.FC<SettingEditModalProps> = ({
 
   return (
     // 1. 모달 오버레이 (배경 딤 처리 및 최상단 배치)
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[9999]">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-9999">
       
       {/* 2. 모달 컨테이너 (고정 너비 500px, 둥근 모서리, 그림자 효과) */}
       <div className="w-[500px] bg-background rounded-[16px] p-large border border-border shadow-[0_10px_20px_rgba(0,0,0,0.25)] flex flex-col">
