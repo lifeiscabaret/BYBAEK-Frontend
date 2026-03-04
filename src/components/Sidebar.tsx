@@ -24,7 +24,7 @@ export const Sidebar: React.FC = () => {
     // Container: LayoutAnimation 대신 Tailwind transition-all 사용
     <div 
       className={`h-screen bg-sidebar py-large z-10 flex flex-col transition-all duration-300 ease-in-out shrink-0 ${
-        isCollapsed ? 'w-[70px]' : 'w-[220px]'
+        isCollapsed ? 'w-17.5' : 'w-55'
       }`}
     >
       {/* 헤더 영역 (로고 및 햄버거 버튼) */}
@@ -38,7 +38,7 @@ export const Sidebar: React.FC = () => {
             onClick={() => router.push('/dashboard')}
             className="flex flex-row items-center py-small focus:outline-none hover:opacity-80 transition-opacity"
           >
-            <div className="relative w-[40px] h-[40px]">
+            <div className="relative w-10 h-10">
               <Image 
                 src="/images/logo.png" 
                 alt="BYBAEK Logo" 
