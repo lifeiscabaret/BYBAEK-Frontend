@@ -2,22 +2,28 @@
 "use client";
 
 import React, { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function AuthCallback() {
+    const searchParams = useSearchParams();
+
   useEffect(() => {
-    // 1. 이 창을 열어준 부모 창(window.opener)이 있는지 확인
+    // URL에서 provider 값을 읽어옴 (예: ?provider=ms 또는 ?provider=insta)
+    const provider = searchParams.get('provider') || 'ms'; 
+
     if (window.opener) {
-      // 2. 부모 창(메인 화면)으로 'MS_LOGIN_SUCCESS'라는 메시지를 쏜다!
-      // (보안상 실제 배포할 때는 '*' 대신 'https://bybaek.com' 같은 실제 도메인을 넣는 게 좋아)
-      window.opener.postMessage('MS_LOGIN_SUCCESS', '*');
+      // provider에 따라 부모 창으로 다른 성공 메시지를 보냄
+      if (provider === 'insta') {
+        window.opener.postMessage('INSTA_LOGIN_SUCCESS', '*');
+      } else {
+        window.opener.postMessage('MS_LOGIN_SUCCESS', '*');
+      }
       
-      // 3. 메시지를 쐈으니 이 팝업창은 미련 없이 닫는다.
       window.close();
     } else {
-      // 만약 팝업이 아니라 그냥 탭으로 열렸을 경우를 대비한 예외 처리
       window.location.href = '/login';
     }
-  }, []);
+  }, [searchParams]);
 
   return (
     <div className="flex h-screen items-center justify-center bg-gray-50">

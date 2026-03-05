@@ -15,6 +15,7 @@ export default function LoginScreen() {
   const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>('LOADING');
   const [msLoginStatus, setMsLoginStatus] = useState<LoginStatus>('IDLE');
+  const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
 
   // 로딩 화면(Logo) 2초 후 MS 로그인 화면으로 자동 전환
   useEffect(() => {
@@ -26,15 +27,28 @@ export default function LoginScreen() {
 
   // 실제 백엔드 연동 시 팝업창에서 보내는 '성공' 메시지를 감지하는 리스너
   useEffect(() => {
-    const handleAuthMessage = (event: MessageEvent) => {
-      // 팝업창에서 넘어온 메시지가 'MS_LOGIN_SUCCESS'라면 완료 처리
-      if (event.data === 'MS_LOGIN_SUCCESS') {
-        setMsLoginStatus('COMPLETED');
-      }
-    };
-    window.addEventListener('message', handleAuthMessage);
-    return () => window.removeEventListener('message', handleAuthMessage);
-  }, []);
+  const handleAuthMessage = (event: MessageEvent) => {
+    if (event.data === 'MS_LOGIN_SUCCESS') {
+      setMsLoginStatus('COMPLETED');
+    }
+    if (event.data === 'INSTA_LOGIN_SUCCESS') {
+      setInstaLoginStatus('COMPLETED'); // 인스타 완료 처리!
+    }
+  };
+  window.addEventListener('message', handleAuthMessage);
+  return () => window.removeEventListener('message', handleAuthMessage);
+}, []);
+
+  const handleInstaLoginClick = () => {
+  setInstaLoginStatus('IN_PROGRESS'); // 진행 중 상태로 변경
+
+  // 기존 인스타 연동 주소
+  const instaUrl = 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1219138883682659&redirect_uri=https://bybaek.azurewebsites.net/api/instagram_business_login&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights';
+  
+  // 팝업 열기
+  window.open(instaUrl, 'Insta_Login_Popup', 'width=500,height=600');
+};
+
 
   // 완료 후 대시보드로 이동
   const finishOnboarding = () => {
@@ -47,7 +61,7 @@ export default function LoginScreen() {
     setMsLoginStatus('IN_PROGRESS');
     
     // 2. 프론트엔드의 콜백 주소 (현재는 로컬 테스트용, 나중에 실제 도메인으로 변경해야 해)
-    const frontendCallbackUrl = encodeURIComponent('http://localhost:3000/auth/callback');
+    const frontendCallbackUrl = encodeURIComponent('callbahttp://localhost:3000/auth/ck');
     
     // 3. 백엔드 주소 + 로그인 후 돌아올 프론트엔드 주소 합치기
     const loginUrl = `https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
@@ -200,18 +214,46 @@ export default function LoginScreen() {
       {/* 4. 인스타 연동 화면 */}
       {step === 'INSTA_LOGIN' && renderModalContainer(
         '인스타 연동',
-        <>
-          <p className="text-body text-text-primary text-center mb-small">Instagram Graph API 권한 부여를 위해 브라우저를 엽니다.</p>
-          <button 
-            onClick={() => window.open('https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1219138883682659&redirect_uri=https://bybaek.azurewebsites.net/api/instagram_business_login&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights', '_blank')}
-            className="bg-accent py-[14px] px-6 rounded-lg mt-5 flex items-center justify-center shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors focus:outline-none"
-          >
-            Instagram 연동하기 (브라우저 열기)
-          </button>
-        </>,
+        <div className="flex flex-col items-center w-full px-4">
+          
+          {/* 상태 1: 기본 진입 */}
+          {instaLoginStatus === 'IDLE' && (
+            <>
+              <p className="text-body text-text-primary text-center mb-small">Instagram 연동을 위해 권한을 부여해 주세요.</p>
+              <button 
+                onClick={handleInstaLoginClick}
+                className="w-full bg-accent py-[14px] px-6 rounded-lg mt-5 flex items-center justify-center shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors focus:outline-none"
+              >
+                Instagram 연동하기
+              </button>
+            </>
+          )}
+
+          {/* 상태 2: 진행 중 */}
+          {instaLoginStatus === 'IN_PROGRESS' && (
+            <div className="flex flex-col items-center animate-pulse">
+              <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-body text-text-primary text-center font-bold">인스타그램 연동 중입니다...</p>
+              <button onClick={() => setInstaLoginStatus('COMPLETED')} className="mt-8 text-xs text-gray-400 underline">
+                (테스트용) 연동 완료 강제 트리거
+              </button>
+            </div>
+          )}
+
+          {/* 상태 3: 완료 */}
+          {instaLoginStatus === 'COMPLETED' && (
+            <div className="flex flex-col items-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <span className="text-green-600 text-3xl">✓</span>
+              </div>
+              <p className="text-[18px] font-bold text-text-primary">인스타그램 연동 완료!</p>
+            </div>
+          )}
+        </div>,
         () => setStep('SURVEY'), 
         () => setStep('SURVEY'),
-        '다음'
+        '다음',
+        instaLoginStatus !== 'COMPLETED' // 인스타 연동 완료 전까지 다음 버튼 비활성화
       )}
 
       {/* 5. 스무고개 (OnboardingSurvey 컴포넌트 호출) */}
