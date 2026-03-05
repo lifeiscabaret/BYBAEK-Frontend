@@ -20,7 +20,7 @@ export default function PreviewScreen() {
   const [inputText, setInputText] = useState('');
   
   // 웹 표준 포커스 제어를 위한 Ref
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const mockImages = ['이미지1', '이미지2', '이미지3'];
   const [images, setImages] = useState<string[]>(mockImages);
@@ -31,8 +31,19 @@ export default function PreviewScreen() {
 
   // 메시지 전송 후 포커스 유지
   useEffect(() => {
-    inputRef.current?.focus();
+    textareaRef.current?.focus();
   }, [messages]);
+
+  // 텍스트 입력 시 높이 조절 로직
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const target = e.target;
+    setInputText(target.value);
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'; // 높이 초기화
+      textareaRef.current.style.height = `${target.scrollHeight}px`; // 내용 높이에 맞게 설정
+    }
+  };
 
   const handleRemoveImages = (indexesToRemove: number[]) => {
     setImages((prevImages) => 
@@ -59,6 +70,10 @@ export default function PreviewScreen() {
     
     setMessages((prev) => [...prev, newMessage]);
     setInputText('');
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
   };
 
   const handlePrevImage = () => {
@@ -71,27 +86,27 @@ export default function PreviewScreen() {
 
   return (
     // 전체 컨테이너: 사이드바와 메인 컨텐츠 가로 배치
-    <div className="flex flex-row min-h-screen bg-background">
+    <div className="flex flex-row h-screen w-full bg-background overflow-hidden">
       
       {/* 1. 좌측 사이드바 */}
       <Sidebar />
 
       {/* 2. 중앙 채팅 영역 (flex: 1.5) */}
-      <div className="flex-[1.5] bg-background border-r border-border p-large flex flex-col min-w-0">
+      <div className="flex-[1.5] bg-background border-r border-border p-large flex flex-col min-w-0 h-full">
         
         {/* 헤더 */}
-        <div className="mb-large pb-small border-b border-border">
+        <div className="mb-large pb-small border-b border-border shrink-0">
           <h1 className="text-h1 text-text-primary font-bold">게시글 작성</h1>
         </div>
         
         {/* 메시지 목록 (FlatList 대체) */}
-        <div className="flex-1 overflow-y-auto pb-large flex flex-col gap-4 pr-2">
+        <div className="flex-1 overflow-y-auto flex flex-col gap-4 pr-2 scrollbar-hide min-h-0">
           {messages.map((item) => {
             const isUser = item.sender === 'user';
             return (
               <div 
                 key={item.id}
-                className={`max-w-[80%] p-medium rounded-xl break-words ${
+                className={`max-w-[80%] p-medium rounded-xl break-words shrink-0 ${
                   isUser 
                     ? 'self-end bg-sidebar text-text-inverse' 
                     : 'self-start bg-[#F5F5F5] text-text-primary'
@@ -106,35 +121,38 @@ export default function PreviewScreen() {
         {/* 채팅 입력창 (form 태그로 감싸 엔터키 전송 지원) */}
         <form 
           onSubmit={handleSendMessage}
-          className="flex flex-row items-center py-medium bg-background mt-4"
+          className="flex flex-col py-medium bg-background mt-4 shrink-0"
         >
-          {isEditModalVisible ? (
-            <div className="flex-1 min-h-[45px] border border-[#E0E0E0] rounded-lg mr-small bg-background" />
-          ) : (
-            <input
-              ref={inputRef}
-              type="text"
-              className="flex-1 min-h-[45px] border border-[#E0E0E0] rounded-lg px-medium mr-small text-text-primary bg-background focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-              placeholder="예시) 오늘 날씨에 어울리는 홍보 문구로 작성해줘."
+          <div className={`flex items-end gap-2 border border-[#E0E0E0] rounded-lg p-2 transition-colors focus-within:border-accent ${
+            isEditModalVisible ? 'bg-gray-100 opacity-50' : 'bg-background'
+          }`}>
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              disabled={isEditModalVisible}
+              className="flex-1 bg-transparent resize-none overflow-y-auto text-text-primary focus:outline-none min-h-[40px] max-h-[33vh] py-2 px-2 leading-relaxed appearance-none scrollbar-hide"
+              placeholder={isEditModalVisible ? "" : "예시) 오늘 날씨에 어울리는 홍보 문구로 작성해줘."}
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              onChange={handleTextareaChange}
+              onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                  }
+              }}
+              // [추가] 브라우저별 스크롤바와 화살표를 강제로 숨기는 설정
+              style={{
+                  msOverflowStyle: 'none',  // IE/Edge
+                  scrollbarWidth: 'none',   // Firefox
+              }}
             />
-          )}
-
-          <button 
-            type="submit"
-            disabled={isEditModalVisible}
-            className={`px-medium flex items-center justify-center font-bold text-accent transition-opacity focus:outline-none ${
-              isEditModalVisible ? 'opacity-0 cursor-default' : 'hover:opacity-80'
-            }`}
-          >
-            전송
-          </button>
+            <button type="submit" className="shrink-0 px-medium mb-1.5 font-bold text-accent">전송</button>
+          </div>
         </form>
-      </div> 
+      </div>
 
       {/* 3. 우측 프리뷰 영역 (flex: 1) */}
-      <div className="flex-1 p-large bg-[#FAFAFA] flex flex-col min-w-0">
+      <div className="flex-1 p-large bg-[#FAFAFA] flex flex-col min-w-0 h-full overflow-y-auto">
         
         {/* 프리뷰 헤더 */}
         <div className="flex flex-row justify-between items-center mb-medium">
