@@ -46,12 +46,14 @@ export default function LoginScreen() {
     // 1. 진행 중 상태로 UI 변경
     setMsLoginStatus('IN_PROGRESS');
     
-    // 2. 실제 로그인 팝업 열기
-    window.open(
-      'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=%3C%ED%94%84%EB%A1%A0%ED%8A%B8%EC%97%94%EB%93%9C%20%EC%84%9C%EB%B2%84%20%EB%A1%9C%EA%B7%B8%EC%9D%B8%20%ED%9B%84%20%EC%97%B0%EA%B2%B0%EB%90%A0%20%EB%A7%81%ED%81%AC%3E', 
-      'MS_Login_Popup', 
-      'width=500,height=600'
-    );
+    // 2. 프론트엔드의 콜백 주소 (현재는 로컬 테스트용, 나중에 실제 도메인으로 변경해야 해)
+    const frontendCallbackUrl = encodeURIComponent('http://localhost:3000/auth/callback');
+    
+    // 3. 백엔드 주소 + 로그인 후 돌아올 프론트엔드 주소 합치기
+    const loginUrl = `https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
+
+    // 4. 팝업 열기
+    window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
   };
 
   // 공통 모달(팝업) 컨테이너 렌더링 함수
