@@ -3,39 +3,40 @@
 
 import React, { useState } from 'react';
 import { Sidebar } from '@/components/Sidebar';
-import { SnsConnectionModal } from '@/components/SnsConnectionModal'; // 연동할 컴포넌트 경로 확인 필요
-import { SettingEditModal } from '@/components/SettingEditModal'; // 연동할 컴포넌트 경로 확인 필요
+import { SnsConnectionModal } from '@/components/SnsConnectionModal';
+import { SettingEditModal } from '@/components/SettingEditModal';
 import { MockDB } from '@/utils/MockDB';
+import { ONBOARDING_QUESTIONS } from '@/utils/constants/OnboardingData';
+import { OnboardingSurvey } from '@/components/OnboardingSurvey';
 
 export default function SettingScreen() {
-  // 기본 상태들
   const [shopId] = useState('shop_12345');
-  const [country, setCountry] = useState('KR');
-  const [city, setCity] = useState('Seoul');
 
   // 앱 설정 관련 (온보딩 MockDB 답변 매핑)
   const [isAutoUploadEnabled, setIsAutoUploadEnabled] = useState(
-    MockDB.getAnswer(10) === '예 (추천)'
+    MockDB.getAnswer(11) === '예 (추천)'
   );
 
   const [reviewMethod, setReviewMethod] = useState(
-    (MockDB.getAnswer(11) as string) || '항상 내가 검토 후 업로드'
+    (MockDB.getAnswer(12) as string) || '항상 내가 검토 후 업로드'
   );
 
   const [notiOffset, setNotiOffset] = useState(
-    (MockDB.getAnswer(12) as string) || '30분 전'
+    (MockDB.getAnswer(13) as string) || '30분 전'
   );
-  
+
+  // 🚨 새롭게 추가된 언어 설정 (ID: 14)
+  const [language, setLanguage] = useState(
+    (MockDB.getAnswer(14) as string) || '한국어'
+  );
+
   // 모달 제어 상태
-  const [isPromptModalVisible, setPromptModalVisible] = useState(false);
+  const [isPromptListOpen, setIsPromptListOpen] = useState(false);
+  const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
+  const [targetQuestionId, setTargetQuestionId] = useState<number>(1);
   const [isSnsModalVisible, setSnsModalVisible] = useState(false);
   const [isTimeModalVisible, setTimeModalVisible] = useState(false);
   const [isNotiModalVisible, setNotiModalVisible] = useState(false);
-  const [isLocationModalVisible, setLocationModalVisible] = useState(false); 
-
-  // 위치 정보 임시 저장 상태
-  const [tempCountry, setTempCountry] = useState(country);
-  const [tempCity, setTempCity] = useState(city);
 
   // SNS 연동 상태
   const [isInstagramConnected, setIsInstagramConnected] = useState(true);
@@ -45,9 +46,8 @@ export default function SettingScreen() {
   const frequencies = ['매일', '2일마다', '3일마다', '4일마다', '5일마다', '6일마다', '일주일마다'];
   const notiOffsets = ['10분 전', '30분 전', '1시간 전', '받지 않음'];
 
-  // 시스템 프롬프트
+  // 시스템 프롬프트 요약 (현재는 UI에서 숨김 처리됨)
   const [systemPrompt, setSystemPrompt] = useState(MockDB.generateSystemPrompt());
-  const [tempSystemPrompt, setTempSystemPrompt] = useState(systemPrompt);
   
   // 업로드 설정
   const [frequency, setFrequency] = useState('매일');
@@ -61,7 +61,6 @@ export default function SettingScreen() {
   const [tempHour, setTempHour] = useState(hour);
   const [tempMinute, setTempMinute] = useState(minute);
   
-  // 드롭다운 상태
   const [isHourDropdownOpen, setIsHourDropdownOpen] = useState(false);
   const [isMinuteDropdownOpen, setIsMinuteDropdownOpen] = useState(false);
 
@@ -69,7 +68,9 @@ export default function SettingScreen() {
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
   const [tempNotiOffset, setTempNotiOffset] = useState(notiOffset);
-  const [isAppNotiEnabled, setIsAppNotiEnabled] = useState(false);
+  const [isAppNotiEnabled, setIsAppNotiEnabled] = useState(
+    MockDB.getAnswer(15) === '예'
+  );
 
   const saveIndividualSetting = async (settingName: string, value: any) => {
     console.log(`[API MOCK] ${settingName} 업데이트 요청:`, value);
@@ -77,7 +78,13 @@ export default function SettingScreen() {
 
   const handleToggleAutoUpload = (val: boolean) => {
     setIsAutoUploadEnabled(val);
-    MockDB.saveAnswer(10, val ? '예 (추천)' : '아니오');
+    MockDB.saveAnswer(11, val ? '예 (추천)' : '아니오');
+  };
+
+  // 앱 푸시 알림 토글 핸들러
+  const handleToggleAppNoti = (val: boolean) => {
+    setIsAppNotiEnabled(val);
+    MockDB.saveAnswer(15, val ? '예' : '아니오');
   };
 
   const handleToggleReviewMethod = () => {
@@ -85,7 +92,15 @@ export default function SettingScreen() {
       ? '시간 되면 자동 업로드' 
       : '항상 내가 검토 후 업로드';
     setReviewMethod(nextMethod);
-    MockDB.saveAnswer(11, nextMethod);
+    MockDB.saveAnswer(12, nextMethod);
+  };
+
+  // 🚨 언어 변경 토글 핸들러
+  const handleToggleLanguage = () => {
+    const nextLang = language === '한국어' ? 'English' : '한국어';
+    setLanguage(nextLang);
+    MockDB.saveAnswer(14, nextLang);
+    // 차후 서비스 전체 다국어(i18n) 적용 시 여기서 전역 상태나 언어팩 변경 로직을 호출하면 됩니다.
   };
 
   const toggleSwitch = (settingName: string, currentState: boolean, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
@@ -115,7 +130,6 @@ export default function SettingScreen() {
     }
   };
 
-  // 커스텀 스위치(Toggle) UI 컴포넌트
   const CustomSwitch = ({ isOn, onToggle }: { isOn: boolean, onToggle: (val: boolean) => void }) => (
     <button
       onClick={() => onToggle(!isOn)}
@@ -130,31 +144,58 @@ export default function SettingScreen() {
   );
 
   return (
-    <div className="flex flex-row min-h-screen bg-background relative">
+    <div className="flex flex-row h-screen w-full bg-background relative overflow-hidden">
       <Sidebar />
 
-      <div className="flex-1 p-large flex flex-col min-w-0">
-        <div className="mb-large border-b border-border pb-small">
+      <div className="flex-1 p-large flex flex-col min-w-0 h-full">
+        <div className="mb-large border-b border-border pb-small shrink-0">
           <h1 className="text-[28px] text-text-primary font-bold">설정</h1>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-2 pb-large">
+        <div className="flex-1 overflow-y-auto pr-2 pb-large min-h-0 scrollbar-hide">
           
           {/* 시스템 프롬프트 설정 */}
-          <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
-            <h2 className="text-base font-bold text-text-primary mb-4">시스템 프롬프트</h2>
+          <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4 transition-all">
             <div className="flex flex-row justify-between items-center">
-              <p className="flex-1 text-sm text-[#666666] mr-3 line-clamp-2">{systemPrompt}</p>
+              <h2 className="text-base font-bold text-text-primary m-0">나만의 마케터</h2>
               <button 
-                className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none shrink-0"
-                onClick={() => {
-                  setTempSystemPrompt(systemPrompt);
-                  setPromptModalVisible(true);
-                }}
+                onClick={() => setIsPromptListOpen(!isPromptListOpen)}
+                className="flex items-center text-sm font-bold text-text-primary hover:text-accent transition-colors focus:outline-none"
               >
-                수정
+                {isPromptListOpen ? '▲ 닫기' : '▼ 열기'}
               </button>
             </div>
+
+            {isPromptListOpen && (
+              <div className="flex flex-col gap-5 mt-4 pt-4 border-t border-[#E0E0E0]">
+                {ONBOARDING_QUESTIONS.filter(q => q.category === 'PERSONAL').map((q, index) => {
+                  const rawAnswer = MockDB.getAnswer(q.id);
+                  const displayAnswer = rawAnswer 
+                    ? (Array.isArray(rawAnswer) ? rawAnswer.join(', ') : rawAnswer)
+                    : '미입력';
+
+                  return (
+                    <div key={q.id} className="flex flex-row items-center justify-between gap-4">
+                      <p className="flex-[2] text-[14px] text-text-primary leading-snug">
+                        {index + 1}. {q.question}
+                      </p>
+                      <p className="flex-[1] text-[14px] text-text-secondary font-bold text-right truncate">
+                        {displayAnswer}
+                      </p>
+                      <button 
+                        className="px-4 py-1.5 bg-background border border-[#D0D0D0] rounded-full text-[13px] font-semibold text-text-primary hover:bg-gray-50 transition-colors focus:outline-none shrink-0"
+                        onClick={() => {
+                          setTargetQuestionId(q.id);
+                          setIsOnboardingModalOpen(true);
+                        }}
+                      >
+                        수정
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* SNS 연동 */}
@@ -171,46 +212,31 @@ export default function SettingScreen() {
             </div>
           </div>
 
-          {/* 샵 위치 정보 */}
-          <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
-            <div className="flex flex-row justify-between items-center mb-4">
-              <h2 className="text-base font-bold text-text-primary m-0">샵 위치 정보</h2>
-              <button 
-                className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none"
-                onClick={() => {
-                  setTempCountry(country);
-                  setTempCity(city);
-                  setLocationModalVisible(true);
-                }}
-              >
-                수정
-              </button>
-            </div>
-            
-            <div className="flex flex-row items-center mb-3">
-              <span className="flex-1 text-[15px] text-text-primary">국가</span>
-              <div className="flex-1">
-                <span className="inline-block bg-background border border-border px-3 py-1.5 rounded-md text-sm min-w-[100px]">{country}</span>
-              </div>
-            </div>
-            
-            <div className="flex flex-row items-center">
-              <span className="flex-1 text-[15px] text-text-primary">도시</span>
-              <div className="flex-1">
-                <span className="inline-block bg-background border border-border px-3 py-1.5 rounded-md text-sm min-w-[100px]">{city}</span>
-              </div>
-            </div>
-          </div>
-
           {/* 환경 설정 */}
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
             <h2 className="text-base font-bold text-text-primary mb-4">환경 설정</h2>
             
+            {/* 1. 언어 설정 */}
+            <div className="flex flex-row justify-between items-center mb-4">
+              <span className="text-[15px] text-text-primary">사용 언어(Language)</span>
+              <div className="flex flex-row items-center">
+                <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">{language}</span>
+                <button 
+                  className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none"
+                  onClick={handleToggleLanguage}
+                >
+                  변경
+                </button>
+              </div>
+            </div>
+
+            {/* 2. 인스타 자동 업로드 (이전에 있던 항목 복구) */}
             <div className="flex flex-row justify-between items-center mb-4">
               <span className="text-[15px] text-text-primary">인스타 자동 업로드</span>
               <CustomSwitch isOn={isAutoUploadEnabled} onToggle={handleToggleAutoUpload} />
             </div>
 
+            {/* 3. 게시물 검토 방식 */}
             <div className="flex flex-row justify-between items-center mb-4">
               <span className="text-[15px] text-text-primary">게시물 검토 방식</span>
               <div className="flex flex-row items-center">
@@ -224,9 +250,10 @@ export default function SettingScreen() {
               </div>
             </div>
 
+            {/* 4. 앱 푸시 알림 (마지막 항목이라 mb-4 생략) */}
             <div className="flex flex-row justify-between items-center">
               <span className="text-[15px] text-text-primary">앱 푸시 알림</span>
-              <CustomSwitch isOn={isAppNotiEnabled} onToggle={(val) => toggleSwitch('isAppNotiEnabled', !val, setIsAppNotiEnabled)} />
+              <CustomSwitch isOn={isAppNotiEnabled} onToggle={handleToggleAppNoti} />
             </div>
           </div>
 
@@ -275,28 +302,9 @@ export default function SettingScreen() {
         </div>
       </div>
 
-      {/* --- 모달 영역 (SettingEditModal 및 SnsConnectionModal은 공통 레이아웃을 제공한다고 가정) --- */}
+      {/* --- 모달 영역 --- */}
 
-      {/* 1. 시스템 프롬프트 모달 */}
-      <SettingEditModal
-        isVisible={isPromptModalVisible}
-        title="시스템 프롬프트 설정"
-        onClose={() => setPromptModalVisible(false)}
-        onSave={() => {
-          setSystemPrompt(tempSystemPrompt);
-          saveIndividualSetting('systemPrompt', tempSystemPrompt);
-          setPromptModalVisible(false);
-          window.alert('프롬프트가 저장되었습니다.');
-        }}
-      >
-        <textarea
-          className="w-full h-[200px] border border-border rounded-lg p-4 bg-[#FAFAFA] text-base text-text-primary resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-          value={tempSystemPrompt}
-          onChange={(e) => setTempSystemPrompt(e.target.value)}
-        />
-      </SettingEditModal>
-
-      {/* 2. SNS 연동 모달 */}
+      {/* SNS 연동 모달 */}
       <SnsConnectionModal 
         isVisible={isSnsModalVisible}
         onClose={() => setSnsModalVisible(false)}
@@ -309,7 +317,7 @@ export default function SettingScreen() {
         setIsGmailConnected={setIsGmailConnected}
       />
 
-      {/* 3. 업로드 시간 설정 모달 */}
+      {/* 업로드 시간 설정 모달 */}
       <SettingEditModal
         isVisible={isTimeModalVisible}
         title="업로드 스케줄 설정"
@@ -410,14 +418,14 @@ export default function SettingScreen() {
         </div>
       </SettingEditModal>
 
-      {/* 4. 알림 시간 설정 모달 */}
+      {/* 알림 시간 설정 모달 */}
       <SettingEditModal
         isVisible={isNotiModalVisible}
         title="알림 시간 설정"
         onClose={() => setNotiModalVisible(false)}
         onSave={() => {
           setNotiOffset(tempNotiOffset);
-          MockDB.saveAnswer(12, tempNotiOffset); 
+          MockDB.saveAnswer(13, tempNotiOffset); 
           setNotiModalVisible(false);
         }}
       >
@@ -436,38 +444,17 @@ export default function SettingScreen() {
         </div>
       </SettingEditModal>
 
-      {/* 5. 샵 위치 정보 설정 모달 */}
-      <SettingEditModal
-        isVisible={isLocationModalVisible}
-        title="샵 위치 정보 설정"
-        onClose={() => setLocationModalVisible(false)}
-        onSave={() => {
-          setCountry(tempCountry);
-          setCity(tempCity);
-          saveIndividualSetting('location', { country: tempCountry, city: tempCity });
-          setLocationModalVisible(false);
-          window.alert('샵 위치 정보가 업데이트 되었습니다.');
-        }}
-      >
-        <p className="text-sm font-bold text-[#666666] mb-2 mt-2">국가 (예: KR)</p>
-        <input
-          type="text"
-          className="w-full bg-[#FAFAFA] border border-border rounded-lg px-3 py-2 text-text-primary mb-4 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-          value={tempCountry}
-          onChange={(e) => setTempCountry(e.target.value)}
-          placeholder="국가 코드"
+      {/* 온보딩(시스템 프롬프트 수정) 모달 */}
+      {isOnboardingModalOpen && (
+        <OnboardingSurvey 
+          initialQuestionId={targetQuestionId} 
+          onFinish={() => {
+            setIsOnboardingModalOpen(false);
+            setSystemPrompt(MockDB.generateSystemPrompt());
+          }}
+          onSkip={() => setIsOnboardingModalOpen(false)}
         />
-        
-        <p className="text-sm font-bold text-[#666666] mb-2">도시 (예: Seoul)</p>
-        <input
-          type="text"
-          className="w-full bg-[#FAFAFA] border border-border rounded-lg px-3 py-2 text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-          value={tempCity}
-          onChange={(e) => setTempCity(e.target.value)}
-          placeholder="도시명"
-        />
-      </SettingEditModal>
-
+      )}
     </div>  
   );
 }

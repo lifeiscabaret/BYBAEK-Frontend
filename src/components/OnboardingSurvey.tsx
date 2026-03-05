@@ -1,28 +1,65 @@
 // 타겟 경로: src/components/OnboardingSurvey.tsx
 "use client";
 
-import React, { useState } from 'react';
-// MockDB 및 데이터 상수는 기존 프로젝트와 동일한 경로에 있다고 가정합니다.
+import React, { useState, useEffect } from 'react';
 import { ONBOARDING_QUESTIONS, SurveyQuestion } from '../utils/constants/OnboardingData';
 import { MockDB } from '../utils/MockDB';
 
 interface OnboardingSurveyProps {
-  onFinish: (answers: any) => void;
+  initialQuestionId?: number; // 🚨 설정 화면에서 특정 질문으로 바로가기 위한 Props 추가
+  onFinish: (answers?: any) => void;
   onSkip: () => void;
 }
 
-export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ onFinish, onSkip }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, any>>({}); // 질문 ID별 답변 저장
-  const [inputText, setInputText] = useState(''); // 주관식/추가입력용 임시 상태
+export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuestionId, onFinish, onSkip }) => {
+  // 1. 초기 인덱스 계산 (initialQuestionId가 있으면 해당 질문 인덱스로, 없으면 0으로 시작)
+  const initialIndex = initialQuestionId
+    ? ONBOARDING_QUESTIONS.findIndex((q) => q.id === initialQuestionId)
+    : 0;
+  
+  const [currentIndex, setCurrentIndex] = useState(initialIndex !== -1 ? initialIndex : 0);
+  
+  // 🚨 설정 화면에서 진입한 "단일 수정 모드"인지 판별
+  const isSingleEditMode = !!initialQuestionId;
+
+  // 2. 초기 답변 세팅 (MockDB에서 기존 저장된 데이터를 모두 불러와서 세팅)
+  const [answers, setAnswers] = useState<Record<number, any>>(() => {
+    const savedData = MockDB.getAll() as { id: number; answer: any }[];
+    const loadedAnswers: Record<number, any> = {};
+    savedData.forEach((item) => {
+      loadedAnswers[item.id] = item.answer;
+    });
+    return loadedAnswers;
+  });
 
   const currentQuestion: SurveyQuestion = ONBOARDING_QUESTIONS[currentIndex];
-
-  // 🚨 현재 질문의 카테고리에 따른 한글 타이틀 결정
   const partTitle = currentQuestion.category === 'PERSONAL' ? '개인화 설정' : '앱 설정';
 
-  // 답변 저장 및 다음 단계 이동
+  // 3. 주관식 입력창 초기값 세팅 (텍스트 답변이 존재하면 불러오기)
+  const [inputText, setInputText] = useState('');
+
+  useEffect(() => {
+    // 이전 답변을 불러와서 세팅하는 건 '질문이 바뀔 때(currentQuestion.id)'만 딱 한 번 실행되어야 함.
+    const currentAnswer = answers[currentQuestion.id];
+    let newText = '';
+    
+    // 현재 답변이 문자열이고, 단순 객관식이 아닐 때
+    if (typeof currentAnswer === 'string' && currentQuestion.type !== 'SELECT') {
+      if (currentQuestion.options && !currentQuestion.options.includes(currentAnswer)) {
+        newText = currentAnswer;
+      } else if (!currentQuestion.options) {
+        newText = currentAnswer;
+      }
+    }
+    setInputText(newText);
+    
+    // 🚨 eslint 경고가 뜨더라도 answers는 의존성 배열에서 무조건 빼야 해! 
+    // 안 그러면 타자 칠 때마다 초기화되는 버그가 생겨.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestion.id]);
+  // 답변 저장 및 다음 단계 (혹은 종료) 처리
   const handleNext = () => {
+    // 입력창에 적은 글이 있으면 우선시하고, 없으면 선택된 옵션 사용
     let finalAnswer = inputText.trim() || answers[currentQuestion.id];
     
     // 1. 가상 DB에 저장
@@ -30,31 +67,33 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ onFinish, on
       MockDB.saveAnswer(currentQuestion.id, finalAnswer);
     }
 
-    // 2. 다음 질문 혹은 종료
+    // 2. 🚨 단일 수정 모드면 여기서 바로 저장 후 팝업 닫기!
+    if (isSingleEditMode) {
+      onFinish(MockDB.getAll());
+      return;
+    }
+
+    // 3. 전체 진행 모드면 다음 질문으로 이동
     if (currentIndex < ONBOARDING_QUESTIONS.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setInputText('');
     } else {
-      onFinish(MockDB.getAll()); // 전체 저장된 데이터 넘기며 종료
+      onFinish(MockDB.getAll());
     }
   };
 
-  // 객관식 선택 시 처리
+  // 객관식 선택 시 처리 (기존 로직 동일)
   const handleSelect = (option: string) => {
     const currentAnswer = answers[currentQuestion.id];
 
     if (currentQuestion.isMultiSelect) {
-      // 1. 중복 선택인 경우 (배열로 관리)
       const prevSelected = Array.isArray(currentAnswer) ? currentAnswer : [];
-      
       if (prevSelected.includes(option)) {
-        // 이미 선택된 거면 제거
         setAnswers({
           ...answers,
           [currentQuestion.id]: prevSelected.filter((item) => item !== option),
         });
       } else {
-        // 새로 선택하는 거면 추가 (최대 3개 제한 예시)
         if (prevSelected.length < 3) {
           setAnswers({
             ...answers,
@@ -63,11 +102,13 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ onFinish, on
         }
       }
     } else {
-        setAnswers({ ...answers, [currentQuestion.id]: option });
+      // 새로운 객관식을 선택하면 입력창(inputText)은 비워줌
+      setInputText(''); 
+      setAnswers({ ...answers, [currentQuestion.id]: option });
     }
   };
 
-  // 🚨 선택 여부 확인 로직
+  // 선택 여부 확인 로직 (기존 로직 동일)
   const checkIsSelected = (option: string) => {
     const currentAnswer = answers[currentQuestion.id];
     if (currentQuestion.isMultiSelect && Array.isArray(currentAnswer)) {
@@ -77,42 +118,33 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ onFinish, on
   };
 
   return (
-    // 모달 배경 (기존 modalBackground 역할)
-    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-      
-      {/* 모달 컨테이너 (기존 modalContainer 역할) */}
-      <div className="w-[450px] min-h-[500px] max-h-[80vh] bg-background rounded-xl shadow-lg p-large flex flex-col">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[10000]">
+      <div className="w-[450px] min-h-[500px] max-h-[80vh] bg-background rounded-xl shadow-lg p-large flex flex-col relative">
         
-        {/* 상단 헤더: 카테고리별 타이틀 및 진행도 표시 */}
+        {/* 상단 헤더 */}
         <div className="flex justify-between items-start mb-large shrink-0">
           <div>
-            <p className="text-[14px] text-accent font-bold mb-1">
-              {partTitle}
-            </p>
+            <p className="text-[14px] text-accent font-bold mb-1">{partTitle}</p>
             <h2 className="text-h2 font-bold text-text-primary">
-              스무고개 ({currentIndex + 1}/{ONBOARDING_QUESTIONS.length})
+              {/* 단일 수정 모드일 때는 제목을 살짝 다르게 표시 */}
+              {isSingleEditMode ? '프롬프트 수정' : `스무고개 (${currentIndex + 1}/${ONBOARDING_QUESTIONS.length})`}
             </h2>
           </div>
-          <button 
-            onClick={onSkip} 
-            className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
-          >
+          <button onClick={onSkip} className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none">
             ✕
           </button>
         </div>
 
-        {/* 본문 콘텐츠 (스크롤 영역) */}
+        {/* 본문 콘텐츠 (질문 및 답변) */}
         <div className="flex-1 min-h-0 flex flex-col overflow-y-auto pr-2">
           <p className="text-body font-bold text-text-primary mb-5">
             Q. {currentQuestion.question}
           </p>
           
-          {/* 🚨 1. 객관식 (SELECT) 및 복합형 (SELECT_TEXT)의 선택지 렌더링 파트 */}
           {(currentQuestion.type === 'SELECT' || currentQuestion.type === 'SELECT_TEXT') && (
             <div className="flex flex-col mb-3">
               {currentQuestion.options?.map((option, idx) => {
                 const isSelected = checkIsSelected(option); 
-                
                 return (
                   <button 
                     key={idx} 
@@ -122,10 +154,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ onFinish, on
                     }`}
                   >
                     <span className={`text-body ${isSelected ? 'text-accent font-bold' : 'text-text-primary'}`}>
-                      {isSelected 
-                        ? (currentQuestion.isMultiSelect ? '☑️' : '🔘') 
-                        : (currentQuestion.isMultiSelect ? '☐' : '⚪')
-                      } {option}
+                      {isSelected ? (currentQuestion.isMultiSelect ? '☑️' : '🔘') : (currentQuestion.isMultiSelect ? '☐' : '⚪')} {option}
                     </span>
                   </button>
                 );
@@ -133,20 +162,22 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ onFinish, on
             </div>
           )}
 
-          {/* 🚨 2. 주관식 (TEXT) 및 복합형 (SELECT_TEXT)의 입력창 렌더링 파트 */}
           {(currentQuestion.type === 'TEXT' || currentQuestion.type === 'SELECT_TEXT') && (
             <div className="mt-3 flex flex-col">
               {currentQuestion.type === 'SELECT_TEXT' && (
-                <span className="text-[13px] text-text-secondary mb-2">
-                  또는 직접 입력:
-                </span>
+                <span className="text-[13px] text-text-secondary mb-2">또는 직접 입력:</span>
               )}
-              {/* TextInput multiline을 웹 표준인 textarea로 변환 */}
               <textarea 
                 className="w-full h-[120px] border border-border rounded-lg p-medium text-body text-text-primary placeholder:text-[#A0A0A0] resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
                 placeholder={currentQuestion.placeholder}
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={(e) => {
+                  setInputText(e.target.value);
+                  // 텍스트를 입력하면 객관식 선택은 해제 (단일 선택일 경우만)
+                  if (!currentQuestion.isMultiSelect) {
+                    setAnswers({ ...answers, [currentQuestion.id]: '' });
+                  }
+                }}
               />
             </div>
           )}
@@ -158,13 +189,16 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ onFinish, on
             onClick={onSkip} 
             className="flex-1 bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center mr-small text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none"
           >
-            나중에
+            취소
           </button>
           <button 
             onClick={handleNext} 
             className="flex-1 bg-accent py-3 rounded-lg flex items-center justify-center ml-small text-text-inverse font-bold hover:bg-accent-dark transition-colors focus:outline-none"
           >
-            {currentIndex === ONBOARDING_QUESTIONS.length - 1 ? '완료 및 시작' : '저장 후 다음'}
+            {/* 단일 수정 모드일 때는 '저장 완료', 아니면 '다음' */}
+            {isSingleEditMode 
+              ? '수정 완료' 
+              : (currentIndex === ONBOARDING_QUESTIONS.length - 1 ? '완료 및 시작' : '저장 후 다음')}
           </button>
         </div>
 

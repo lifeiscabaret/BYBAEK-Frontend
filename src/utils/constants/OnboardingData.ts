@@ -82,29 +82,49 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     question: '주로 올리는 시간대는 언제인가요?',
     options: ['오전 (09:00~12:00)', '오후 (13:00~17:00)', '저녁 (18:00~21:00)', '심야 (22:00~01:00)']
   },
+  { id: 10,
+    category: 'PERSONAL',
+    type: 'TEXT',
+    question: '샵의 위치는 어디인가요? (도시까지 입력)',
+    placeholder: '예: 서울 강남구, 부산 해운대구'
+  },
 
   /** * PART 2. 앱 설정 (App Settings) 
    * 모두 객관식(SELECT)으로만 구성하여 빠른 설정을 유도합니다.
    */
   {
-    id: 10,
+    id: 11,
     category: 'APP',
     type: 'SELECT',
     question: '자동 업로드를 활성화하시겠습니까?',
     options: ['예 (추천)', '아니오']
   },
   {
-    id: 11,
+    id: 15,
+    category: 'APP',
+    type: 'SELECT',
+    question: '앱 푸시 알림을 활성화하시겠습니까?',
+    options: ['예', '아니오']
+  },
+  {
+    id: 12,
     category: 'APP',
     type: 'SELECT',
     question: '게시물 검토 방식을 선택해주세요.',
     options: ['항상 내가 검토 후 업로드', '시간 되면 자동 업로드']
   },
   {
-    id: 12,
+    id: 13,
     category: 'APP',
     type: 'SELECT',
     question: '업로드 전 알림을 받을까요?',
     options: ['10분 전', '30분 전', '1시간 전', '받지 않음']
+  },
+  {
+    id: 14,
+    category: 'APP',
+    type: 'SELECT',
+    question: '사용하는 언어를 고르세요',
+    options: ['한국어', 'English']
   }
 ];
