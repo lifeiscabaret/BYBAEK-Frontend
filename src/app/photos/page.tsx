@@ -38,15 +38,34 @@ export default function AllPhotosScreen() {
     );
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (selectedIndexes.length === 0) {
       window.alert('삭제할 사진을 먼저 선택해주세요.');
       return;
     }
     
-    if (window.confirm(`선택한 ${selectedIndexes.length}개의 사진을 삭제하시겠습니까?`)) {
-      setPhotos(photos.filter((_, idx) => !selectedIndexes.includes(idx)));
-      setSelectedIndexes([]); 
+    if (window.confirm(`선택한 ${selectedIndexes.length}개의 사진을 영구 삭제하시겠습니까?\n(앨범에서도 모두 삭제됩니다)`)) {
+      try {
+        const shopId = "3sesac18";
+        
+        // 🚨 백엔드 사진 삭제 API 호출
+        // Promise.all로 선택된 모든 사진을 병렬로 삭제 처리
+        await Promise.all(
+          selectedIndexes.map(async (idx) => {
+            const photoId = photos[idx].id;
+            return apiClient.delete(`/photos/${shopId}/${photoId}`);
+          })
+        );
+
+        window.alert('선택한 사진이 모두 삭제되었습니다.');
+        
+        // 🔄 삭제 후 서버에서 다시 목록 불러오기
+        fetchPhotos();
+        setSelectedIndexes([]); 
+      } catch (error) {
+        console.error("사진 삭제 실패:", error);
+        window.alert('사진 삭제 중 오류가 발생했습니다.');
+      }
     }
   };
 

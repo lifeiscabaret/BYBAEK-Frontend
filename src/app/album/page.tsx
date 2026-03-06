@@ -36,6 +36,7 @@ export default function MyAlbumScreen() {
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
 
+  const [albumPhotos, setAlbumPhotos] = useState<any[]>([]); //DB 연동
   //******************* DB 연동 START ********************* */
   const fetchAlbums = async () => {
     try {
@@ -71,11 +72,27 @@ export default function MyAlbumScreen() {
   };
 
   // 앨범 카드(또는 새 앨범 만들기) 클릭 시 실행
-  const openAlbumDetail = (album: AlbumData) => {
+  const openAlbumDetail = async (album: AlbumData) => { //DB 연동
     setSelectedAlbum(album);
     // 새 앨범이면 빈칸, 기존 앨범이면 원래 정보로 초기화
     setEditTitle(album.id === 'new' ? '' : (album.title || ''));
     setEditDesc(album.id === 'new' ? '' : (album.description || ''));
+
+    //******************* DB 연동 START ********************* */
+    if (album.id !== 'new') {
+      try {
+        const shopId = "3sesac18";
+        const response = await apiClient.get(`/photos/albums/${shopId}/${album.id}`);
+        setAlbumPhotos(response.data.photos); // API의 "photos"를 담음
+      } catch (error) {
+        console.error("앨범 사진 로딩 실패:", error);
+        setAlbumPhotos([]); // 실패 시 빈 리스트
+      }
+    } else {
+      setAlbumPhotos([]); // 새 앨범은 사진이 없으므로 비움
+    }
+    //******************* DB 연동 END ********************* */
+
     setIsDetailModalVisible(true);
   };
 
@@ -110,15 +127,36 @@ export default function MyAlbumScreen() {
     setSelectedAlbum(null);
   };
 
-  const handleDeleteAlbums = () => {
+  const handleDeleteAlbums = async () => { //DB 연동
     if (selectedIndexes.length === 0) {
       window.alert('삭제할 앨범을 먼저 선택해주세요.');
       return;
     }
 
     if (window.confirm(`선택한 ${selectedIndexes.length}개의 앨범을 삭제하시겠습니까?`)) {
-      setAlbums(albums.filter((_, idx) => !selectedIndexes.includes(idx)));
-      setSelectedIndexes([]);
+      try {
+        const shopId = "3sesac18";
+        
+        // 🚨 백엔드 API 호출: 선택된 모든 앨범 삭제
+        // Promise.all을 쓰면 병렬로 처리되어 더 빠릅니다!
+        await Promise.all(
+          selectedIndexes.map(async (idx) => {
+            const albumId = albums[idx].id;
+            if (albumId !== 'new') {
+              return apiClient.delete(`/photos/albums/${shopId}/${albumId}`);
+            }
+          })
+        );
+
+        window.alert('선택한 앨범이 삭제되었습니다.');
+        
+        // 🔄 삭제 후 목록 새로고침
+        fetchAlbums();
+        setSelectedIndexes([]);
+      } catch (error) {
+        console.error("앨범 삭제 실패:", error);
+        window.alert('앨범 삭제 중 오류가 발생했습니다.');
+      }
     }
   };
 
@@ -238,11 +276,37 @@ export default function MyAlbumScreen() {
             </div>
 
             {/* 앨범 내부 사진 리스트 영역 */}
-            <div className="flex-1 bg-[#F9F9F9] rounded-xl flex justify-center items-center border border-[#E0E0E0] min-h-0 overflow-y-auto">
+            <div className={`flex-1 bg-[#F9F9F9] rounded-xl border border-[#E0E0E0] min-h-0 overflow-y-auto ${
+              albumPhotos && albumPhotos.length > 0 ? 'p-[30px] block' : 'flex justify-center items-center'
+            }`}>
+              
               {selectedAlbum.id === 'new' ? (
-                <span className="text-[18px] text-[#A0A0A0]">우측 상단의 '사진 추가' 버튼을 눌러 사진을 채워보세요.</span>
+                /* 1. 새 앨범일 때 (원래 디자인) */
+                <span className="text-[18px] text-[#A0A0A0]">
+                  우측 상단의 '사진 추가' 버튼을 눌러 사진을 채워보세요.
+                </span>
+              ) : albumPhotos && albumPhotos.length > 0 ? (
+                /* 2. 사진이 있을 때 (그리드 레이아웃) */
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {albumPhotos.map((photo: any) => (
+                    <div 
+                      key={photo.id} 
+                      className="relative aspect-square bg-white rounded-lg overflow-hidden border border-[#EEE] group cursor-pointer"
+                    >
+                      <img 
+                        src={photo.blob_url} 
+                        alt={photo.original_name} 
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity" />
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <span className="text-[18px] text-[#A0A0A0]">이 앨범에 저장된 사진들이 표시될 영역입니다.</span>
+                /* 3. 사진이 없는 기존 앨범일 때 */
+                <span className="text-[18px] text-[#A0A0A0]">
+                  이 앨범에는 아직 등록된 사진이 없습니다.
+                </span>
               )}
             </div>
             
