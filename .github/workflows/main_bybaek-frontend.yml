@@ -34,8 +34,7 @@ jobs:
         with:
           name: node-app
           path: |
-            .next/standalone
-            .next/static
+            .next
             public
             package.json
           include-hidden-files: true
@@ -59,5 +58,6 @@ jobs:
           package: .
 
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_819E893BBF1F4D158F6F0BDADD0AA2EA }}
+
 
 
