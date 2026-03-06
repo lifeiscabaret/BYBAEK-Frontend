@@ -12,6 +12,7 @@ interface AlbumData {
   title?: string;
   description?: string;
   photoCount?: number;
+  thumbnailUrl?: string;
 }
 
 const INITIAL_MOCK_ALBUMS: AlbumData[] = [
@@ -46,7 +47,8 @@ export default function MyAlbumScreen() {
         id: album.id,
         title: album.album_name,
         photoCount: album.photo_count,
-        description: album.description || "설명이 없습니다."
+        description: album.description || "설명이 없습니다.",
+        thumbnailUrl: album.thumbnail_url
       }));
 
       // 맨 앞에 "새 앨범 만들기" 카드를 붙여서 상태 업데이트
@@ -78,32 +80,34 @@ export default function MyAlbumScreen() {
   };
 
   // 모달에서 '저장' 버튼을 눌렀을 때 실행되는 핵심 로직
-  const handleSaveOverlay = async () => {
+  const handleSaveOverlay = () => {
     if (!selectedAlbum) return;
-    try {
-      const shopId = "3sesac18"; //DB 연동 임시
-      if (selectedAlbum.id === 'new') {
 
-        await apiClient.post(`/photos/albums`, {
-          shop_id: shopId,
-          album_name: editTitle || "제목 없는 앨범",
-          photo_ids: [] // 초기에는 빈 사진 리스트 전송
-        });
-        // alert("새 앨범이 생성되었습니다!");
-
-      } else {
-        // 2. 기존 앨범 수정 로직
-        setAlbums(prev =>
-          prev.map(a => (a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDesc } : a))
-        );
-      }
+    if (selectedAlbum.id === 'new') {
+      // 1. 새 앨범 생성 로직
+      const newAlbum: AlbumData = {
+        id: Date.now().toString(), // 고유 ID 임시 생성
+        title: editTitle || '제목 없는 앨범', // 미입력 시 기본값
+        description: editDesc,
+        photoCount: 0, // 새 앨범은 사진 0장
+      };
       
-      // 저장 후 모달 닫기
-      setIsDetailModalVisible(false);
-      setSelectedAlbum(null);
-    } catch (error) {
-      alert("앨범 저장 실패 ㅠㅠ");
+      // '새 앨범 만들기' 카드(index 0) 바로 뒤에 새 앨범 추가
+      setAlbums(prev => {
+        const newAlbums = [...prev];
+        newAlbums.splice(1, 0, newAlbum);
+        return newAlbums;
+      });
+    } else {
+      // 2. 기존 앨범 수정 로직
+      setAlbums(prev =>
+        prev.map(a => (a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDesc } : a))
+      );
     }
+    
+    // 저장 후 모달 닫기
+    setIsDetailModalVisible(false);
+    setSelectedAlbum(null);
   };
 
   const handleDeleteAlbums = () => {

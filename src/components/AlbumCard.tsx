@@ -10,6 +10,7 @@ interface AlbumData {
   title?: string;
   description?: string;
   photoCount?: number;
+  thumbnailUrl?: string;
 }
 
 interface AlbumCardProps {
@@ -61,7 +62,17 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
         onClick={() => onToggleSelect(index)}
         className="w-full h-40 bg-gray-100 rounded-md flex items-center justify-center hover:bg-gray-200 transition-colors focus:outline-none mb-3"
       >
-        <span className="text-gray-500 font-medium">첫 장 사진</span>
+        {item.thumbnailUrl ? (
+          <img 
+            src={item.thumbnailUrl} 
+            alt={item.title} 
+            className="w-full h-full object-cover transition-transform hover:scale-105" 
+          />
+        ) : (
+          <span className="text-gray-400 font-medium text-sm text-center px-2">
+            사진이 없습니다
+          </span>
+        )}
       </button>
 
       {/* 앨범 정보 영역 */}
