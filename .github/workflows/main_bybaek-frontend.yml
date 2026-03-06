@@ -46,7 +46,10 @@ jobs:
     
     steps:
       - name: Clear all files
-        run: rm -rf ../../home/site/wwwroot/*
+        run: |
+          pwd
+          cd /home/site/wwwroot
+          rm -rf .[^.]* *
     
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
@@ -65,6 +68,8 @@ jobs:
 
       - name: Post directory processing
         run: |
-          mv ../../home/site/wwwroot/.next/standalone/* ../../home/site/wwwroot/
-          rm -rf ../../home/site/wwwroot/.next/standalone
+          pwd
+          cd /home/site/wwwroot
+          mv .next/standalone/* .
+          rm -rf .next/standalone
 
