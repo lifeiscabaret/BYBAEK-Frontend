@@ -26,9 +26,9 @@ jobs:
       - name: npm install, build, and test
         run: |
           npm install
-          npm ci
           npm run build --if-present
           npm run test --if-present
+          npm ci
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -55,3 +55,4 @@ jobs:
           package: .
 
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_819E893BBF1F4D158F6F0BDADD0AA2EA }}
+
