@@ -33,7 +33,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
   });
 
   const currentQuestion: SurveyQuestion = ONBOARDING_QUESTIONS[currentIndex];
-  const partTitle = currentQuestion.category === 'PERSONAL' ? '개인화 설정' : '앱 설정';
+  const partTitle = currentQuestion.category === 'PERSONAL' ? '개인화 설정 - 설정 탭에서 언제든지 변경 가능' : '앱 설정 - 설정 탭에서 언제든지 변경 가능';
 
   // 3. 주관식 입력창 초기값 세팅 (텍스트 답변이 존재하면 불러오기)
   const [inputText, setInputText] = useState('');
