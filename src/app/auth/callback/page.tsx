@@ -1,29 +1,23 @@
 // 타겟 경로: src/app/auth/callback/page.tsx
 "use client";
 
-import React, { useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useEffect } from "react";
 
 export default function AuthCallback() {
-    const searchParams = useSearchParams();
-
   useEffect(() => {
-    // URL에서 provider 값을 읽어옴 (예: ?provider=ms 또는 ?provider=insta)
-    const provider = searchParams.get('provider') || 'ms'; 
+    const params = new URLSearchParams(window.location.search);
+    const provider = params.get("provider") || "ms";
 
     if (window.opener) {
-      // provider에 따라 부모 창으로 다른 성공 메시지를 보냄
-      if (provider === 'insta') {
-        window.opener.postMessage('INSTA_LOGIN_SUCCESS', '*');
-      } else {
-        window.opener.postMessage('MS_LOGIN_SUCCESS', '*');
-      }
-      
+      window.opener.postMessage(
+        provider === "insta" ? "INSTA_LOGIN_SUCCESS" : "MS_LOGIN_SUCCESS",
+        "*"
+      );
       window.close();
     } else {
-      window.location.href = '/login';
+      window.location.href = "/login";
     }
-  }, [searchParams]);
+  }, []);
 
   return (
     <div className="flex h-screen items-center justify-center bg-gray-50">
