@@ -1,10 +1,11 @@
 // 타겟 경로: src/app/dashboard/page.tsx
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react'; //DB 연동
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar'; 
 import { PostCard } from '@/components/PostCard'; 
+import apiClient from '@/api/index';
 
 // 임시 Mock Data
 const MOCK_DATA = [
@@ -18,6 +19,22 @@ const MOCK_DATA = [
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const [posts, setPosts] = useState<any[]>([]); //DB 연동
+  const shopId = "3sesac18"; //DB 연동
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await apiClient.get(`/agent/posts/${shopId}`);
+        
+        // axios는 response.data 안에 실제 결과값이 들어있습니다.
+        setPosts(response.data.posts || []);
+      } catch (error) {
+        console.error("데이터 로딩 실패:", error);
+      }
+    };
+    fetchPosts();
+  }, [shopId]);
 
   return (
     // 1. [핵심] min-h-screen을 h-screen으로 변경하고 overflow-hidden 추가
@@ -37,29 +54,22 @@ export default function DashboardScreen() {
         {/* 그리드 리스트 영역: 독립 스크롤을 위한 min-h-0 추가 */}
         <div className="flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-hide">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 pb-large">
-            {MOCK_DATA.map((item) => {
-              // 1. 새 게시물 만들기 버튼 카드
-              if (item.isNew) {
-                return (
-                  <PostCard 
-                    key={item.id}
-                    id={item.id} 
-                    isNewButton={true} 
-                    onPress={() => router.push('/preview')} 
-                  />
-                );
-              }
-              
-              // 2. 일반 게시물 카드
-              return (
-                <PostCard 
-                  key={item.id}
-                  id={item.id} 
-                  title={item.title} 
-                  onPress={() => router.push(`/post/${item.id}`)} 
-                />
-              );
-            })}
+            
+            <PostCard 
+              id="new" 
+              isNewButton={true} 
+              onPress={() => router.push('/preview')} 
+            />
+            
+            {posts.map((post) => (
+              <PostCard 
+                key={post.id}
+                id={post.id} 
+                title={post.caption?.substring(0, 15) + "..."} // 제목이 없을 경우 캡션 일부 사용
+                imageUrl={post.thumbnail_url}
+                onPress={() => router.push(`/post/${post.id}?shop_id=${shopId}`)} 
+              />
+            ))}
           </div>
         </div>
         
