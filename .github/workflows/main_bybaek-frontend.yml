@@ -45,12 +45,6 @@ jobs:
     needs: build
     
     steps:
-      - name: Clear all files
-        run: |
-          pwd
-          cd /home/site/wwwroot
-          rm -rf .[^.]* *
-    
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
@@ -66,10 +60,4 @@ jobs:
 
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_819E893BBF1F4D158F6F0BDADD0AA2EA }}
 
-      - name: Post directory processing
-        run: |
-          pwd
-          cd /home/site/wwwroot
-          mv .next/standalone/* .
-          rm -rf .next/standalone
 
