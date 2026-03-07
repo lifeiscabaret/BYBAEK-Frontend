@@ -61,7 +61,7 @@ export default function LoginScreen() {
     setMsLoginStatus('IN_PROGRESS');
     
     // 2. 프론트엔드의 콜백 주소 (현재는 로컬 테스트용, 나중에 실제 도메인으로 변경해야 해)
-    const frontendCallbackUrl = encodeURIComponent('callbahttp://localhost:3000/auth/ck');
+    const frontendCallbackUrl = encodeURIComponent('https://bybaek-frontend-dcctbxfhdnhge4ap.koreacentral-01.azurewebsites.net/auth/callback');
     
     // 3. 백엔드 주소 + 로그인 후 돌아올 프론트엔드 주소 합치기
     const loginUrl = `https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
@@ -202,7 +202,7 @@ export default function LoginScreen() {
         <>
           <p className="text-body text-text-primary text-center mb-small">아래 QR을 찍어 휴대폰에 OneDrive를 설치해주세요.</p>
           <p className="text-body text-text-primary text-center mb-small">로그인 → 좌측상단 로고 버튼 클릭 → 설정<br /> → 카메라 백업 → 계정 선택 → 백업켜기 확인</p>
-          <p className="text-body text-text-primary text-center mb-small">이미지가 OneDrive에 올라가면<br /> 자동으로 BYBAEK에 등록됩니다.</p>
+          <p className="text-body text-text-primary text-center mb-small">사진이 OneDrive에 저장되면<br /> 자동으로 인스타용 사진을 선별하여<br /> BYBAEK에 등록합니다.</p>
           <div className="w-[150px] h-[150px] bg-[#EAEAEA] flex justify-center items-center mt-large">
             <span className="text-h2 text-text-secondary font-bold mb-small">QR 코드</span>
           </div>
