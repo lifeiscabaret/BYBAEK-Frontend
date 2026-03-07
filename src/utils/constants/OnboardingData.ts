@@ -1,51 +1,55 @@
 // 타겟 경로: src/utils/constants/OnboardingData.ts
 
 export type SurveyType = 'SELECT' | 'TEXT' | 'SELECT_TEXT'; 
-export type SurveyCategory = 'PERSONAL' | 'APP'; // 파트 구분을 위한 카테고리 추가
+export type SurveyCategory = 'PERSONAL' | 'APP'; 
 
 export interface SurveyQuestion {
   id: number;
   category: SurveyCategory;
   type: SurveyType;
   question: string;
-  isMultiSelect?: boolean; // 🚨 중복 선택 가능 여부 추가
+  isMultiSelect?: boolean; 
   options?: string[];
   placeholder?: string;
 }
 
 export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
-  /** * PART 1. 개인화 설정 (Personalization) 
-   * 브랜드의 톤앤매너와 콘텐츠 성향을 파악합니다.
-   */
+  /** * PART 1. 개인화 설정 (Personalization) */
   {
     id: 1,
     category: 'PERSONAL',
-    type: 'SELECT',
-    question: '우리 샵은 어떤 느낌인가요? (최대 3개)',
-    isMultiSelect: true, // 🚨 중복 선택 활성화
-    options: ['남성적/클래식', '트렌디/모던', '친근/편안', '프리미엄/고급', '미니멀', '빈티지']
+    type: 'SELECT_TEXT', // 🚨 SELECT -> SELECT_TEXT 로 변경
+    question: '우리 샵은 어떤 느낌인가요?', // 🚨 (최대 3개) 문구 삭제
+    isMultiSelect: true, 
+    options: ['남성적/클래식', '트렌디/모던', '친근/편안', '프리미엄/고급', '미니멀', '빈티지'],
+    placeholder: '그 외 느낌을 직접 입력해주세요.' // 🚨 입력창 안내 문구 추가
   },
   {
     id: 2,
     category: 'PERSONAL',
-    type: 'SELECT',
+    type: 'SELECT_TEXT', // 🚨 SELECT -> SELECT_TEXT 로 변경
     question: '가장 강조하고 싶은 시술은 무엇인가요?',
-    options: ['페이드컷', '슬릭백', '사이드파트', '수염트리밍', '가르마펌', '아이롱펌', '직접 입력']
+    isMultiSelect: true, // 🚨 다중 선택 추가
+    options: ['페이드컷', '슬릭백', '사이드파트', '수염트리밍', '가르마펌', '아이롱펌'], // '직접 입력' 옵션 제거
+    placeholder: '그 외 시술을 직접 입력해주세요.' // 🚨 입력창 안내 문구 추가
   },
   {
     id: 3,
     category: 'PERSONAL',
-    type: 'SELECT_TEXT', // 멀티 선택 + 자유 입력 형태
+    type: 'SELECT_TEXT', 
     question: '올리기 싫은 사진 유형이 있나요?',
+    isMultiSelect: true, // 🚨 다중 선택 명시
     options: ['얼굴 클로즈업', '배경 지저분', '스타일링 미완성', '팀원 사진'],
     placeholder: '그 외 피하고 싶은 유형을 입력해주세요.'
   },
   {
     id: 4,
     category: 'PERSONAL',
-    type: 'SELECT',
+    type: 'SELECT_TEXT', // 🚨 SELECT -> SELECT_TEXT 로 변경
     question: '해시태그는 어떤 방향을 선호하시나요?',
-    options: ['남성 헤어 전문', '지역명 포함', '감성/트렌드 태그', '전부 다']
+    isMultiSelect: true, // 🚨 다중 선택 추가
+    options: ['남성 헤어 전문', '지역명 포함', '감성/트렌드 태그'],
+    placeholder: '그 외 선호하는 방향을 입력해주세요.' // 🚨 입력창 안내 문구 추가
   },
   {
     id: 5,
@@ -75,17 +79,15 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     question: '기존에 반응 좋았던 게시물 URL 혹은 내용을 알려주세요.',
     placeholder: '인스타 게시물 URL이나 특징을 적어주세요 (RAG 데이터 활용)'
   },
-  
-  { id: 10,
+  { 
+    id: 10,
     category: 'PERSONAL',
     type: 'TEXT',
     question: '샵의 위치는 어디인가요? (도시까지 입력)',
     placeholder: '예: 서울 강남구, 부산 해운대구'
   },
 
-  /** * PART 2. 앱 설정 (App Settings) 
-   * 모두 객관식(SELECT)으로만 구성하여 빠른 설정을 유도합니다.
-   */
+  /** * PART 2. 앱 설정 (App Settings) */
   {
     id: 11,
     category: 'APP',
@@ -93,7 +95,13 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     question: '자동 업로드를 활성화하시겠습니까?\n활성화하면 업로드 30분 전 메일을 보냅니다.',
     options: ['예 (추천)', '아니오']
   },
-  
+  {
+    id: 12,
+    category: 'APP',
+    type: 'TEXT',
+    question: '알람을 받을 메일 주소를 입력해주세요',
+    placeholder: '예: example@gmail.com'
+  },
   {
     id: 14,
     category: 'APP',

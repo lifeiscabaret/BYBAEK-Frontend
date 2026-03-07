@@ -1,61 +1,66 @@
 // 타겟 경로: src/app/setting/page.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
-import { SnsConnectionModal } from '@/components/SnsConnectionModal';
 import { SettingEditModal } from '@/components/SettingEditModal';
 import { MockDB } from '@/utils/MockDB';
 import { ONBOARDING_QUESTIONS } from '@/utils/constants/OnboardingData';
 import { OnboardingSurvey } from '@/components/OnboardingSurvey';
 
+type AuthModalType = 'NONE' | 'Microsoft' | 'Instagram' | 'Gmail';
+type AuthStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
+
+// 🚨 커스텀 알림/확인창을 위한 타입 정의
+interface CustomAlertState {
+  isOpen: boolean;
+  message: string;
+  type: 'ALERT' | 'CONFIRM';
+  onConfirm?: () => void;
+}
+
 export default function SettingScreen() {
   const [shopId] = useState('shop_12345');
 
-  // 앱 설정 관련 (온보딩 MockDB 답변 매핑)
   const [isAutoUploadEnabled, setIsAutoUploadEnabled] = useState(
     MockDB.getAnswer(11) === '예 (추천)'
   );
 
-  const [reviewMethod, setReviewMethod] = useState(
-    (MockDB.getAnswer(12) as string) || '항상 내가 검토 후 업로드'
+  const [gmailAddress, setGmailAddress] = useState(
+    (MockDB.getAnswer(12) as string) || ''
   );
 
-  const [notiOffset, setNotiOffset] = useState(
-    (MockDB.getAnswer(13) as string) || '30분 전'
-  );
-
-  // 🚨 새롭게 추가된 언어 설정 (ID: 14)
   const [language, setLanguage] = useState(
     (MockDB.getAnswer(14) as string) || '한국어'
   );
 
-  // 모달 제어 상태
   const [isPromptListOpen, setIsPromptListOpen] = useState(false);
+  const [isAccountListOpen, setIsAccountListOpen] = useState(false); 
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
   const [targetQuestionId, setTargetQuestionId] = useState<number>(1);
-  const [isSnsModalVisible, setSnsModalVisible] = useState(false);
   const [isTimeModalVisible, setTimeModalVisible] = useState(false);
-  const [isNotiModalVisible, setNotiModalVisible] = useState(false);
 
-  // SNS 연동 상태
+  const [isMicrosoftConnected, setIsMicrosoftConnected] = useState(true);
   const [isInstagramConnected, setIsInstagramConnected] = useState(true);
-  const [isKakaoConnected, setIsKakaoConnected] = useState(false);
   const [isGmailConnected, setIsGmailConnected] = useState(false);
   
-  const frequencies = ['매일', '2일마다', '3일마다', '4일마다', '5일마다', '6일마다', '일주일마다'];
-  const notiOffsets = ['10분 전', '30분 전', '1시간 전', '받지 않음'];
+  const [activeAuthModal, setActiveAuthModal] = useState<AuthModalType>('NONE');
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('IDLE');
 
-  // 시스템 프롬프트 요약 (현재는 UI에서 숨김 처리됨)
+  // 🚨 윈도우 기본 경고창을 대체할 커스텀 알림 상태
+  const [customAlert, setCustomAlert] = useState<CustomAlertState>({
+    isOpen: false,
+    message: '',
+    type: 'ALERT'
+  });
+
+  const frequencies = ['매일', '2일마다', '3일마다', '4일마다', '5일마다', '6일마다', '일주일마다'];
   const [systemPrompt, setSystemPrompt] = useState(MockDB.generateSystemPrompt());
-  
-  // 업로드 설정
   const [frequency, setFrequency] = useState('매일');
   const [amPm, setAmPm] = useState('AM');
   const [hour, setHour] = useState('10');
   const [minute, setMinute] = useState('30');
   
-  // 모달창 임시 조작용
   const [tempFrequency, setTempFrequency] = useState(frequency);
   const [tempAmPm, setTempAmPm] = useState(amPm);
   const [tempHour, setTempHour] = useState(hour);
@@ -67,10 +72,24 @@ export default function SettingScreen() {
   const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
-  const [tempNotiOffset, setTempNotiOffset] = useState(notiOffset);
-  const [isAppNotiEnabled, setIsAppNotiEnabled] = useState(
-    MockDB.getAnswer(15) === '예'
-  );
+  useEffect(() => {
+    const handleAuthMessage = (event: MessageEvent) => {
+      if (event.data === 'MS_LOGIN_SUCCESS' && activeAuthModal === 'Microsoft') {
+        setAuthStatus('COMPLETED');
+        setIsMicrosoftConnected(true);
+      }
+      if (event.data === 'INSTA_LOGIN_SUCCESS' && activeAuthModal === 'Instagram') {
+        setAuthStatus('COMPLETED');
+        setIsInstagramConnected(true);
+      }
+      if (event.data === 'GMAIL_LOGIN_SUCCESS' && activeAuthModal === 'Gmail') {
+        setAuthStatus('COMPLETED');
+        setIsGmailConnected(true);
+      }
+    };
+    window.addEventListener('message', handleAuthMessage);
+    return () => window.removeEventListener('message', handleAuthMessage);
+  }, [activeAuthModal]);
 
   const saveIndividualSetting = async (settingName: string, value: any) => {
     console.log(`[API MOCK] ${settingName} 업데이트 요청:`, value);
@@ -81,51 +100,37 @@ export default function SettingScreen() {
     MockDB.saveAnswer(11, val ? '예 (추천)' : '아니오');
   };
 
-  // 앱 푸시 알림 토글 핸들러
-  const handleToggleAppNoti = (val: boolean) => {
-    setIsAppNotiEnabled(val);
-    MockDB.saveAnswer(15, val ? '예' : '아니오');
-  };
-
-  const handleToggleReviewMethod = () => {
-    const nextMethod = reviewMethod === '항상 내가 검토 후 업로드' 
-      ? '시간 되면 자동 업로드' 
-      : '항상 내가 검토 후 업로드';
-    setReviewMethod(nextMethod);
-    MockDB.saveAnswer(12, nextMethod);
-  };
-
-  // 🚨 언어 변경 토글 핸들러
   const handleToggleLanguage = () => {
     const nextLang = language === '한국어' ? 'English' : '한국어';
     setLanguage(nextLang);
     MockDB.saveAnswer(14, nextLang);
-    // 차후 서비스 전체 다국어(i18n) 적용 시 여기서 전역 상태나 언어팩 변경 로직을 호출하면 됩니다.
   };
 
-  const toggleSwitch = (settingName: string, currentState: boolean, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
-    const newState = !currentState;
-    setter(newState);
-    saveIndividualSetting(settingName, newState);
-  };
+  const triggerExternalPopup = (platform: AuthModalType) => {
+    setAuthStatus('IN_PROGRESS');
+    
+    const currentOrigin = window.location.origin;
+    const callbackUrl = encodeURIComponent(`${currentOrigin}/auth/callback`);
+    let authUrl = '';
 
-  const handleSnsConnection = async (
-    snsName: string, 
-    isConnected: boolean, 
-    setConnectionState: React.Dispatch<React.SetStateAction<boolean>>, 
-    authUrl: string
-  ) => {
-    if (isConnected) {
-      setConnectionState(false);
-      saveIndividualSetting(`${snsName}_connected`, false);
-      window.alert(`${snsName} 연동이 해제 되었습니다.`);
-    } else {
-      try {
-        window.open(authUrl, '_blank');
-        setConnectionState(true);
-        saveIndividualSetting(`${snsName}_connected`, true);
-      } catch (error) {
-        window.alert('오류: 해당 웹페이지를 열 수 없습니다.');
+    if (platform === 'Microsoft') {
+      authUrl = `https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${callbackUrl}`;
+    } else if (platform === 'Instagram') {
+      authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1219138883682659&redirect_uri=${callbackUrl}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+    } else if (platform === 'Gmail') {
+      authUrl = 'https://accounts.google.com/'; 
+    }
+
+    if (authUrl !== '') {
+      const popup = window.open(authUrl, `${platform}_Login_Popup`, 'width=500,height=600');
+      // 🚨 브라우저 경고창 대신 커스텀 알림창 사용
+      if (!popup) {
+        setCustomAlert({
+          isOpen: true,
+          message: '팝업 차단이 감지되었습니다.\n브라우저 설정에서 팝업을 허용해주세요.',
+          type: 'ALERT'
+        });
+        setAuthStatus('IDLE');
       }
     }
   };
@@ -143,10 +148,125 @@ export default function SettingScreen() {
     </button>
   );
 
+  // 🚨 커스텀 알림/확인창 UI 렌더링 함수
+  const renderCustomAlert = () => {
+    if (!customAlert.isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-[99999]">
+        <div className="bg-background rounded-xl shadow-lg p-8 w-[360px] flex flex-col items-center">
+          
+          {/* 아이콘: CONFIRM(해제)일 땐 빨간색 경고, 일반 ALERT일 땐 버건디색 안내 */}
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+            customAlert.type === 'CONFIRM' ? 'bg-[#FFE5E5]' : 'bg-red-50'
+          }`}>
+            <span className={`text-2xl font-bold leading-none ${
+              customAlert.type === 'CONFIRM' ? 'text-[#E02424]' : 'text-accent'
+            }`}>!</span>
+          </div>
+
+          <h3 className="text-lg font-bold text-text-primary mb-2">
+            {customAlert.type === 'CONFIRM' ? '연동 해제' : '알림'}
+          </h3>
+          <p className="text-sm text-text-secondary text-center mb-6 whitespace-pre-wrap leading-relaxed">
+            {customAlert.message}
+          </p>
+
+          <div className="flex flex-row w-full gap-3">
+            {customAlert.type === 'CONFIRM' && (
+              <button
+                onClick={() => setCustomAlert({ ...customAlert, isOpen: false })}
+                className="flex-1 py-3 bg-[#E0E0E0] text-text-primary rounded-lg font-bold hover:bg-gray-300 transition-colors focus:outline-none"
+              >
+                취소
+              </button>
+            )}
+            <button
+              onClick={() => {
+                if (customAlert.onConfirm) customAlert.onConfirm();
+                setCustomAlert({ ...customAlert, isOpen: false });
+              }}
+              className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors focus:outline-none ${
+                customAlert.type === 'CONFIRM' ? 'bg-[#E02424] hover:bg-red-800' : 'bg-accent hover:bg-accent-dark'
+              }`}
+            >
+              {customAlert.type === 'CONFIRM' ? '해제하기' : '확인'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAuthModal = () => {
+    if (activeAuthModal === 'NONE') return null;
+
+    let title = '';
+    let desc = '';
+    let btnText = '';
+
+    if (activeAuthModal === 'Microsoft') {
+      title = 'MS 로그인 화면';
+      desc = '보안을 위해 외부 브라우저에서 로그인을 진행합니다.';
+      btnText = 'Microsoft 계정으로 로그인';
+    } else if (activeAuthModal === 'Instagram') {
+      title = '인스타 연동';
+      desc = 'Instagram 연동을 위해 권한을 부여해 주세요.';
+      btnText = 'Instagram 연동하기';
+    } else if (activeAuthModal === 'Gmail') {
+      title = 'Gmail 연동';
+      desc = '이메일 알림을 위해 Gmail 계정을 연동해 주세요.';
+      btnText = 'Gmail 계정으로 로그인';
+    }
+
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[9999]">
+        <div className="w-[450px] min-h-[500px] bg-background rounded-xl shadow-lg p-large flex flex-col justify-between">
+          <div className="flex justify-between items-center mb-large">
+            <h2 className="text-h2 font-bold text-text-primary">{title}</h2>
+            <button onClick={() => setActiveAuthModal('NONE')} className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none">✕</button>
+          </div>
+          <div className="flex-1 flex flex-col justify-center items-center px-4">
+            {authStatus === 'IDLE' && (
+              <>
+                <p className="text-body text-text-primary text-center mb-5">{desc}</p>
+                <button onClick={() => triggerExternalPopup(activeAuthModal)} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors focus:outline-none">
+                  {btnText}
+                </button>
+              </>
+            )}
+            {authStatus === 'IN_PROGRESS' && (
+              <div className="flex flex-col items-center animate-pulse">
+                <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-body text-text-primary text-center font-bold">로그인 진행 중입니다...</p>
+                <p className="text-[14px] text-text-secondary text-center mt-2">외부 창에서 로그인이 완료되면<br />자동으로 이 화면이 넘어갑니다.</p>
+                <button onClick={() => {
+                  setAuthStatus('COMPLETED');
+                  if(activeAuthModal === 'Microsoft') setIsMicrosoftConnected(true);
+                  if(activeAuthModal === 'Instagram') setIsInstagramConnected(true);
+                  if(activeAuthModal === 'Gmail') setIsGmailConnected(true);
+                }} className="mt-8 text-xs text-gray-400 underline">(테스트용) 로그인 완료 강제 트리거</button>
+              </div>
+            )}
+            {authStatus === 'COMPLETED' && (
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"><span className="text-green-600 text-3xl">✓</span></div>
+                <p className="text-[18px] font-bold text-text-primary">인증 완료!</p>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-row justify-between mt-large">
+            <button onClick={() => setActiveAuthModal('NONE')} className="flex-1 bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center mr-small text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none">취소</button>
+            <button onClick={() => setActiveAuthModal('NONE')} disabled={authStatus !== 'COMPLETED'} className={`flex-1 py-3 rounded-lg flex items-center justify-center font-bold transition-colors focus:outline-none ${authStatus !== 'COMPLETED' ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-accent text-text-inverse hover:bg-accent-dark'}`}>완료</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-row h-screen w-full bg-background relative overflow-hidden">
       <Sidebar />
-
       <div className="flex-1 p-large flex flex-col min-w-0 h-full">
         <div className="mb-large border-b border-border pb-small shrink-0">
           <h1 className="text-[28px] text-text-primary font-bold">설정</h1>
@@ -154,43 +274,23 @@ export default function SettingScreen() {
 
         <div className="flex-1 overflow-y-auto pr-2 pb-large min-h-0 scrollbar-hide">
           
-          {/* 시스템 프롬프트 설정 */}
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4 transition-all">
             <div className="flex flex-row justify-between items-center">
               <h2 className="text-base font-bold text-text-primary m-0">나만의 마케터</h2>
-              <button 
-                onClick={() => setIsPromptListOpen(!isPromptListOpen)}
-                className="flex items-center text-sm font-bold text-text-primary hover:text-accent transition-colors focus:outline-none"
-              >
+              <button onClick={() => setIsPromptListOpen(!isPromptListOpen)} className="flex items-center text-sm font-bold text-text-primary hover:text-accent transition-colors focus:outline-none">
                 {isPromptListOpen ? '▲ 닫기' : '▼ 열기'}
               </button>
             </div>
-
             {isPromptListOpen && (
               <div className="flex flex-col gap-5 mt-4 pt-4 border-t border-[#E0E0E0]">
                 {ONBOARDING_QUESTIONS.filter(q => q.category === 'PERSONAL').map((q, index) => {
                   const rawAnswer = MockDB.getAnswer(q.id);
-                  const displayAnswer = rawAnswer 
-                    ? (Array.isArray(rawAnswer) ? rawAnswer.join(', ') : rawAnswer)
-                    : '미입력';
-
+                  const displayAnswer = rawAnswer ? (Array.isArray(rawAnswer) ? rawAnswer.join(', ') : rawAnswer) : '미입력';
                   return (
                     <div key={q.id} className="flex flex-row items-center justify-between gap-4">
-                      <p className="flex-[2] text-[14px] text-text-primary leading-snug">
-                        {index + 1}. {q.question}
-                      </p>
-                      <p className="flex-[1] text-[14px] text-text-secondary font-bold text-right truncate">
-                        {displayAnswer}
-                      </p>
-                      <button 
-                        className="px-4 py-1.5 bg-background border border-[#D0D0D0] rounded-full text-[13px] font-semibold text-text-primary hover:bg-gray-50 transition-colors focus:outline-none shrink-0"
-                        onClick={() => {
-                          setTargetQuestionId(q.id);
-                          setIsOnboardingModalOpen(true);
-                        }}
-                      >
-                        수정
-                      </button>
+                      <p className="flex-[2] text-[14px] text-text-primary leading-snug">{index + 1}. {q.question}</p>
+                      <p className="flex-[1] text-[14px] text-text-secondary font-bold text-right truncate">{displayAnswer}</p>
+                      <button className="px-4 py-1.5 bg-background border border-[#D0D0D0] rounded-full text-[13px] font-semibold text-text-primary hover:bg-gray-50 transition-colors focus:outline-none shrink-0" onClick={() => { setTargetQuestionId(q.id); setIsOnboardingModalOpen(true); }}>수정</button>
                     </div>
                   );
                 })}
@@ -198,103 +298,124 @@ export default function SettingScreen() {
             )}
           </div>
 
-          {/* SNS 연동 */}
-          <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
-            <h2 className="text-base font-bold text-text-primary mb-4">SNS 연동</h2>
+          <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4 transition-all">
             <div className="flex flex-row justify-between items-center">
-              <p className="text-sm text-[#666666]">인스타그램, 카카오톡, Gmail</p>
-              <button 
-                className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none"
-                onClick={() => setSnsModalVisible(true)}
-              >
-                연동 설정
+              <h2 className="text-base font-bold text-text-primary m-0">계정 연동</h2>
+              <button onClick={() => setIsAccountListOpen(!isAccountListOpen)} className="flex items-center text-sm font-bold text-text-primary hover:text-accent transition-colors focus:outline-none">
+                {isAccountListOpen ? '▲ 닫기' : '▼ 열기'}
               </button>
             </div>
+
+            {isAccountListOpen && (
+              <div className="flex flex-col gap-5 mt-4 pt-4 border-t border-[#E0E0E0]">
+                {/* 🚨 각 버튼의 window.confirm을 customAlert로 교체 */}
+                <div className="flex flex-row items-center justify-between gap-4">
+                  <div className="flex-[1] flex items-center gap-2">
+                    <span className="text-[14px] font-bold text-text-primary">Microsoft</span>
+                  </div>
+                  <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
+                    {isMicrosoftConnected ? 'bybaek_barber@outlook.com' : '연동된 계정 없음'}
+                  </p>
+                  <button 
+                    onClick={() => {
+                      if (isMicrosoftConnected) {
+                        setCustomAlert({
+                          isOpen: true,
+                          message: 'Microsoft 계정 연동을 해제하시겠습니까?\n해제 시 관련 기능을 사용할 수 없습니다.',
+                          type: 'CONFIRM',
+                          onConfirm: () => setIsMicrosoftConnected(false)
+                        });
+                      } else {
+                        setActiveAuthModal('Microsoft');
+                        setAuthStatus('IDLE');
+                      }
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isMicrosoftConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
+                  >
+                    {isMicrosoftConnected ? '연동 해제' : '연동하기'}
+                  </button>
+                </div>
+
+                <div className="flex flex-row items-center justify-between gap-4">
+                  <div className="flex-[1] flex items-center gap-2">
+                    <span className="text-[14px] font-bold text-text-primary">Instagram</span>
+                  </div>
+                  <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
+                    {isInstagramConnected ? '@bybaek_official' : '연동된 계정 없음'}
+                  </p>
+                  <button 
+                    onClick={() => {
+                      if (isInstagramConnected) {
+                        setCustomAlert({
+                          isOpen: true,
+                          message: 'Instagram 연동을 해제하시겠습니까?\n자동 포스팅 기능이 중지됩니다.',
+                          type: 'CONFIRM',
+                          onConfirm: () => setIsInstagramConnected(false)
+                        });
+                      } else {
+                        setActiveAuthModal('Instagram');
+                        setAuthStatus('IDLE');
+                      }
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isInstagramConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
+                  >
+                    {isInstagramConnected ? '연동 해제' : '연동하기'}
+                  </button>
+                </div>
+
+                <div className="flex flex-row items-center justify-between gap-4">
+                  <div className="flex-[1] flex items-center gap-2">
+                    <span className="text-[14px] font-bold text-text-primary">Gmail</span>
+                  </div>
+                  <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
+                    {isGmailConnected ? (gmailAddress || '연동된 계정 없음') : '연동된 계정 없음'}
+                  </p>
+                  <button 
+                    onClick={() => {
+                      if (isGmailConnected) {
+                        setCustomAlert({
+                          isOpen: true,
+                          message: 'Gmail 연동을 해제하시겠습니까?\n더 이상 알림 메일을 받을 수 없습니다.',
+                          type: 'CONFIRM',
+                          onConfirm: () => setIsGmailConnected(false)
+                        });
+                      } else {
+                        setActiveAuthModal('Gmail');
+                        setAuthStatus('IDLE');
+                      }
+                    }}
+                    className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isGmailConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
+                  >
+                    {isGmailConnected ? '연동 해제' : '연동하기'}
+                  </button>
+                </div>
+
+              </div>
+            )}
           </div>
 
-          {/* 환경 설정 */}
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
             <h2 className="text-base font-bold text-text-primary mb-4">환경 설정</h2>
-            
-            {/* 1. 언어 설정 */}
             <div className="flex flex-row justify-between items-center mb-4">
               <span className="text-[15px] text-text-primary">사용 언어(Language)</span>
               <div className="flex flex-row items-center">
                 <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">{language}</span>
-                <button 
-                  className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none"
-                  onClick={handleToggleLanguage}
-                >
-                  변경
-                </button>
+                <button className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none" onClick={handleToggleLanguage}>변경</button>
               </div>
             </div>
-
-            {/* 2. 인스타 자동 업로드 (이전에 있던 항목 복구) */}
-            <div className="flex flex-row justify-between items-center mb-4">
+            <div className="flex flex-row justify-between items-center">
               <span className="text-[15px] text-text-primary">인스타 자동 업로드</span>
               <CustomSwitch isOn={isAutoUploadEnabled} onToggle={handleToggleAutoUpload} />
             </div>
-
-            {/* 3. 게시물 검토 방식 */}
-            <div className="flex flex-row justify-between items-center mb-4">
-              <span className="text-[15px] text-text-primary">게시물 검토 방식</span>
-              <div className="flex flex-row items-center">
-                <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">{reviewMethod}</span>
-                <button 
-                  className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none"
-                  onClick={handleToggleReviewMethod}
-                >
-                  변경
-                </button>
-              </div>
-            </div>
-
-            {/* 4. 앱 푸시 알림 (마지막 항목이라 mb-4 생략) */}
-            <div className="flex flex-row justify-between items-center">
-              <span className="text-[15px] text-text-primary">앱 푸시 알림</span>
-              <CustomSwitch isOn={isAppNotiEnabled} onToggle={handleToggleAppNoti} />
-            </div>
           </div>
 
-          {/* 자동 업로드 설정 */}
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
             <h2 className="text-base font-bold text-text-primary mb-4">자동 업로드 설정</h2>
-            
-            <div className="flex flex-row justify-between items-center mb-4">
+            <div className="flex flex-row justify-between items-center">
               <span className="text-[15px] text-text-primary">업로드 시간</span>
               <div className="flex flex-row items-center">
                 <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">{frequency} {amPm} {hour}:{minute}</span> 
-                <button 
-                  className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none"
-                  onClick={() => {
-                    setTempFrequency(frequency);
-                    setTempAmPm(amPm);
-                    setTempHour(hour);
-                    setTempMinute(minute);
-                    setTimeModalVisible(true);
-                  }}
-                >
-                  수정
-                </button>
-              </div>
-            </div>
-            
-            <div className="flex flex-row justify-between items-center">
-              <span className="text-[15px] text-text-primary">알림 시간</span>
-              <div className="flex flex-row items-center">
-                <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">
-                  {notiOffset === '받지 않음' ? '알림 없음' : `업로드 ${notiOffset}`}
-                </span>
-                <button 
-                  className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none"
-                  onClick={() => {
-                    setTempNotiOffset(notiOffset);
-                    setNotiModalVisible(true);
-                  }}
-                >
-                  수정
-                </button>
+                <button className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none" onClick={() => { setTempFrequency(frequency); setTempAmPm(amPm); setTempHour(hour); setTempMinute(minute); setTimeModalVisible(true); }}>수정</button>
               </div>
             </div>
           </div>
@@ -303,30 +424,17 @@ export default function SettingScreen() {
       </div>
 
       {/* --- 모달 영역 --- */}
+      {renderAuthModal()}
+      
+      {/* 🚨 커스텀 알림 모달 출력 */}
+      {renderCustomAlert()}
 
-      {/* SNS 연동 모달 */}
-      <SnsConnectionModal 
-        isVisible={isSnsModalVisible}
-        onClose={() => setSnsModalVisible(false)}
-        isInstagramConnected={isInstagramConnected}
-        isKakaoConnected={isKakaoConnected}
-        isGmailConnected={isGmailConnected}
-        handleSnsConnection={handleSnsConnection}
-        setIsInstagramConnected={setIsInstagramConnected}
-        setIsKakaoConnected={setIsKakaoConnected}
-        setIsGmailConnected={setIsGmailConnected}
-      />
-
-      {/* 업로드 시간 설정 모달 */}
       <SettingEditModal
         isVisible={isTimeModalVisible}
         title="업로드 스케줄 설정"
         onClose={() => setTimeModalVisible(false)}
         onSave={() => {
-          setFrequency(tempFrequency);
-          setAmPm(tempAmPm);
-          setHour(tempHour);
-          setMinute(tempMinute);
+          setFrequency(tempFrequency); setAmPm(tempAmPm); setHour(tempHour); setMinute(tempMinute);
           saveIndividualSetting('schedule', { frequency: tempFrequency, time: `${tempAmPm} ${tempHour}:${tempMinute}` });
           setTimeModalVisible(false);
         }}
@@ -334,123 +442,46 @@ export default function SettingScreen() {
         <p className="text-sm font-bold text-[#666666] mb-2 mt-4">시간 설정</p>
         <div className="flex flex-row flex-wrap mb-4 gap-2">
           {['AM', 'PM'].map(p => (
-            <button 
-              key={p} 
-              className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${
-                tempAmPm === p ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'
-              }`}
-              onClick={() => setTempAmPm(p)}
-            >
-              {p}
-            </button>
+            <button key={p} className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${tempAmPm === p ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'}`} onClick={() => setTempAmPm(p)}>{p}</button>
           ))}
         </div>
-
         <div className="flex flex-row relative z-50 mb-6 gap-4">
-          {/* 시(Hour) 드롭다운 */}
           <div className="relative w-[140px]">
-            <button 
-              className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none"
-              onClick={() => {
-                setIsHourDropdownOpen(!isHourDropdownOpen);
-                setIsMinuteDropdownOpen(false);
-              }}
-            >
-              <span>{tempHour} 시</span>
-              <span className="text-[12px] text-[#888888]">▼</span>
+            <button className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none" onClick={() => { setIsHourDropdownOpen(!isHourDropdownOpen); setIsMinuteDropdownOpen(false); }}>
+              <span>{tempHour} 시</span><span className="text-[12px] text-[#888888]">▼</span>
             </button>
             {isHourDropdownOpen && (
               <div className="absolute top-[110%] left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
-                {hours.map(h => (
-                  <button 
-                    key={`hour-${h}`} 
-                    className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none"
-                    onClick={() => { setTempHour(h); setIsHourDropdownOpen(false); }}
-                  >
-                    {h} 시
-                  </button>
-                ))}
+                {hours.map(h => <button key={`hour-${h}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { setTempHour(h); setIsHourDropdownOpen(false); }}>{h} 시</button>)}
               </div>
             )}
           </div>
-
-          {/* 분(Minute) 드롭다운 */}
           <div className="relative w-[140px]">
-            <button 
-              className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none"
-              onClick={() => {
-                setIsMinuteDropdownOpen(!isMinuteDropdownOpen);
-                setIsHourDropdownOpen(false);
-              }}
-            >
-              <span>{tempMinute} 분</span>
-              <span className="text-[12px] text-[#888888]">▼</span>
+            <button className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none" onClick={() => { setIsMinuteDropdownOpen(!isMinuteDropdownOpen); setIsHourDropdownOpen(false); }}>
+              <span>{tempMinute} 분</span><span className="text-[12px] text-[#888888]">▼</span>
             </button>
             {isMinuteDropdownOpen && (
               <div className="absolute top-[110%] left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
-                {minutes.map(m => (
-                  <button 
-                    key={`min-${m}`} 
-                    className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none"
-                    onClick={() => { setTempMinute(m); setIsMinuteDropdownOpen(false); }}
-                  >
-                    {m} 분
-                  </button>
-                ))}
+                {minutes.map(m => <button key={`min-${m}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { setTempMinute(m); setIsMinuteDropdownOpen(false); }}>{m} 분</button>)}
               </div>
             )}
           </div>
         </div>
-
         <p className="text-sm font-bold text-[#666666] mb-2">업로드 빈도</p>
         <div className="flex flex-row flex-wrap gap-2">
           {frequencies.map(f => (
-            <button 
-              key={f} 
-              className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${
-                tempFrequency === f ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'
-              }`}
-              onClick={() => setTempFrequency(f)}
-            >
-              {f}
-            </button>
+            <button key={f} className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${tempFrequency === f ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'}`} onClick={() => setTempFrequency(f)}>{f}</button>
           ))}
         </div>
       </SettingEditModal>
 
-      {/* 알림 시간 설정 모달 */}
-      <SettingEditModal
-        isVisible={isNotiModalVisible}
-        title="알림 시간 설정"
-        onClose={() => setNotiModalVisible(false)}
-        onSave={() => {
-          setNotiOffset(tempNotiOffset);
-          MockDB.saveAnswer(13, tempNotiOffset); 
-          setNotiModalVisible(false);
-        }}
-      >
-        <div className="flex flex-row flex-wrap gap-2 mt-4">
-          {notiOffsets.map(o => (
-            <button 
-              key={o} 
-              className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${
-                tempNotiOffset === o ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'
-              }`}
-              onClick={() => setTempNotiOffset(o)}
-            >
-              {o}
-            </button>
-          ))}
-        </div>
-      </SettingEditModal>
-
-      {/* 온보딩(시스템 프롬프트 수정) 모달 */}
       {isOnboardingModalOpen && (
         <OnboardingSurvey 
           initialQuestionId={targetQuestionId} 
           onFinish={() => {
             setIsOnboardingModalOpen(false);
             setSystemPrompt(MockDB.generateSystemPrompt());
+            setGmailAddress((MockDB.getAnswer(12) as string) || '');
           }}
           onSkip={() => setIsOnboardingModalOpen(false)}
         />

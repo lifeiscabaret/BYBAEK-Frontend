@@ -89,20 +89,20 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
     if (currentQuestion.isMultiSelect) {
       const prevSelected = Array.isArray(currentAnswer) ? currentAnswer : [];
       if (prevSelected.includes(option)) {
+        // 이미 선택된 거면 해제
         setAnswers({
           ...answers,
           [currentQuestion.id]: prevSelected.filter((item) => item !== option),
         });
       } else {
-        if (prevSelected.length < 3) {
-          setAnswers({
-            ...answers,
-            [currentQuestion.id]: [...prevSelected, option],
-          });
-        }
+        
+        setAnswers({
+          ...answers,
+          [currentQuestion.id]: [...prevSelected, option],
+        });
       }
     } else {
-      // 새로운 객관식을 선택하면 입력창(inputText)은 비워줌
+      // 단일 선택일 경우: 새로운 객관식을 선택하면 입력창(inputText)은 비워줌
       setInputText(''); 
       setAnswers({ ...answers, [currentQuestion.id]: option });
     }
