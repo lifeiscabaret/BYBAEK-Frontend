@@ -1,6 +1,6 @@
 // 타겟 경로: src/utils/constants/OnboardingData.ts
 
-export type SurveyType = 'SELECT' | 'TEXT' | 'SELECT_TEXT'; 
+export type SurveyType = 'SELECT' | 'TEXT' | 'SELECT_TEXT' | 'SCHEDULE'; 
 export type SurveyCategory = 'PERSONAL' | 'APP'; 
 
 export interface SurveyQuestion {
@@ -96,6 +96,12 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     options: ['예 (추천)', '아니오']
   },
   {
+    id: 13,
+    category: 'APP',
+    type: 'SCHEDULE',
+    question: '원하시는 업로드 스케줄을 설정해주세요.',
+  },
+  {
     id: 12,
     category: 'APP',
     type: 'TEXT',
@@ -110,3 +116,30 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     options: ['한국어', 'English']
   }
 ];
+
+export const mapDBToSurveyAnswers = (data: any): Record<number, any> => {
+  if (!data) return {};
+
+  return {
+    1: data.brand_tone || [], // DB가 이미 배열[]로 주니까 그대로 씁니다!
+    2: data.preferred_styles || [],
+    // exclude_conditions는 문자열로 오기도 하니, 배열이 아니면 배열로 감싸줍니다.
+    3: Array.isArray(data.exclude_conditions) ? data.exclude_conditions : (data.exclude_conditions ? [data.exclude_conditions] : []),
+    4: Array.isArray(data.hashtag_style) ? data.hashtag_style : (data.hashtag_style ? [data.hashtag_style] : []),
+    5: data.cta || '',
+    6: data.shop_intro || '',
+    7: data.forbidden_words || [],
+    8: data.rag_reference || '',
+    9: data.city || '',
+    
+    11: data.insta_auto_upload_yn === 'Y' ? '예 (추천)' : '아니오',
+    12: data.gmail_address || '',
+    13: {
+      frequency: data.insta_upload_time_slot || '매일',
+      amPm: data.insta_upload_time ? data.insta_upload_time.split(' ')[1] : 'AM',
+      hour: data.insta_upload_time ? data.insta_upload_time.split(' ')[0].split(':')[0] : '10',
+      minute: data.insta_upload_time ? data.insta_upload_time.split(' ')[0].split(':')[1] : '30'
+    },
+    14: data.language || '한국어'
+  };
+};

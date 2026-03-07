@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { SettingEditModal } from '@/components/SettingEditModal';
 import { OnboardingSurvey } from '@/components/OnboardingSurvey';
-import { ONBOARDING_QUESTIONS } from '@/utils/constants/OnboardingData';
+import { ONBOARDING_QUESTIONS, mapDBToSurveyAnswers } from '@/utils/constants/OnboardingData';
 import apiClient from '@/api/index'; // DB 연동
 
 type AuthModalType = 'NONE' | 'Microsoft' | 'Instagram' | 'Gmail';
@@ -90,21 +90,20 @@ export default function SettingScreen() {
     const fetchOnboardingData = async () => {
       try {
         const response = await apiClient.get(`/onboarding/${shopId}`);
-        const data = response.data.shop_info;
-        const answersData = response.data.survey_answers; // API 명세에 맞춰 수정 필요
-
-        if (answersData) {
-          setSurveyAnswers(answersData);
-          setGmailAddress(answersData[12] || ''); // 12번 문항이 이메일이라 가정
-        }
+        const data = response.data.shop_info || response.data; 
 
         if (data) {
+          // 짠! 방금 만든 헬퍼 함수 하나로 코드가 엄청 깔끔해졌습니다.
+          const mappedAnswers = mapDBToSurveyAnswers(data);
+          setSurveyAnswers(mappedAnswers);
+
+          // 개별 State 세팅
           setIsAutoUploadEnabled(data.insta_auto_upload_yn === 'Y');
           setLanguage(data.language || '한국어');
           setIsInstagramConnected(data.is_insta_connected || false);
+          setIsMicrosoftConnected(data.is_ms_connected || false);
           setIsGmailConnected(data.is_gmail_connected || false);
-          // 🚨 주의: 백엔드 DB 컬럼명에 따라 is_ms_connected 등 수정 필요
-          setIsMicrosoftConnected(data.is_ms_connected || false); 
+          setGmailAddress(data.gmail_address || '');
           
           if (data.insta_upload_time) {
              const [time, period] = data.insta_upload_time.split(' ');
@@ -444,12 +443,34 @@ export default function SettingScreen() {
 
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
             <h2 className="text-base font-bold text-text-primary mb-4">자동 업로드 설정</h2>
-            <div className="flex flex-row justify-between items-center">
-              <span className="text-[15px] text-text-primary">업로드 시간</span>
-              <div className="flex flex-row items-center">
-                <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">{frequency} {amPm} {hour}:{minute}</span> 
-                <button className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none" onClick={() => { setTempFrequency(frequency); setTempAmPm(amPm); setTempHour(hour); setTempMinute(minute); setTimeModalVisible(true); }}>수정</button>
+            
+            {/* 🚨 수정 포인트 1: 부모 컨테이너. justify-between을 제거하고 
+               gap-4를 주어 자식들이 지닌 너비만큼 자연스럽게 배치되도록 수정 */}
+            <div className="flex flex-row items-center gap-4">
+              
+              {/* 🚨 수정 포인트 2: 왼쪽 라벨. shrink-0을 주어 절대로 찌그러지지 않게 고정 */}
+              <span className="text-[15px] text-text-primary shrink-0">업로드 시간</span>
+              
+              {/* 오른쪽 영역 (박스 + 수정버튼) */}
+              <div className="flex flex-row items-center flex-1 justify-end gap-3">
+                
+                {/* 🚨 수정 포인트 3: 글씨 박스.
+                   w-[140px] 같은 하드코딩된 너비가 있다면 반드시 제거!
+                   대신 px-5로 양옆 여백을 넉넉히 주고 whitespace-nowrap으로 줄바꿈 차단.
+                   이렇게 하면 내부에 데이터가 늘어나는 대로 박스가 옆으로 쭉 늘어납니다. */}
+                <span className="bg-background border border-border px-5 py-2 rounded-md text-sm whitespace-nowrap text-text-primary">
+                  {frequency} {amPm} {hour}:{minute}
+                </span>
+                
+                {/* 수정 버튼 */}
+                <button 
+                  className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none shrink-0" 
+                  onClick={() => { setTempFrequency(frequency); setTempAmPm(amPm); setTempHour(hour); setTempMinute(minute); setTimeModalVisible(true); }}
+                >
+                  수정
+                </button>
               </div>
+
             </div>
           </div>
         </div>
@@ -512,12 +533,27 @@ export default function SettingScreen() {
       {isOnboardingModalOpen && (
         <OnboardingSurvey 
           initialQuestionId={targetQuestionId} 
+          initialAnswers={surveyAnswers} // 백엔드에서 받아온 최신 DB 데이터를 모달에 꽂아줌!
           onFinish={(newAnswers) => {
             setIsOnboardingModalOpen(false);
-            // 모달창에서 완료 후 데이터를 새로 받아왔다고 가정하고 업데이트
             if (newAnswers) {
-              setSurveyAnswers(newAnswers);
+              setSurveyAnswers(newAnswers); // 전체 답변 즉시 갱신
               setGmailAddress(newAnswers[12] || '');
+
+              // 핵심!: 13번 스케줄 문항이 변경되었다면, 즉시 화면 State를 업데이트하고 API도 쏜다!
+              const schedule = newAnswers[13];
+              if (schedule) {
+                setFrequency(schedule.frequency || '매일');
+                setAmPm(schedule.amPm || 'AM');
+                setHour(schedule.hour || '10');
+                setMinute(schedule.minute || '30');
+
+                // 백엔드 API 즉시 저장 요청
+                updateSetting({
+                  insta_upload_time_slot: schedule.frequency,
+                  insta_upload_time: `${schedule.hour}:${schedule.minute} ${schedule.amPm}`
+                });
+              }
             }
           }}
           onSkip={() => setIsOnboardingModalOpen(false)}

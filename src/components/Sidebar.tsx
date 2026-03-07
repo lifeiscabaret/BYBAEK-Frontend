@@ -49,11 +49,18 @@ export const Sidebar: React.FC = () => {
       : { name: '로그인', path: '/login?from=sidebar' }
   ];
 
-  const handleMenuClick = (item: MenuItem) => {
-    if (item.action === 'LOGOUT') {
-      setIsLogoutModalOpen(true);
-    } else if (item.path) {
-      router.push(item.path);
+  const handleMenuClick = (item: any) => {
+    
+    // 로그아웃 초기화 코드 적용 파트
+    if (item.name === '로그아웃') {
+      localStorage.clear(); // 로그인 및 MockDB 찌꺼기 완벽 초기화
+      window.location.href = '/'; // 메인(로그인/테스트) 화면으로 강제 이동 및 새로고침
+      return; // 아래 코드가 더 이상 실행되지 않도록 여기서 함수 종료!
+    }
+
+    // 2. 로그아웃이 아닌 일반 메뉴라면 기존처럼 페이지 이동 처리
+    if (item.path) {
+      router.push(item.path); // (혹은 기존에 쓰시던 라우팅 코드)
     }
   };
 

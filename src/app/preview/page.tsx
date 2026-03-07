@@ -19,8 +19,13 @@ export default function PreviewScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_CHAT);
   const [inputText, setInputText] = useState('');
   
+  // 🚨 [추가] AI 응답 대기 상태
+  const [isLoading, setIsLoading] = useState(false);
+  const shopId = '3sesac18'; // DB 연동용 하드코딩
+
   // 웹 표준 포커스 제어를 위한 Ref
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null); // 🚨 [추가] 스크롤용 Ref
 
   const mockImages = ['이미지1', '이미지2', '이미지3'];
   const [images, setImages] = useState<string[]>(mockImages);
@@ -29,10 +34,11 @@ export default function PreviewScreen() {
 
   const [generatedCaption, setGeneratedCaption] = useState('여기에 AI가 작성한 최종 캡션과 해시태그가 표시됩니다.');
 
-  // 메시지 전송 후 포커스 유지
+  // 메시지 전송 후 포커스 유지 및 자동 스크롤
   useEffect(() => {
     textareaRef.current?.focus();
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); // 🚨 [추가] 자동 스크롤
+  }, [messages, isLoading]);
 
   // 텍스트 입력 시 높이 조절 로직
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -57,22 +63,82 @@ export default function PreviewScreen() {
     setImages((prev) => [...prev, newImageName]);
   };
 
-  // 폼 제출 이벤트를 통한 메시지 전송 (엔터 키 지원)
-  const handleSendMessage = (e?: FormEvent) => {
+  // 🚨 [수정] 폼 제출 이벤트를 통한 메시지 전송 (스트리밍 로직 결합)
+  const handleSendMessage = async (e?: FormEvent) => {
     e?.preventDefault(); // 새로고침 방지
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isLoading) return;
     
+    // 1. 유저 메시지 화면에 추가
+    const userText = inputText;
     const newMessage: ChatMessage = { 
       id: Date.now().toString(), 
       sender: 'user', 
-      text: inputText 
+      text: userText 
     };
     
     setMessages((prev) => [...prev, newMessage]);
     setInputText('');
+    setIsLoading(true);
 
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+    }
+
+    // 2. AI 답변용 빈 껍데기 메시지 미리 추가
+    const aiMessageId = (Date.now() + 1).toString();
+    setMessages((prev) => [...prev, { id: aiMessageId, sender: 'ai', text: '' }]);
+
+    try {
+      console.log("🚀 [전송 시작] 백엔드로 fetch 요청 시작...");
+      
+      // 🚨 8000포트로 수정된 fetch 요청
+      const response = await fetch(`http://127.0.0.1:8000/api/agent/manual_chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: shopId,
+          message: userText,
+          photo_ids: []
+        })
+      });
+
+      if (!response.ok) throw new Error(`서버 에러: ${response.status}`);
+      if (!response.body) throw new Error('스트리밍 불가');
+
+      // 3. 스트리밍 리더기 장착
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+      let fullResponse = '';
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          fullResponse += chunk; 
+          
+          setMessages((prev) => 
+            prev.map(msg => 
+              msg.id === aiMessageId ? { ...msg, text: fullResponse } : msg
+            )
+          );
+        }
+      }
+      
+      // 4. 작성이 완료되면 우측 프리뷰 영역에도 텍스트 업데이트
+      setGeneratedCaption(fullResponse);
+
+    } catch (error) {
+      console.error("❌ [오류 발생]:", error);
+      setMessages((prev) => 
+        prev.map(msg => 
+          msg.id === aiMessageId ? { ...msg, text: `통신 오류가 발생했습니다: ${error}` } : msg
+        )
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -116,6 +182,16 @@ export default function PreviewScreen() {
               </div>
             );
           })}
+          
+          {/* 🚨 [추가] AI가 작성 중일 때 띄워줄 로딩 UI (기존 디자인 스타일 유지) */}
+          {isLoading && (
+            <div className="max-w-[80%] p-medium rounded-xl break-words shrink-0 self-start bg-[#F5F5F5] text-text-secondary flex items-center gap-3">
+              <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-body">나만의 마케터가 작성중입니다...</p>
+            </div>
+          )}
+          {/* 🚨 [추가] 스크롤 도착지점 */}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* 채팅 입력창 (form 태그로 감싸 엔터키 전송 지원) */}
@@ -129,13 +205,13 @@ export default function PreviewScreen() {
             <textarea
               ref={textareaRef}
               rows={1}
-              disabled={isEditModalVisible}
+              disabled={isEditModalVisible || isLoading} // 🚨 로딩 중 입력 방지
               className="flex-1 bg-transparent resize-none overflow-y-auto text-text-primary focus:outline-none min-h-[40px] max-h-[33vh] py-2 px-2 leading-relaxed appearance-none scrollbar-hide"
               placeholder={isEditModalVisible ? "" : "예시) 오늘 날씨에 어울리는 홍보 문구로 작성해줘."}
               value={inputText}
               onChange={handleTextareaChange}
               onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault();
                   handleSendMessage();
                   }
@@ -146,7 +222,14 @@ export default function PreviewScreen() {
                   scrollbarWidth: 'none',   // Firefox
               }}
             />
-            <button type="submit" className="shrink-0 px-medium mb-1.5 font-bold text-accent">전송</button>
+            {/* 🚨 로딩 중이거나 입력값이 없을 때 색상 회색으로 변경 */}
+            <button 
+              type="submit" 
+              disabled={isLoading || !inputText.trim()}
+              className={`shrink-0 px-medium mb-1.5 font-bold ${isLoading || !inputText.trim() ? 'text-text-secondary' : 'text-accent'}`}
+            >
+              전송
+            </button>
           </div>
         </form>
       </div>
