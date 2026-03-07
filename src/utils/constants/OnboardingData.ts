@@ -75,13 +75,7 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     question: '기존에 반응 좋았던 게시물 URL 혹은 내용을 알려주세요.',
     placeholder: '인스타 게시물 URL이나 특징을 적어주세요 (RAG 데이터 활용)'
   },
-  {
-    id: 9,
-    category: 'PERSONAL',
-    type: 'SELECT',
-    question: '주로 올리는 시간대는 언제인가요?',
-    options: ['오전 (09:00~12:00)', '오후 (13:00~17:00)', '저녁 (18:00~21:00)', '심야 (22:00~01:00)']
-  },
+  
   { id: 10,
     category: 'PERSONAL',
     type: 'TEXT',
@@ -96,30 +90,10 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     id: 11,
     category: 'APP',
     type: 'SELECT',
-    question: '자동 업로드를 활성화하시겠습니까?',
+    question: '자동 업로드를 활성화하시겠습니까?\n활성화하면 업로드 30분 전 메일을 보냅니다.',
     options: ['예 (추천)', '아니오']
   },
-  {
-    id: 15,
-    category: 'APP',
-    type: 'SELECT',
-    question: '앱 푸시 알림을 활성화하시겠습니까?',
-    options: ['예', '아니오']
-  },
-  {
-    id: 12,
-    category: 'APP',
-    type: 'SELECT',
-    question: '게시물 검토 방식을 선택해주세요.',
-    options: ['항상 내가 검토 후 업로드', '시간 되면 자동 업로드']
-  },
-  {
-    id: 13,
-    category: 'APP',
-    type: 'SELECT',
-    question: '업로드 전 알림을 받을까요?',
-    options: ['10분 전', '30분 전', '1시간 전', '받지 않음']
-  },
+  
   {
     id: 14,
     category: 'APP',

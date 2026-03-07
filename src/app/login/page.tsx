@@ -2,21 +2,21 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { OnboardingSurvey } from '@/components/OnboardingSurvey'; 
+import { useRouter, useSearchParams } from 'next/navigation'; // 🚨 useSearchParams 추가
 
-// 🚨 1. 'LOADING' 단계 삭제됨
-type OnboardingStep = 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN' | 'SURVEY';
-type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED' ;
+type LoginStep = 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
+type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
 export default function LoginScreen() {
   const router = useRouter();
-  // 🚨 2. 접속하자마자 바로 MS 로그인 화면이 뜨도록 초기값을 'MS_LOGIN'으로 설정
-  const [step, setStep] = useState<OnboardingStep>('MS_LOGIN');
+  const searchParams = useSearchParams(); 
+  
+  // 🚨 주소창에 ?from=sidebar 꼬리표가 있는지 확인
+  const isFromSidebar = searchParams.get('from') === 'sidebar';
+
+  const [step, setStep] = useState<LoginStep>('MS_LOGIN');
   const [msLoginStatus, setMsLoginStatus] = useState<LoginStatus>('IDLE');
   const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
-
-  // 자동 전환(setTimeout) useEffect 삭제됨
 
   useEffect(() => {
     const handleAuthMessage = (event: MessageEvent) => {
@@ -31,31 +31,44 @@ export default function LoginScreen() {
     return () => window.removeEventListener('message', handleAuthMessage);
   }, []);
 
+  const handleMsLoginClick = () => {
+    setMsLoginStatus('IN_PROGRESS');
+    const currentOrigin = window.location.origin;
+    const frontendCallbackUrl = encodeURIComponent(`${currentOrigin}/auth/callback`);
+    const loginUrl = `https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
+    window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
+  };
+
   const handleInstaLoginClick = () => {
     setInstaLoginStatus('IN_PROGRESS'); 
-    const redirectUri = encodeURIComponent('https://bybaek-frontend-dcctbxfhdnhge4ap.koreacentral-01.azurewebsites.net/auth/callback');
+    const currentOrigin = window.location.origin;
+    const redirectUri = encodeURIComponent(`${currentOrigin}/auth/callback`);
     const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1219138883682659&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     window.open(instaUrl, 'Insta_Login_Popup', 'width=500,height=600');
   };
 
-  const finishOnboarding = () => {
-    // 🚨 MS와 인스타가 둘 다 완료(COMPLETED) 상태인지 확인
-    if (msLoginStatus === 'COMPLETED' && instaLoginStatus === 'COMPLETED') {
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.removeItem('isGuest'); // 혹시 모를 Guest 기록 삭제
-    } else {
-      // 🚨 하나라도 건너뛰었다면 Guest 모드로 진입
-      localStorage.setItem('isGuest', 'true');
-      localStorage.removeItem('isLoggedIn');
-    }
+  const handleSkipToGuest = () => {
+    localStorage.setItem('isGuest', 'true');
+    localStorage.removeItem('isLoggedIn');
     router.push('/dashboard');
   };
 
-  const handleMsLoginClick = () => {
-    setMsLoginStatus('IN_PROGRESS');
-    const frontendCallbackUrl = encodeURIComponent('https://bybaek-frontend-dcctbxfhdnhge4ap.koreacentral-01.azurewebsites.net/auth/callback');
-    const loginUrl = `https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
-    window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
+  // [핵심 분기 로직] 꼬리표에 따라 도착지를 다르게 설정!
+  const handleFinishLogin = () => {
+    if (msLoginStatus === 'COMPLETED' && instaLoginStatus === 'COMPLETED') {
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.removeItem('isGuest');
+      
+      if (isFromSidebar) {
+        // 사이드바에서 온 경우: 로그인만 끝내고 대시보드로 복귀
+        router.push('/dashboard');
+      } else {
+        // 랜딩 페이지에서 처음 온 경우: 온보딩(스무고개)으로 이어서 진행
+        router.push('/onboarding');
+      }
+    } else {
+      handleSkipToGuest();
+    }
   };
 
   const renderModalContainer = (
@@ -103,92 +116,69 @@ export default function LoginScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
       
-      {/* 1. MS 로그인 화면 */}
       {step === 'MS_LOGIN' && renderModalContainer(
         'MS 로그인 화면',
         <div className="flex flex-col items-center w-full px-4">
           {msLoginStatus === 'IDLE' && (
             <>
               <p className="text-body text-text-primary text-center mb-5">보안을 위해 외부 브라우저에서 로그인을 진행합니다.</p>
-              <button 
-                onClick={handleMsLoginClick}
-                className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors focus:outline-none"
-              >
+              <button onClick={handleMsLoginClick} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors focus:outline-none">
                 Microsoft 계정으로 로그인
               </button>
             </>
           )}
-
           {msLoginStatus === 'IN_PROGRESS' && (
             <div className="flex flex-col items-center animate-pulse">
               <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
               <p className="text-body text-text-primary text-center font-bold">로그인 진행 중입니다...</p>
-              <p className="text-[14px] text-text-secondary text-center mt-2">
-                외부 창에서 로그인이 완료되면<br />자동으로 이 화면이 넘어갑니다.
-              </p>
-              <button onClick={() => setMsLoginStatus('COMPLETED')} className="mt-8 text-xs text-gray-400 underline">
-                (테스트용) 로그인 완료 강제 트리거
-              </button>
+              <button onClick={() => setMsLoginStatus('COMPLETED')} className="mt-8 text-xs text-gray-400 underline">(테스트용) 로그인 완료 강제 트리거</button>
             </div>
           )}
-
           {msLoginStatus === 'COMPLETED' && (
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                 <span className="text-green-600 text-3xl">✓</span>
               </div>
               <p className="text-[18px] font-bold text-text-primary">인증 완료!</p>
-              <p className="text-body text-text-secondary mt-2">다음 단계를 진행해주세요.</p>
             </div>
           )}
         </div>,
         () => setStep('ONEDRIVE_QR'),
-        () => setStep('ONEDRIVE_QR'),
+        handleSkipToGuest,
         '다음',
         msLoginStatus !== 'COMPLETED' 
       )}
 
-      {/* 2. 원드라이브 QR 화면 */}
       {step === 'ONEDRIVE_QR' && renderModalContainer(
         'OneDrive 연동',
         <>
           <p className="text-body text-text-primary text-center mb-small">아래 QR을 찍어 휴대폰에 OneDrive를 설치해주세요.</p>
-          <p className="text-body text-text-primary text-center mb-small">로그인 → 좌측상단 로고 버튼 클릭 → 설정<br /> → 카메라 백업 → 계정 선택 → 백업켜기 확인</p>
-          <p className="text-body text-text-primary text-center mb-small">사진이 OneDrive에 저장되면<br /> 자동으로 인스타용 사진을 선별하여<br /> BYBAEK에 등록합니다.</p>
           <div className="w-[150px] h-[150px] bg-[#EAEAEA] flex justify-center items-center mt-large">
             <span className="text-h2 text-text-secondary font-bold mb-small">QR 코드</span>
           </div>
         </>,
         () => setStep('INSTA_LOGIN'),
-        () => setStep('INSTA_LOGIN')
+        handleSkipToGuest
       )}
 
-      {/* 3. 인스타 연동 화면 */}
       {step === 'INSTA_LOGIN' && renderModalContainer(
         '인스타 연동',
         <div className="flex flex-col items-center w-full px-4">
           {instaLoginStatus === 'IDLE' && (
             <>
               <p className="text-body text-text-primary text-center mb-small">Instagram 연동을 위해 권한을 부여해 주세요.</p>
-              <button 
-                onClick={handleInstaLoginClick}
-                className="w-full bg-accent py-[14px] px-6 rounded-lg mt-5 flex items-center justify-center shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors focus:outline-none"
-              >
+              <button onClick={handleInstaLoginClick} className="w-full bg-accent py-[14px] px-6 rounded-lg mt-5 flex items-center justify-center shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors focus:outline-none">
                 Instagram 연동하기
               </button>
             </>
           )}
-
           {instaLoginStatus === 'IN_PROGRESS' && (
             <div className="flex flex-col items-center animate-pulse">
               <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
               <p className="text-body text-text-primary text-center font-bold">인스타그램 연동 중입니다...</p>
-              <button onClick={() => setInstaLoginStatus('COMPLETED')} className="mt-8 text-xs text-gray-400 underline">
-                (테스트용) 연동 완료 강제 트리거
-              </button>
+              <button onClick={() => setInstaLoginStatus('COMPLETED')} className="mt-8 text-xs text-gray-400 underline">(테스트용) 연동 완료 강제 트리거</button>
             </div>
           )}
-
           {instaLoginStatus === 'COMPLETED' && (
             <div className="flex flex-col items-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
@@ -198,21 +188,12 @@ export default function LoginScreen() {
             </div>
           )}
         </div>,
-        () => setStep('SURVEY'), 
-        () => setStep('SURVEY'),
-        '다음',
+        handleFinishLogin,
+        handleSkipToGuest,
+        '완료', // 🚨 요청하신 대로 버튼 문구를 '완료'로 변경
         instaLoginStatus !== 'COMPLETED'
       )}
 
-      {/* 4. 스무고개 (OnboardingSurvey 컴포넌트 호출) */}
-      {step === 'SURVEY' && (
-        <div className="w-full h-full flex items-center justify-center absolute inset-0 bg-background">
-          <OnboardingSurvey 
-            onFinish={finishOnboarding}
-            onSkip={finishOnboarding}
-          />
-        </div>
-      )}
     </div>
   );
 }
