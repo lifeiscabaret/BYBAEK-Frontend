@@ -154,7 +154,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
             <div>
               <p className="text-[14px] text-accent font-bold mb-1">{partTitle}</p>
               <h2 className="text-h2 font-bold text-text-primary">
-                {isSingleEditMode ? '설정 수정' : `스무고개 (${currentIndex + 1}/${ONBOARDING_QUESTIONS.length})`}
+                {isSingleEditMode ? '설정 수정' : `(${currentIndex + 1}/${ONBOARDING_QUESTIONS.length})`}
               </h2>
             </div>
             <button onClick={onSkip} className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none">

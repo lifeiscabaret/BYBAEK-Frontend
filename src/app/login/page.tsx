@@ -63,8 +63,8 @@ export default function LoginScreen() {
         // 사이드바에서 온 경우: 로그인만 끝내고 대시보드로 복귀
         router.push('/dashboard');
       } else {
-        // 랜딩 페이지에서 처음 온 경우: 온보딩(스무고개)으로 이어서 진행
-        router.push('/onboarding');
+        // 🚨 [수정] 랜딩 페이지에서 처음 온 경우: 인트로 페이지를 먼저 거쳐가도록 변경
+        router.push('/onboarding/intro'); 
       }
     } else {
       handleSkipToGuest();
