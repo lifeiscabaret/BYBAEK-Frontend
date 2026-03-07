@@ -22,7 +22,7 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     category: 'PERSONAL',
     type: 'SELECT',
     question: '우리 샵은 어떤 느낌인가요? (최대 3개)',
-    isMultiSelect: true, // 🚨 중복 선택 활성화
+    isMultiSelect: true, // list 저장
     options: ['남성적/클래식', '트렌디/모던', '친근/편안', '프리미엄/고급', '미니멀', '빈티지']
   },
   {
@@ -30,6 +30,7 @@ export const ONBOARDING_QUESTIONS: SurveyQuestion[] = [
     category: 'PERSONAL',
     type: 'SELECT',
     question: '가장 강조하고 싶은 시술은 무엇인가요?',
+    isMultiSelect: true,
     options: ['페이드컷', '슬릭백', '사이드파트', '수염트리밍', '가르마펌', '아이롱펌', '직접 입력']
   },
   {

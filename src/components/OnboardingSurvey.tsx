@@ -69,7 +69,12 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
 
     Object.entries(answerObj).forEach(([questionId, value]) => {
       const field = QUESTION_FIELD_MAP[Number(questionId)];
-      if (field) {
+      if (!field) return;
+
+      // 절대 쓰면 안 되는 단어는 쉼표로 잘라서 리스트화
+      if (Number(questionId) === 7 && typeof value === 'string') {
+        payload[field] = value.split(',').map(word => word.trim()).filter(word => word !== "");
+      } else {
         payload[field] = value;
       }
     });
