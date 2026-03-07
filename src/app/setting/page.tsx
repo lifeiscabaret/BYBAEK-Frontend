@@ -9,7 +9,7 @@ import { ONBOARDING_QUESTIONS } from '@/utils/constants/OnboardingData';
 import apiClient from '@/api/index'; //DB 연동
 
 export default function SettingScreen() {
-  const [shopId] = useState('shop_12345');
+  const [shopId] = useState('3sesac18');
   const [isLoading, setIsLoading] = useState(true);
 
   // --- 상태 관리 (백엔드 필드와 매핑) ---
