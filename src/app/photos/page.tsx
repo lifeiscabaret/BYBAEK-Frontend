@@ -1,8 +1,9 @@
 // 타겟 경로: src/app/photos/page.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; //DB 연동
 import { Sidebar } from '@/components/Sidebar';
+import apiClient from '@/api/index'; //DB 연동
 
 interface CustomAlertState {
   isOpen: boolean;
@@ -12,7 +13,8 @@ interface CustomAlertState {
 }
 
 export default function AllPhotosScreen() {
-  const [photos, setPhotos] = useState(Array.from({ length: 20 }, (_, i) => `사진 ${i + 1}`));
+  //const [photos, setPhotos] = useState(Array.from({ length: 20 }, (_, i) => `사진 ${i + 1}`)); //DB 연동
+  const [photos, setPhotos] = useState<any[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
 
   // 커스텀 알림/확인창 상태
@@ -25,6 +27,28 @@ export default function AllPhotosScreen() {
   // 고화질 이미지 뷰어 모달 상태
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [currentViewIndex, setCurrentViewIndex] = useState(0);
+  const [loading, setLoading] = useState(true); //DB 연동
+
+  //************ DB 연동 START ************//
+  // 1. 데이터 불러오기 함수 (API 호출)
+  const fetchPhotos = async () => {
+    try {
+      const shopId = "3sesac18"; // 실제로는 로그인된 정보를 사용합니다.
+      const response = await apiClient.get(`http://localhost:8000/api/photos/all/${shopId}`);
+      setPhotos(response.data.photos); // {"photos": [...]} 구조에 맞춤
+    } catch (error) {
+      console.error("사진 로딩 실패:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2. 컴포넌트가 켜질 때 실행
+  useEffect(() => {
+    fetchPhotos();
+  }, []);
+  
+  //************ DB 연동 END ************//
 
   const toggleSelect = (index: number) => {
     setSelectedIndexes((prev) =>
@@ -32,7 +56,7 @@ export default function AllPhotosScreen() {
     );
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (selectedIndexes.length === 0) {
       setCustomAlert({
         isOpen: true,
@@ -42,18 +66,41 @@ export default function AllPhotosScreen() {
       return;
     }
     
-    setCustomAlert({
-      isOpen: true,
-      message: `선택한 ${selectedIndexes.length}개의 사진을 삭제하시겠습니까?\n삭제된 사진은 복구할 수 없습니다.`,
-      type: 'CONFIRM',
-      onConfirm: () => {
-        setPhotos(photos.filter((_, idx) => !selectedIndexes.includes(idx)));
+    if (window.confirm(`선택한 ${selectedIndexes.length}개의 사진을 영구 삭제하시겠습니까?\n(앨범에서도 모두 삭제됩니다)`)) {
+      try {
+        const shopId = "3sesac18";
+        
+        // 🚨 백엔드 사진 삭제 API 호출
+        // Promise.all로 선택된 모든 사진을 병렬로 삭제 처리
+        await Promise.all(
+          selectedIndexes.map(async (idx) => {
+            const photoId = photos[idx].id;
+            return apiClient.delete(`/photos/${shopId}/${photoId}`);
+          })
+        );
+
+        window.alert('선택한 사진이 모두 삭제되었습니다.');
+        
+        // 🔄 삭제 후 서버에서 다시 목록 불러오기
+        fetchPhotos();
         setSelectedIndexes([]); 
+      } catch (error) {
+        console.error("사진 삭제 실패:", error);
+        window.alert('사진 삭제 중 오류가 발생했습니다.');
       }
-    });
+    }
   };
 
-  // 이미지 뷰어 제어 핸들러
+  const openOneDrive = () => {
+    const oneDriveUrl = 'https://onedrive.live.com'; 
+    try {
+      window.open(oneDriveUrl, '_blank');
+    } catch (error) {
+      window.alert('오류: 원드라이브를 열 수 없습니다.');
+    }
+  };
+
+    // 이미지 뷰어 제어 핸들러
   const openViewer = (index: number) => {
     setCurrentViewIndex(index);
     setIsViewerOpen(true);
@@ -133,48 +180,53 @@ export default function AllPhotosScreen() {
 
         <div className="flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-hide">
           <div className="flex flex-row flex-wrap gap-4 pb-large">
-            {photos.map((photoName, index) => {
-              const isSelected = selectedIndexes.includes(index);
-              
-              return (
-                <div 
-                  key={`photo-${index}`} 
-                  className={`relative w-[180px] h-[180px] bg-[#EAEAEA] rounded-lg border overflow-hidden transition-all shrink-0 ${
-                    isSelected ? 'border-accent border-[3px]' : 'border-border hover:border-gray-400'
-                  }`}
-                >
-                  {/* 체크박스 영역 */}
-                  <div 
-                    className="absolute top-1 left-1 p-2 z-10 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation(); 
-                      toggleSelect(index);
-                    }}
-                  >
-                    <div className={`w-[22px] h-[22px] rounded border-2 flex justify-center items-center transition-colors ${
-                      isSelected ? 'bg-accent border-accent' : 'bg-white border-text-secondary'
-                    }`}>
-                      {isSelected && <span className="text-white text-sm font-bold leading-none">✓</span>}
-                    </div>
-                  </div>
-                  
-                  {/* 사진 썸네일 보기 영역 */}
-                  <div 
-                    className="w-full h-full flex justify-center items-center cursor-pointer bg-[#D5D5D5] hover:opacity-90 transition-opacity"
-                    onClick={() => openViewer(index)}
-                  >
-                    <div className="flex flex-col items-center">
-                      <span className="text-body text-text-secondary font-medium">
-                        {photoName}
-                      </span>
-                      <span className="text-xs text-text-secondary/70 mt-1">
-                        (저화질 썸네일)
-                      </span>
-                    </div>
-                  </div>
+            
+            <button 
+              onClick={openOneDrive} 
+              className="w-[180px] h-[180px] bg-white rounded-lg border-2 border-dashed border-border flex flex-col justify-center items-center hover:bg-gray-50 transition-colors focus:outline-none group shrink-0"
+            >
+              <span className="text-[40px] font-light text-accent mb-2 transition-transform group-hover:scale-110">
+                +
+              </span>
+              <span className="text-body font-bold text-text-secondary group-hover:text-text-primary transition-colors">
+                새 사진 업로드
+              </span>
+            </button>
+              {/* DB 연동 */}
+              {loading ? (
+                <div className="flex justify-center items-center w-full h-40">
+                  <p className="text-text-secondary">사진을 불러오는 중입니다...</p>
                 </div>
-              );
-            })}
+              ) : (
+                photos.map((photo, index) => { // 1. photoName 대신 진짜 photo 객체 사용
+                  const isSelected = selectedIndexes.includes(index);
+                  
+                  return (
+                    <button 
+                      key={photo.id || `photo-${index}`} // 2.DB의 진짜 ID 사용
+                      onClick={() => toggleSelect(index)}
+                      className={`relative w-[180px] h-[180px] bg-[#EAEAEA] rounded-lg border flex justify-center items-center overflow-hidden transition-all focus:outline-none shrink-0 ${
+                        isSelected ? 'border-accent border-2' : 'border-border hover:border-gray-400'
+                      }`}
+                    >
+                      {/* 체크박스 디자인 유지 */}
+                      <div className={`absolute top-[10px] left-[10px] w-[22px] h-[22px] rounded border-2 z-10 flex justify-center items-center transition-colors ${
+                        isSelected ? 'bg-accent border-accent' : 'bg-white border-text-secondary'
+                      }`}>
+                        {isSelected && <span className="text-white text-sm font-bold leading-none">✓</span>}
+                      </div>
+                      
+                      {/* 3. 텍스트 대신 진짜 이미지를 꽉 차게 보여주기 */}
+                      <img 
+                        src={photo.blob_url} //DB의 blob_url
+                        alt={photo.original_name} //DB의 파일 이름
+                        className="w-full h-full object-cover" 
+                      />
+                    </button>
+                  );
+                })
+              )}
+            
           </div>
         </div>
       </div>

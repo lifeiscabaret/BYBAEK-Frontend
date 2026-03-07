@@ -4,14 +4,14 @@
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { SettingEditModal } from '@/components/SettingEditModal';
-import { MockDB } from '@/utils/MockDB';
-import { ONBOARDING_QUESTIONS } from '@/utils/constants/OnboardingData';
 import { OnboardingSurvey } from '@/components/OnboardingSurvey';
+import { ONBOARDING_QUESTIONS } from '@/utils/constants/OnboardingData';
+import apiClient from '@/api/index'; // DB 연동
 
 type AuthModalType = 'NONE' | 'Microsoft' | 'Instagram' | 'Gmail';
 type AuthStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
-// 🚨 커스텀 알림/확인창을 위한 타입 정의
+// 커스텀 알림/확인창을 위한 타입 정의
 interface CustomAlertState {
   isOpen: boolean;
   message: string;
@@ -20,42 +20,40 @@ interface CustomAlertState {
 }
 
 export default function SettingScreen() {
-  const [shopId] = useState('shop_12345');
+  const [shopId] = useState('3sesac18');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [isAutoUploadEnabled, setIsAutoUploadEnabled] = useState(
-    MockDB.getAnswer(11) === '예 (추천)'
-  );
+  // 1. 환경 설정 State (초기값은 비워두고 API에서 받아옵니다)
+  const [isAutoUploadEnabled, setIsAutoUploadEnabled] = useState(false);
+  const [language, setLanguage] = useState('한국어');
+  
+  // 2. 계정 연동 State
+  const [isMicrosoftConnected, setIsMicrosoftConnected] = useState(false);
+  const [isInstagramConnected, setIsInstagramConnected] = useState(false);
+  const [isGmailConnected, setIsGmailConnected] = useState(false);
+  const [gmailAddress, setGmailAddress] = useState('');
 
-  const [gmailAddress, setGmailAddress] = useState(
-    (MockDB.getAnswer(12) as string) || ''
-  );
-
-  const [language, setLanguage] = useState(
-    (MockDB.getAnswer(14) as string) || '한국어'
-  );
-
+  // 3. UI 및 모달 제어 State
   const [isPromptListOpen, setIsPromptListOpen] = useState(false);
   const [isAccountListOpen, setIsAccountListOpen] = useState(false); 
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
   const [targetQuestionId, setTargetQuestionId] = useState<number>(1);
   const [isTimeModalVisible, setTimeModalVisible] = useState(false);
-
-  const [isMicrosoftConnected, setIsMicrosoftConnected] = useState(true);
-  const [isInstagramConnected, setIsInstagramConnected] = useState(true);
-  const [isGmailConnected, setIsGmailConnected] = useState(false);
   
   const [activeAuthModal, setActiveAuthModal] = useState<AuthModalType>('NONE');
   const [authStatus, setAuthStatus] = useState<AuthStatus>('IDLE');
 
-  // 🚨 윈도우 기본 경고창을 대체할 커스텀 알림 상태
   const [customAlert, setCustomAlert] = useState<CustomAlertState>({
     isOpen: false,
     message: '',
     type: 'ALERT'
   });
 
+  // 4. 업로드 시간 설정 State
   const frequencies = ['매일', '2일마다', '3일마다', '4일마다', '5일마다', '6일마다', '일주일마다'];
-  const [systemPrompt, setSystemPrompt] = useState(MockDB.generateSystemPrompt());
+  const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
+  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+
   const [frequency, setFrequency] = useState('매일');
   const [amPm, setAmPm] = useState('AM');
   const [hour, setHour] = useState('10');
@@ -69,41 +67,95 @@ export default function SettingScreen() {
   const [isHourDropdownOpen, setIsHourDropdownOpen] = useState(false);
   const [isMinuteDropdownOpen, setIsMinuteDropdownOpen] = useState(false);
 
-  const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
-  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+  // 5. 스무고개(설문) 답변 State (MockDB 대체)
+  const [surveyAnswers, setSurveyAnswers] = useState<Record<number, any>>({});
 
+  // --- API: 데이터 저장 (POST) ---
+  const updateSetting = async (payload: Record<string, any>) => {
+    try {
+      await apiClient.post(`/onboarding/${shopId}`, payload);
+      console.log('설정 업데이트 성공:', payload);
+    } catch (error) {
+      console.error("설정 업데이트 실패:", error);
+      setCustomAlert({
+        isOpen: true,
+        message: '변경사항 저장 중 오류가 발생했습니다.',
+        type: 'ALERT'
+      });
+    }
+  };
+
+  // --- API: 초기 데이터 로드 (GET) ---
+  useEffect(() => {
+    const fetchOnboardingData = async () => {
+      try {
+        const response = await apiClient.get(`/onboarding/${shopId}`);
+        const data = response.data.shop_info;
+        const answersData = response.data.survey_answers; // API 명세에 맞춰 수정 필요
+
+        if (answersData) {
+          setSurveyAnswers(answersData);
+          setGmailAddress(answersData[12] || ''); // 12번 문항이 이메일이라 가정
+        }
+
+        if (data) {
+          setIsAutoUploadEnabled(data.insta_auto_upload_yn === 'Y');
+          setLanguage(data.language || '한국어');
+          setIsInstagramConnected(data.is_insta_connected || false);
+          setIsGmailConnected(data.is_gmail_connected || false);
+          // 🚨 주의: 백엔드 DB 컬럼명에 따라 is_ms_connected 등 수정 필요
+          setIsMicrosoftConnected(data.is_ms_connected || false); 
+          
+          if (data.insta_upload_time) {
+             const [time, period] = data.insta_upload_time.split(' ');
+             const [h, m] = time.split(':');
+             setHour(h); setMinute(m); setAmPm(period);
+          }
+          if (data.insta_upload_time_slot) setFrequency(data.insta_upload_time_slot);
+        }
+      } catch (error) {
+        console.error("데이터 로드 실패:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOnboardingData();
+  }, [shopId]);
+
+  // 외부 팝업창 로그인 성공 메시지 수신 (로그인 성공 시 API 업데이트도 같이 호출)
   useEffect(() => {
     const handleAuthMessage = (event: MessageEvent) => {
       if (event.data === 'MS_LOGIN_SUCCESS' && activeAuthModal === 'Microsoft') {
         setAuthStatus('COMPLETED');
         setIsMicrosoftConnected(true);
+        updateSetting({ is_ms_connected: true });
       }
       if (event.data === 'INSTA_LOGIN_SUCCESS' && activeAuthModal === 'Instagram') {
         setAuthStatus('COMPLETED');
         setIsInstagramConnected(true);
+        updateSetting({ is_insta_connected: true });
       }
       if (event.data === 'GMAIL_LOGIN_SUCCESS' && activeAuthModal === 'Gmail') {
         setAuthStatus('COMPLETED');
         setIsGmailConnected(true);
+        updateSetting({ is_gmail_connected: true });
       }
     };
     window.addEventListener('message', handleAuthMessage);
     return () => window.removeEventListener('message', handleAuthMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAuthModal]);
 
-  const saveIndividualSetting = async (settingName: string, value: any) => {
-    console.log(`[API MOCK] ${settingName} 업데이트 요청:`, value);
-  };
-
+  // --- 핸들러 함수들 ---
   const handleToggleAutoUpload = (val: boolean) => {
     setIsAutoUploadEnabled(val);
-    MockDB.saveAnswer(11, val ? '예 (추천)' : '아니오');
+    updateSetting({ insta_auto_upload_yn: val ? 'Y' : 'N' });
   };
 
   const handleToggleLanguage = () => {
     const nextLang = language === '한국어' ? 'English' : '한국어';
     setLanguage(nextLang);
-    MockDB.saveAnswer(14, nextLang);
+    updateSetting({ language: nextLang });
   };
 
   const triggerExternalPopup = (platform: AuthModalType) => {
@@ -123,7 +175,6 @@ export default function SettingScreen() {
 
     if (authUrl !== '') {
       const popup = window.open(authUrl, `${platform}_Login_Popup`, 'width=500,height=600');
-      // 🚨 브라우저 경고창 대신 커스텀 알림창 사용
       if (!popup) {
         setCustomAlert({
           isOpen: true,
@@ -138,57 +189,37 @@ export default function SettingScreen() {
   const CustomSwitch = ({ isOn, onToggle }: { isOn: boolean, onToggle: (val: boolean) => void }) => (
     <button
       onClick={() => onToggle(!isOn)}
-      className={`w-[48px] h-[24px] rounded-full flex items-center px-1 transition-colors focus:outline-none ${
-        isOn ? 'bg-accent' : 'bg-[#E0E0E0]'
-      }`}
+      className={`w-[48px] h-[24px] rounded-full flex items-center px-1 transition-colors focus:outline-none ${isOn ? 'bg-accent' : 'bg-[#E0E0E0]'}`}
     >
-      <div className={`w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-200 ${
-        isOn ? 'translate-x-[22px]' : 'translate-x-0'
-      }`} />
+      <div className={`w-[18px] h-[18px] bg-white rounded-full shadow-sm transform transition-transform duration-200 ${isOn ? 'translate-x-[22px]' : 'translate-x-0'}`} />
     </button>
   );
 
-  // 🚨 커스텀 알림/확인창 UI 렌더링 함수
+  if (isLoading) return <div className="flex h-screen w-full items-center justify-center font-bold text-text-secondary">설정 데이터를 불러오는 중입니다...</div>;
+
+  // --- UI 렌더링 함수들 ---
   const renderCustomAlert = () => {
     if (!customAlert.isOpen) return null;
-
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-[99999]">
         <div className="bg-background rounded-xl shadow-lg p-8 w-[360px] flex flex-col items-center">
-          
-          {/* 아이콘: CONFIRM(해제)일 땐 빨간색 경고, 일반 ALERT일 땐 버건디색 안내 */}
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
-            customAlert.type === 'CONFIRM' ? 'bg-[#FFE5E5]' : 'bg-red-50'
-          }`}>
-            <span className={`text-2xl font-bold leading-none ${
-              customAlert.type === 'CONFIRM' ? 'text-[#E02424]' : 'text-accent'
-            }`}>!</span>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${customAlert.type === 'CONFIRM' ? 'bg-[#FFE5E5]' : 'bg-red-50'}`}>
+            <span className={`text-2xl font-bold leading-none ${customAlert.type === 'CONFIRM' ? 'text-[#E02424]' : 'text-accent'}`}>!</span>
           </div>
-
           <h3 className="text-lg font-bold text-text-primary mb-2">
             {customAlert.type === 'CONFIRM' ? '연동 해제' : '알림'}
           </h3>
-          <p className="text-sm text-text-secondary text-center mb-6 whitespace-pre-wrap leading-relaxed">
-            {customAlert.message}
-          </p>
-
+          <p className="text-sm text-text-secondary text-center mb-6 whitespace-pre-wrap leading-relaxed">{customAlert.message}</p>
           <div className="flex flex-row w-full gap-3">
             {customAlert.type === 'CONFIRM' && (
-              <button
-                onClick={() => setCustomAlert({ ...customAlert, isOpen: false })}
-                className="flex-1 py-3 bg-[#E0E0E0] text-text-primary rounded-lg font-bold hover:bg-gray-300 transition-colors focus:outline-none"
-              >
-                취소
-              </button>
+              <button onClick={() => setCustomAlert({ ...customAlert, isOpen: false })} className="flex-1 py-3 bg-[#E0E0E0] text-text-primary rounded-lg font-bold hover:bg-gray-300 transition-colors focus:outline-none">취소</button>
             )}
             <button
               onClick={() => {
                 if (customAlert.onConfirm) customAlert.onConfirm();
                 setCustomAlert({ ...customAlert, isOpen: false });
               }}
-              className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors focus:outline-none ${
-                customAlert.type === 'CONFIRM' ? 'bg-[#E02424] hover:bg-red-800' : 'bg-accent hover:bg-accent-dark'
-              }`}
+              className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors focus:outline-none ${customAlert.type === 'CONFIRM' ? 'bg-[#E02424] hover:bg-red-800' : 'bg-accent hover:bg-accent-dark'}`}
             >
               {customAlert.type === 'CONFIRM' ? '해제하기' : '확인'}
             </button>
@@ -200,23 +231,14 @@ export default function SettingScreen() {
 
   const renderAuthModal = () => {
     if (activeAuthModal === 'NONE') return null;
-
-    let title = '';
-    let desc = '';
-    let btnText = '';
+    let title = '', desc = '', btnText = '';
 
     if (activeAuthModal === 'Microsoft') {
-      title = 'MS 로그인 화면';
-      desc = '보안을 위해 외부 브라우저에서 로그인을 진행합니다.';
-      btnText = 'Microsoft 계정으로 로그인';
+      title = 'MS 로그인 화면'; desc = '보안을 위해 외부 브라우저에서 로그인을 진행합니다.'; btnText = 'Microsoft 계정으로 로그인';
     } else if (activeAuthModal === 'Instagram') {
-      title = '인스타 연동';
-      desc = 'Instagram 연동을 위해 권한을 부여해 주세요.';
-      btnText = 'Instagram 연동하기';
+      title = '인스타 연동'; desc = 'Instagram 연동을 위해 권한을 부여해 주세요.'; btnText = 'Instagram 연동하기';
     } else if (activeAuthModal === 'Gmail') {
-      title = 'Gmail 연동';
-      desc = '이메일 알림을 위해 Gmail 계정을 연동해 주세요.';
-      btnText = 'Gmail 계정으로 로그인';
+      title = 'Gmail 연동'; desc = '이메일 알림을 위해 Gmail 계정을 연동해 주세요.'; btnText = 'Gmail 계정으로 로그인';
     }
 
     return (
@@ -242,9 +264,9 @@ export default function SettingScreen() {
                 <p className="text-[14px] text-text-secondary text-center mt-2">외부 창에서 로그인이 완료되면<br />자동으로 이 화면이 넘어갑니다.</p>
                 <button onClick={() => {
                   setAuthStatus('COMPLETED');
-                  if(activeAuthModal === 'Microsoft') setIsMicrosoftConnected(true);
-                  if(activeAuthModal === 'Instagram') setIsInstagramConnected(true);
-                  if(activeAuthModal === 'Gmail') setIsGmailConnected(true);
+                  if(activeAuthModal === 'Microsoft') { setIsMicrosoftConnected(true); updateSetting({ is_ms_connected: true }); }
+                  if(activeAuthModal === 'Instagram') { setIsInstagramConnected(true); updateSetting({ is_insta_connected: true }); }
+                  if(activeAuthModal === 'Gmail') { setIsGmailConnected(true); updateSetting({ is_gmail_connected: true }); }
                 }} className="mt-8 text-xs text-gray-400 underline">(테스트용) 로그인 완료 강제 트리거</button>
               </div>
             )}
@@ -274,7 +296,8 @@ export default function SettingScreen() {
 
         <div className="flex-1 overflow-y-auto pr-2 pb-large min-h-0 scrollbar-hide">
           
-          <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4 transition-all">
+          {/* 나만의 마케터 (DB에서 불러온 surveyAnswers 렌더링) */}
+          <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
             <div className="flex flex-row justify-between items-center">
               <h2 className="text-base font-bold text-text-primary m-0">나만의 마케터</h2>
               <button onClick={() => setIsPromptListOpen(!isPromptListOpen)} className="flex items-center text-sm font-bold text-text-primary hover:text-accent transition-colors focus:outline-none">
@@ -284,7 +307,7 @@ export default function SettingScreen() {
             {isPromptListOpen && (
               <div className="flex flex-col gap-5 mt-4 pt-4 border-t border-[#E0E0E0]">
                 {ONBOARDING_QUESTIONS.filter(q => q.category === 'PERSONAL').map((q, index) => {
-                  const rawAnswer = MockDB.getAnswer(q.id);
+                  const rawAnswer = surveyAnswers[q.id];
                   const displayAnswer = rawAnswer ? (Array.isArray(rawAnswer) ? rawAnswer.join(', ') : rawAnswer) : '미입력';
                   return (
                     <div key={q.id} className="flex flex-row items-center justify-between gap-4">
@@ -308,7 +331,7 @@ export default function SettingScreen() {
 
             {isAccountListOpen && (
               <div className="flex flex-col gap-5 mt-4 pt-4 border-t border-[#E0E0E0]">
-                {/* 🚨 각 버튼의 window.confirm을 customAlert로 교체 */}
+                {/* Microsoft 연동 */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Microsoft</span>
@@ -323,7 +346,10 @@ export default function SettingScreen() {
                           isOpen: true,
                           message: 'Microsoft 계정 연동을 해제하시겠습니까?\n해제 시 관련 기능을 사용할 수 없습니다.',
                           type: 'CONFIRM',
-                          onConfirm: () => setIsMicrosoftConnected(false)
+                          onConfirm: () => {
+                            setIsMicrosoftConnected(false);
+                            updateSetting({ is_ms_connected: false });
+                          }
                         });
                       } else {
                         setActiveAuthModal('Microsoft');
@@ -336,6 +362,7 @@ export default function SettingScreen() {
                   </button>
                 </div>
 
+                {/* Instagram 연동 */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Instagram</span>
@@ -350,7 +377,10 @@ export default function SettingScreen() {
                           isOpen: true,
                           message: 'Instagram 연동을 해제하시겠습니까?\n자동 포스팅 기능이 중지됩니다.',
                           type: 'CONFIRM',
-                          onConfirm: () => setIsInstagramConnected(false)
+                          onConfirm: () => {
+                            setIsInstagramConnected(false);
+                            updateSetting({ is_insta_connected: false });
+                          }
                         });
                       } else {
                         setActiveAuthModal('Instagram');
@@ -363,6 +393,7 @@ export default function SettingScreen() {
                   </button>
                 </div>
 
+                {/* Gmail 연동 */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Gmail</span>
@@ -377,7 +408,10 @@ export default function SettingScreen() {
                           isOpen: true,
                           message: 'Gmail 연동을 해제하시겠습니까?\n더 이상 알림 메일을 받을 수 없습니다.',
                           type: 'CONFIRM',
-                          onConfirm: () => setIsGmailConnected(false)
+                          onConfirm: () => {
+                            setIsGmailConnected(false);
+                            updateSetting({ is_gmail_connected: false });
+                          }
                         });
                       } else {
                         setActiveAuthModal('Gmail');
@@ -389,7 +423,6 @@ export default function SettingScreen() {
                     {isGmailConnected ? '연동 해제' : '연동하기'}
                   </button>
                 </div>
-
               </div>
             )}
           </div>
@@ -419,28 +452,29 @@ export default function SettingScreen() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
       {/* --- 모달 영역 --- */}
       {renderAuthModal()}
-      
-      {/* 🚨 커스텀 알림 모달 출력 */}
       {renderCustomAlert()}
 
       <SettingEditModal
-        isVisible={isTimeModalVisible}
-        title="업로드 스케줄 설정"
-        onClose={() => setTimeModalVisible(false)}
+        isVisible={isTimeModalVisible} title="업로드 스케줄 설정" onClose={() => setTimeModalVisible(false)}
         onSave={() => {
           setFrequency(tempFrequency); setAmPm(tempAmPm); setHour(tempHour); setMinute(tempMinute);
-          saveIndividualSetting('schedule', { frequency: tempFrequency, time: `${tempAmPm} ${tempHour}:${tempMinute}` });
+          
+          // 🚨 시간 설정도 API POST로 쏘도록 변경
+          updateSetting({ 
+            insta_upload_time_slot: tempFrequency, 
+            insta_upload_time: `${tempHour}:${tempMinute} ${tempAmPm}` 
+          });
+          
           setTimeModalVisible(false);
         }}
       >
         <p className="text-sm font-bold text-[#666666] mb-2 mt-4">시간 설정</p>
-        <div className="flex flex-row flex-wrap mb-4 gap-2">
+        <div className="flex flex-row gap-2 mb-4">
           {['AM', 'PM'].map(p => (
             <button key={p} className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${tempAmPm === p ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'}`} onClick={() => setTempAmPm(p)}>{p}</button>
           ))}
@@ -478,14 +512,17 @@ export default function SettingScreen() {
       {isOnboardingModalOpen && (
         <OnboardingSurvey 
           initialQuestionId={targetQuestionId} 
-          onFinish={() => {
+          onFinish={(newAnswers) => {
             setIsOnboardingModalOpen(false);
-            setSystemPrompt(MockDB.generateSystemPrompt());
-            setGmailAddress((MockDB.getAnswer(12) as string) || '');
+            // 모달창에서 완료 후 데이터를 새로 받아왔다고 가정하고 업데이트
+            if (newAnswers) {
+              setSurveyAnswers(newAnswers);
+              setGmailAddress(newAnswers[12] || '');
+            }
           }}
           onSkip={() => setIsOnboardingModalOpen(false)}
         />
       )}
-    </div>  
+    </div>
   );
 }

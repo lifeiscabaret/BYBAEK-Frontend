@@ -7,6 +7,7 @@ interface PostCardProps {
   id: string;
   title?: string;
   description?: string;
+  imageUrl?: string;
   isNewButton?: boolean;
   onPress: () => void;
 }
@@ -15,6 +16,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   id, 
   title, 
   description, 
+  imageUrl,
   isNewButton = false, 
   onPress 
 }) => {
@@ -44,7 +46,15 @@ export const PostCard: React.FC<PostCardProps> = ({
     >
       {/* 사진 영역 (추후 Image 컴포넌트로 교체) */}
       <div className="h-3/5 bg-gray-100 flex justify-center items-center w-full">
-        <span className="text-sm text-gray-400">사진 영역</span>
+        {imageUrl ? (
+          <img 
+            src={imageUrl} 
+            alt={title || "게시물 이미지"} 
+            className="w-full h-full object-cover transition-transform group-hover:scale-110"
+          />
+        ) : (
+          <span className="text-sm text-gray-400">사진 없음</span>
+        )}
       </div>
       
       {/* 텍스트 영역 */}

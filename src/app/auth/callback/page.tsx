@@ -53,7 +53,7 @@ export default function AuthCallback() {
         window.location.href = '/login';
       }
     }
-  }, [searchParams]);
+  }, []);
 
   return (
     <div className="flex h-screen items-center justify-center bg-[#F5F5F5]">
