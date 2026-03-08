@@ -20,7 +20,7 @@ export default function AuthCallback() {
       const sendCodeToBackend = async () => {
         try {
           // API 주소
-          const BACKEND_API_URL = 'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/login/instagram';
+          const BACKEND_API_URL = 'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/auth/instagram';
           
           const response = await fetch(BACKEND_API_URL, {
             method: 'POST',
