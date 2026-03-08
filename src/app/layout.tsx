@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 // 1. Next.js 내장 폰트 최적화 도구 로드 (가장 기본인 Noto Sans KR 적용)
 import { Noto_Sans_KR } from 'next/font/google'; 
 import './globals.css';
+import { PhotoSyncProgress } from '@/components/PhotoSyncProgress';
 
 // 2. 폰트 객체 생성 및 굵기 설정
 const notoSansKr = Noto_Sans_KR({
@@ -28,6 +29,9 @@ export default function RootLayout({
       */}
       <body className={`${notoSansKr.className} bg-background text-text-primary min-h-screen flex flex-col`}>
         {children}
+
+        {/* 🚨 최상위 뼈대에 동기화 알림창 부착! (항상 모든 화면 위를 덮게 됩니다) */}
+        <PhotoSyncProgress />
       </body>
     </html>
   );
