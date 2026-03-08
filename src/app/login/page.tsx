@@ -2,14 +2,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; // 🚨 useSearchParams 추가
+import { useRouter } from 'next/navigation'; // 🚨 useSearchParams 추가
 
 type LoginStep = 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const searchParams = useSearchParams(); 
+  const searchParams = new URLSearchParams(window.location.search); 
   
   // 🚨 주소창에 ?from=sidebar 꼬리표가 있는지 확인
   const isFromSidebar = searchParams.get('from') === 'sidebar';

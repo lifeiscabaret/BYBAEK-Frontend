@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 export default function AuthCallback() {
   const searchParams = new URLSearchParams(window.location.search);
