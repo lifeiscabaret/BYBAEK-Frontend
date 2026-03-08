@@ -31,13 +31,11 @@ const QUESTION_FIELD_MAP: Record<number, string> = {
   6: "shop_intro",
   7: "forbidden_words",
   8: "rag_reference",
-  9: "insta_upload_time_slot",
-  10: "city",
-  11: "insta_auto_upload_yn", 
-  12: "insta_review_bfr_upload_yn",
-  13: "insta_notice_time",
-  14: "language", 
-  15: "insta_upload_notice_yn"
+  9: "city",
+  10: "insta_auto_upload_yn", 
+  11: "insta_upload_time", 
+  12: "gmail_address",
+  13: "language"
 };
 
 export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ 
