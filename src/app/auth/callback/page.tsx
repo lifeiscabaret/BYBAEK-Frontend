@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 export default function AuthCallback() {
-  const searchParams = useSearchParams();
+  const searchParams = new URLSearchParams(window.location.search);
   const [statusMsg, setStatusMsg] = useState('로그인 처리 중입니다...');
   
   useEffect(() => {
