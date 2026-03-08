@@ -3,14 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ONBOARDING_QUESTIONS, SurveyQuestion } from '../utils/constants/OnboardingData';
-import apiClient from '@/api/index';
-
-interface ScheduleAnswer {
-  amPm: string;
-  hour: string;
-  minute: string;
-  frequency: string;
-}
+import { MockDB } from '../utils/MockDB';
 
 interface OnboardingSurveyProps {
   initialQuestionId?: number; 
@@ -19,24 +12,12 @@ interface OnboardingSurveyProps {
   onSkip: () => void;
 }
 
-/**
- * 질문 id → CosmosDB Shop 필드 매핑
- */
-const QUESTION_FIELD_MAP: Record<number, string> = {
-  1: "brand_tone",
-  2: "preferred_styles",
-  3: "exclude_conditions",
-  4: "hashtag_style",
-  5: "cta",
-  6: "shop_intro",
-  7: "forbidden_words",
-  8: "rag_reference",
-  9: "city",
-  10: "insta_auto_upload_yn", 
-  11: "insta_upload_time", 
-  12: "gmail_address",
-  13: "language"
-};
+interface ScheduleAnswer {
+  amPm: string;
+  hour: string;
+  minute: string;
+  frequency: string;
+}
 
 export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ 
   initialQuestionId, 
@@ -51,50 +32,22 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
   const [currentIndex, setCurrentIndex] = useState(initialIndex !== -1 ? initialIndex : 0);
   const isSingleEditMode = !!initialQuestionId;
 
-  const [answers, setAnswers] = useState<Record<number, any>>({});
+  const [answers, setAnswers] = useState<Record<number, any>>(() => {
+    if (initialAnswers && Object.keys(initialAnswers).length > 0) {
+      return initialAnswers;
+    }
+    const savedData = MockDB.getAll() as { id: number; answer: any }[];
+    const loadedAnswers: Record<number, any> = {};
+    savedData.forEach((item) => {
+      loadedAnswers[item.id] = item.answer;
+    });
+    return loadedAnswers;
+  });
 
   const currentQuestion: SurveyQuestion = ONBOARDING_QUESTIONS[currentIndex];
   const partTitle = currentQuestion.category === 'PERSONAL' ? '개인화 설정 - 설정 탭에서 언제든지 변경 가능' : '앱 설정 - 설정 탭에서 언제든지 변경 가능';
 
   const [inputText, setInputText] = useState('');
-  useEffect(() => {
-    const fetchExistingData = async () => {
-      try {
-        const shopId = "3sesac18";
-        const response = await apiClient.get(`/onboarding/${shopId}`);
-        const shopInfo = response.data.shop_info;
-
-        if (shopInfo) {
-          const savedAnswers: Record<number, any> = {};
-          Object.entries(QUESTION_FIELD_MAP).forEach(([id, field]) => {
-            if (shopInfo[field] !== undefined) {
-              savedAnswers[Number(id)] = shopInfo[field];
-            }
-          });
-
-          // 답변 상태 전체 저장
-          setAnswers(savedAnswers);
-
-          // [중요] 현재 수정 모달이 열린 질문의 텍스트 필드를 즉시 채워줌
-          const targetId = initialQuestionId || ONBOARDING_QUESTIONS[currentIndex].id;
-          const currentField = QUESTION_FIELD_MAP[targetId];
-          const currentData = shopInfo[currentField];
-
-          if (currentData !== undefined) {
-            if (Array.isArray(currentData)) {
-              setInputText(currentData.join(', '));
-            } else {
-              setInputText(String(currentData));
-            }
-          }
-        }
-      } catch (e) {
-        console.error("데이터 로드 실패:", e);
-      }
-    };
-
-    fetchExistingData();
-  }, [initialQuestionId, currentIndex]); // 질문이 바뀔 때마다 다시 확인
 
   const [isHourDropdownOpen, setIsHourDropdownOpen] = useState(false);
   const [isMinuteDropdownOpen, setIsMinuteDropdownOpen] = useState(false);
@@ -125,100 +78,28 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestion.id]);
 
-  /**
-   * answers → backend 저장 구조로 변환
-   */
-  const convertAnswersToPayload = (answerObj: Record<number, any>) => {
-    const payload: Record<string, any> = {};
+  const handleNext = () => {
+    let finalAnswer = currentQuestion.type === 'SCHEDULE' 
+      ? answers[currentQuestion.id] 
+      : (inputText.trim() || answers[currentQuestion.id]);
+    
+    const updatedAnswers = { ...answers };
 
-    Object.entries(answerObj).forEach(([questionId, value]) => {
-      const field = QUESTION_FIELD_MAP[Number(questionId)];
-      if (!field) return;
-
-      // 1. 이미 배열인 경우 (멀티 셀렉트 등) -> 그대로 유지
-      if (Array.isArray(value)) {
-        payload[field] = value;
-      } 
-      // 2. 7번 금기어이고 문자열로 들어온 경우 -> 리스트화
-      else if (Number(questionId) === 7 && typeof value === 'string') {
-        payload[field] = value.split(',').map(word => word.trim()).filter(word => word !== "");
-      } 
-      // 3. 그 외 일반 문자열
-      else {
-        payload[field] = value;
-      }
-    });
-
-    return payload;
-  };
-
-  /**
-   * API 호출 (저장)
-   */
-  const saveOnboarding = async (data: Record<string, any>) => {
-    const shopId = "3sesac18"; // 로그인 유저 ID 고정
-
-    try {
-      // fetch 대신 SettingScreen에서 검증된 apiClient 사용
-      const res = await apiClient.post(`/onboarding/${shopId}`, data);
-      
-      // apiClient(axios)는 2xx 범위를 벗어나면 자동으로 에러를 던지므로 
-      // 별도의 res.ok 체크가 없어도 catch로 넘어갑니다.
-      return res.data; 
-
-    } catch (error: any) {
-      console.error("온보딩 저장 실패:", error);
-      throw new Error(error.response?.data?.message || "온보딩 저장 실패");
+    if (finalAnswer) {
+      updatedAnswers[currentQuestion.id] = finalAnswer;
+      MockDB.saveAnswer(currentQuestion.id, finalAnswer); // 하위 호환을 위해 남겨둠
     }
-  };
-
-  /**
-   * 다음 단계
-   */
-  const handleNext = async () => {
-    // 현재 질문이 선택형(SELECT)이면 answers에 저장된 배열/값을 쓰고, 
-    // 직접 입력형(TEXT)이면 inputText를 씁니다.
-    let finalAnswer;
-    if (currentQuestion.type === 'SELECT') {
-      finalAnswer = answers[currentQuestion.id];
-    } else {
-      finalAnswer = inputText.trim() || answers[currentQuestion.id];
-    }
-
-    const updatedAnswers = { 
-      ...answers, 
-      [currentQuestion.id]: finalAnswer 
-    };
-
-    setAnswers(updatedAnswers);
 
     if (isSingleEditMode) {
-      try {
-        const payload = convertAnswersToPayload(updatedAnswers);
-        console.log("전송될 데이터:", payload); // 🚨 여기서 데이터가 배열인지 꼭 확인하세요!
-        await saveOnboarding(payload);
-        onFinish(updatedAnswers);
-      } catch (e) {
-        console.error(e);
-        alert("저장 실패");
-      }
+      onFinish(updatedAnswers); 
       return;
     }
 
-    /**
-     * 일반 온보딩 모드 (다음 버튼)
-     */
     if (currentIndex < ONBOARDING_QUESTIONS.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setInputText('');
     } else {
-      try {
-        const payload = convertAnswersToPayload(updatedAnswers);
-        await saveOnboarding(payload);
-        onFinish(updatedAnswers);
-      } catch (e) {
-        alert("최종 저장 실패");
-      }
+      onFinish(updatedAnswers); 
     }
   };
 
