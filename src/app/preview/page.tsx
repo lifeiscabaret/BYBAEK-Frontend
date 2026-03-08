@@ -94,6 +94,44 @@ export default function PreviewScreen() {
     setTempSelectedPhotos(newOrder);
   };
 
+  const handleUpload = async () => {
+    // 1. 데이터 검증
+    if (images.length === 0) {
+      alert("업로드할 사진을 선택해주세요.");
+      return;
+    }
+    if (!generatedCaption.trim()) {
+      alert("캡션 내용이 비어있습니다.");
+      return;
+    }
+
+    setIsLoading(true); // 로딩 상태 활성화
+
+    try {
+      // 2. 백엔드 /save 엔드포인트 호출
+      const payload = {
+        shop_id: shopId,
+        post_id: `post_${Date.now()}`, // 유니크한 ID 생성 예시
+        caption: generatedCaption,
+        hashtags: [], // 캡션 내에 포함되어 있거나 별도 추출 로직이 있다면 추가
+        photo_ids: images.map(img => img.id),
+        cta: "" // 필요한 경우 추가
+      };
+
+      const response = await apiClient.post('/save', payload);
+
+      if (response.data.status === "success") {
+        alert("성공적으로 저장되었습니다.");
+        // 필요 시 다른 페이지로 이동하거나 상태 초기화
+      }
+    } catch (error: any) {
+      console.error("업로드 실패:", error);
+      alert(error.response?.data?.detail || "저장 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSendMessage = async (e?: FormEvent) => {
     e?.preventDefault(); 
     if (!inputText.trim() || isLoading) return;
@@ -208,7 +246,15 @@ export default function PreviewScreen() {
 
         <div className="flex gap-4 shrink-0">
           <button className="flex-1 py-3 border border-text-primary rounded-lg font-bold hover:bg-gray-100">게시글 수정</button>
-          <button className="flex-1 py-3 bg-accent rounded-lg text-text-inverse font-bold hover:bg-accent-dark">인스타 업로드</button>
+          <button 
+            onClick={handleUpload}
+            disabled={isLoading}
+            className={`flex-1 py-3 rounded-lg text-text-inverse font-bold transition-colors ${
+              isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-accent hover:bg-accent-dark'
+            }`}
+          >
+            {isLoading ? '저장 중...' : '인스타 업로드'}
+          </button>
         </div>
       </div>
 
