@@ -206,7 +206,6 @@ export default function MyAlbumScreen() {
             })}
           </div>
         </div>
-      </div>
 
       {/* 앨범 상세 오버레이 */}
       {isDetailModalVisible && selectedAlbum && (
@@ -312,5 +311,6 @@ export default function MyAlbumScreen() {
         </div>
       )}
     </div>
+  </div>
   );
 }
