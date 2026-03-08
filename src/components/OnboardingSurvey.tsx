@@ -53,17 +53,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
   const [currentIndex, setCurrentIndex] = useState(initialIndex !== -1 ? initialIndex : 0);
   const isSingleEditMode = !!initialQuestionId;
 
-  const [answers, setAnswers] = useState<Record<number, any>>(() => {
-    if (initialAnswers && Object.keys(initialAnswers).length > 0) {
-      return initialAnswers;
-    }
-    const savedData = MockDB.getAll() as { id: number; answer: any }[];
-    const loadedAnswers: Record<number, any> = {};
-    savedData.forEach((item) => {
-      loadedAnswers[item.id] = item.answer;
-    });
-    return loadedAnswers;
-  });
+  const [answers, setAnswers] = useState<Record<number, any>>({});
 
   const currentQuestion: SurveyQuestion = ONBOARDING_QUESTIONS[currentIndex];
   const partTitle = currentQuestion.category === 'PERSONAL' ? '개인화 설정 - 설정 탭에서 언제든지 변경 가능' : '앱 설정 - 설정 탭에서 언제든지 변경 가능';
