@@ -17,6 +17,7 @@ const MOCK_CHAT: ChatMessage[] = [
 
 export default function PreviewScreen() {
   const shopId = '3sesac18';
+  const postId = ''; // 게시물 저장 시 필요
 
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_CHAT);
   const [inputText, setInputText] = useState('');
@@ -111,11 +112,11 @@ export default function PreviewScreen() {
       // 2. 백엔드 /save 엔드포인트 호출
       const payload = {
         shop_id: shopId,
-        post_id: `post_${Date.now()}`, // 유니크한 ID 생성 예시
-        caption: generatedCaption,
-        hashtags: [], // 캡션 내에 포함되어 있거나 별도 추출 로직이 있다면 추가
+        post_id: postId, // 초안 ID
+        caption: generatedCaption, // 생성된 캡션의 수정 여부에 따라 추출 로직 필요
+        hashtags: [], // 캡션 내에 포함되어 있거나 별도 추출 로직이 있다면 추가 필요
         photo_ids: images.map(img => img.id),
-        cta: "" // 필요한 경우 추가
+        cta: "" // 추출 로직 필요
       };
 
       const response = await apiClient.post('/save', payload);
