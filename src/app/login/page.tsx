@@ -8,6 +8,8 @@ type LoginStep = 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
 export default function LoginScreen() {
+  if (typeof window === "undefined") return;
+
   const router = useRouter();
   const searchParams = new URLSearchParams(window.location.search); 
   

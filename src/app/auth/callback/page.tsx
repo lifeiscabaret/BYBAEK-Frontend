@@ -4,6 +4,8 @@
 import React, { useEffect, useState } from 'react';
 
 export default function AuthCallback() {
+  if (typeof window === "undefined") return;
+
   const searchParams = new URLSearchParams(window.location.search);
   const [statusMsg, setStatusMsg] = useState('로그인 처리 중입니다...');
   
