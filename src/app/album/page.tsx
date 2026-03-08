@@ -1,10 +1,10 @@
 // 타겟 경로: src/app/album/page.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react'; //DB 연동
+import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { AlbumCard } from '@/components/AlbumCard';
-import apiClient from '@/api/index'; //DB 연동
+import apiClient from '@/api/index';
 
 interface AlbumData {
   id: string;
@@ -15,35 +15,28 @@ interface AlbumData {
   thumbnailUrl?: string;
 }
 
-const INITIAL_MOCK_ALBUMS: AlbumData[] = [
-  { id: 'new', isNew: true },
-  { id: '1', title: '2026 봄 시즌 트렌드', description: '가르마 펌, 리프컷 위주', photoCount: 24 },
-  { id: '2', title: '클래식 페이드컷', description: '바버샵 시그니처 포트폴리오', photoCount: 56 },
-  { id: '3', title: '애쉬 브라운 염색', description: '20대 타겟 컬러링', photoCount: 12 },
-  { id: '4', title: '고객 리뷰(Before/After)', description: '인스타 피드 업로드용', photoCount: 89 },
-  { id: '5', title: '매장 인테리어', description: '내외부 전경 및 장비', photoCount: 15 },
-];
-
 export default function MyAlbumScreen() {
-  // const [albums, setAlbums] = useState<AlbumData[]>(INITIAL_MOCK_ALBUMS); //DB 연동
-  const [albums, setAlbums] = useState<AlbumData[]>([]); //DB 연동
+  const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
+
+  const [albums, setAlbums] = useState<AlbumData[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
 
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [selectedAlbum, setSelectedAlbum] = useState<AlbumData | null>(null);
 
-  // 🚨 오버레이 내에서 입력하는 제목과 설명을 관리할 State 추가
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [albumPhotos, setAlbumPhotos] = useState<any[]>([]);
 
-  const [albumPhotos, setAlbumPhotos] = useState<any[]>([]); //DB 연동
-  //******************* DB 연동 START ********************* */
+  // 🚨 [추가] 사진 선택 팝업을 위한 상태들
+  const [isPhotoSelectModalVisible, setIsPhotoSelectModalVisible] = useState(false);
+  const [allPhotos, setAllPhotos] = useState<any[]>([]); // 전체 사진 목록
+  const [tempSelectedIds, setTempSelectedIds] = useState<string[]>([]); // 팝업 내 임시 선택
+
+  // 1. 앨범 목록 조회
   const fetchAlbums = async () => {
     try {
-      const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
       const response = await apiClient.get(`/photos/albums/${shopId}`);
-      
-      // 백엔드 데이터 포맷을 프론트엔드 UI 포맷으로 변환
       const dbAlbums = response.data.albums.map((album: any) => ({
         id: album.id,
         title: album.album_name,
@@ -51,65 +44,59 @@ export default function MyAlbumScreen() {
         description: album.description || "설명이 없습니다.",
         thumbnailUrl: album.thumbnail_url
       }));
-      // 맨 앞에 "새 앨범 만들기" 카드를 붙여서 상태 업데이트
       setAlbums([{ id: 'new', isNew: true }, ...dbAlbums]);
     } catch (error) {
       console.error("앨범 로딩 실패:", error);
     }
   };
 
+  // 2. 전체 사진 목록 조회 (추가 팝업용)
+  const fetchAllPhotos = async () => {
+    try {
+      const response = await apiClient.get(`/photos/all/${shopId}`);
+      setAllPhotos(response.data.photos || []);
+    } catch (error) {
+      console.error("전체 사진 로딩 실패:", error);
+    }
+  };
+
   useEffect(() => {
     fetchAlbums();
+    fetchAllPhotos();
   }, []);
 
-
-  // 앨범 상세 내부에서 사진 '제외' 하기
+  // 앨범 내 사진 제거 (개별 ✕ 버튼)
   const handleRemovePhotoFromAlbum = async (photoId: string) => {
     if (!selectedAlbum) return;
     if (!window.confirm("이 사진을 앨범에서 제외하시겠습니까?")) return;
 
-    // 1. 현재 로컬 상태에서 해당 사진 제거
     const updatedPhotos = albumPhotos.filter(p => p.id !== photoId);
     const updatedPhotoIds = updatedPhotos.map(p => p.id);
 
     try {
-      const shopId = "3sesac18";
-      
-      // 2. 백엔드 저장 API 호출 (앨범 컨테이너만 업데이트)
       await apiClient.post("/photos/albums", {
         shop_id: shopId,
-        album_id: selectedAlbum.id, // 기존 앨범 ID 전달
+        album_id: selectedAlbum.id,
         album_name: editTitle,
         description: editDesc,
-        photo_ids: updatedPhotoIds // 사진 하나가 빠진 새 리스트
+        photo_ids: updatedPhotoIds
       });
-
-      // 3. UI 반영
       setAlbumPhotos(updatedPhotos);
-
-      setSelectedAlbum({
-        ...selectedAlbum,
-        photoCount: updatedPhotos.length
-      });
-
-      fetchAlbums(); // 목록 사진 개수 갱신을 위해 호출
-      //alert("앨범에서 사진이 제외되었습니다.");
+      setSelectedAlbum({ ...selectedAlbum, photoCount: updatedPhotos.length });
+      fetchAlbums();
     } catch (error) {
       console.error("앨범 수정 실패:", error);
     }
   };
 
-  // 앨범 상세 내부에서 사진 '추가' 하기
-  const handleAddPhotosToAlbum = async (newSelectedIds: string[]) => {
-    if (!selectedAlbum) return;
+  // 🚨 [수정] 앨범에 사진 추가 확정 (저장 버튼 클릭 시)
+  const handleSaveSelectedPhotos = async () => {
+    if (!selectedAlbum || tempSelectedIds.length === 0) return;
 
-    // 기존 ID들과 새로 선택된 ID들 합치기 (중복 제거)
     const currentIds = albumPhotos.map(p => p.id);
-    const combinedIds = Array.from(new Set([...currentIds, ...newSelectedIds]));
-    const currentAlbumId = selectedAlbum.id; // 변수에 담아서 사용
-    console.log("현재 추가 대상 앨범 ID:", currentAlbumId);
+    const combinedIds = Array.from(new Set([...currentIds, ...tempSelectedIds]));
+
     try {
-      const shopId = "3sesac18";
       await apiClient.post("/photos/albums", {
         shop_id: shopId,
         album_id: selectedAlbum.id,
@@ -118,25 +105,17 @@ export default function MyAlbumScreen() {
         photo_ids: combinedIds
       });
 
-    // 추가 후에는 상세 사진 리스트를 다시 불러와서 '사진 객체(blob_url 포함)'를 화면에 그려줘야 합니다.
-    const response = await apiClient.get(`/photos/albums/${shopId}/${selectedAlbum.id}`);
-    setAlbumPhotos(response.data.photos);
-    
-    // 앨범 카드의 숫자도 갱신
-    setSelectedAlbum({
-      ...selectedAlbum,
-      photoCount: response.data.photos.length
-    });
-
-      // 갱신된 사진 리스트 다시 불러오기
-      //openAlbumDetail(selectedAlbum); 
+      const response = await apiClient.get(`/photos/albums/${shopId}/${selectedAlbum.id}`);
+      setAlbumPhotos(response.data.photos);
+      setSelectedAlbum({ ...selectedAlbum, photoCount: response.data.photos.length });
+      
       fetchAlbums();
+      setIsPhotoSelectModalVisible(false); // 팝업 닫기
+      setTempSelectedIds([]); // 선택 초기화
     } catch (error) {
       console.error("사진 추가 실패:", error);
     }
   };
-
-  //******************* DB 연동 END ********************* */
 
   const toggleSelect = (index: number) => {
     setSelectedIndexes((prev) =>
@@ -144,92 +123,56 @@ export default function MyAlbumScreen() {
     );
   };
 
-  // 앨범 카드(또는 새 앨범 만들기) 클릭 시 실행
-  const openAlbumDetail = async (album: AlbumData) => { //DB 연동
-    console.log("선택된 앨범 ID:", album.id);
+  const openAlbumDetail = async (album: AlbumData) => {
     setSelectedAlbum(album);
-    // 새 앨범이면 빈칸, 기존 앨범이면 원래 정보로 초기화
     setEditTitle(album.id === 'new' ? '' : (album.title || ''));
     setEditDesc(album.id === 'new' ? '' : (album.description || ''));
 
-    //******************* DB 연동 START ********************* */
     if (album.id !== 'new') {
       try {
-        const shopId = "3sesac18";
         const response = await apiClient.get(`/photos/albums/${shopId}/${album.id}`);
-        setAlbumPhotos(response.data.photos); // API의 "photos"를 담음
+        setAlbumPhotos(response.data.photos);
       } catch (error) {
-        console.error("앨범 사진 로딩 실패:", error);
-        setAlbumPhotos([]); // 실패 시 빈 리스트
+        setAlbumPhotos([]);
       }
     } else {
-      setAlbumPhotos([]); // 새 앨범은 사진이 없으므로 비움
+      setAlbumPhotos([]);
     }
-    //******************* DB 연동 END ********************* */
-
     setIsDetailModalVisible(true);
   };
 
-  // 모달에서 '저장' 버튼을 눌렀을 때 실행되는 핵심 로직
-  const handleSaveOverlay = () => {
+  const handleSaveOverlay = async () => {
     if (!selectedAlbum) return;
-
-    if (selectedAlbum.id === 'new') {
-      // 1. 새 앨범 생성 로직
-      const newAlbum: AlbumData = {
-        id: Date.now().toString(), // 고유 ID 임시 생성
-        title: editTitle || '제목 없는 앨범', // 미입력 시 기본값
+    try {
+      const photoIds = albumPhotos.map(p => p.id);
+      await apiClient.post("/photos/albums", {
+        shop_id: shopId,
+        album_id: selectedAlbum.id === 'new' ? null : selectedAlbum.id,
+        album_name: editTitle || "새 앨범",
         description: editDesc,
-        photoCount: 0, // 새 앨범은 사진 0장
-      };
-      
-      // '새 앨범 만들기' 카드(index 0) 바로 뒤에 새 앨범 추가
-      setAlbums(prev => {
-        const newAlbums = [...prev];
-        newAlbums.splice(1, 0, newAlbum);
-        return newAlbums;
+        photo_ids: photoIds
       });
-    } else {
-      // 2. 기존 앨범 수정 로직
-      setAlbums(prev =>
-        prev.map(a => (a.id === selectedAlbum.id ? { ...a, title: editTitle, description: editDesc } : a))
-      );
+      fetchAlbums();
+      setIsDetailModalVisible(false);
+    } catch (error) {
+      console.error("저장 실패:", error);
     }
-    
-    // 저장 후 모달 닫기
-    setIsDetailModalVisible(false);
-    setSelectedAlbum(null);
   };
 
-  const handleDeleteAlbums = async () => { //DB 연동
-    if (selectedIndexes.length === 0) {
-      window.alert('삭제할 앨범을 먼저 선택해주세요.');
-      return;
-    }
-
+  const handleDeleteAlbums = async () => {
+    if (selectedIndexes.length === 0) return;
     if (window.confirm(`선택한 ${selectedIndexes.length}개의 앨범을 삭제하시겠습니까?`)) {
       try {
-        const shopId = "3sesac18";
-        
-        // 🚨 백엔드 API 호출: 선택된 모든 앨범 삭제
-        // Promise.all을 쓰면 병렬로 처리되어 더 빠릅니다!
         await Promise.all(
           selectedIndexes.map(async (idx) => {
             const albumId = albums[idx].id;
-            if (albumId !== 'new') {
-              return apiClient.delete(`/photos/albums/${shopId}/${albumId}`);
-            }
+            if (albumId !== 'new') return apiClient.delete(`/photos/albums/${shopId}/${albumId}`);
           })
         );
-
-        window.alert('선택한 앨범이 삭제되었습니다.');
-        
-        // 🔄 삭제 후 목록 새로고침
         fetchAlbums();
         setSelectedIndexes([]);
       } catch (error) {
         console.error("앨범 삭제 실패:", error);
-        window.alert('앨범 삭제 중 오류가 발생했습니다.');
       }
     }
   };
@@ -241,10 +184,7 @@ export default function MyAlbumScreen() {
       <div className="flex-1 p-large flex flex-col min-w-0 h-full">
         <div className="flex flex-row justify-between items-center mb-large shrink-0">
           <h1 className="text-h1 font-bold text-text-primary">내 앨범</h1>
-          <button 
-            onClick={handleDeleteAlbums}
-            className="px-medium py-2 border border-accent rounded-md bg-white text-accent font-bold text-sm hover:bg-red-50 transition-colors focus:outline-none"
-          >
+          <button onClick={handleDeleteAlbums} className="px-medium py-2 border border-accent rounded-md bg-white text-accent font-bold text-sm hover:bg-red-50 transition-colors">
             선택된 앨범 삭제
           </button>
         </div>
@@ -252,164 +192,124 @@ export default function MyAlbumScreen() {
         <div className="flex-1 overflow-y-auto min-h-0 pr-2 pb-large scrollbar-hide">
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {albums.map((item, index) => {
-              // 새 앨범 만들기 (클릭 무시 버그 해결을 위해 직접 버튼으로 렌더링)
               if (item.isNew) {
                 return (
-                  <button 
-                    key={item.id}
-                    onClick={() => openAlbumDetail(item)}
-                    className="w-full h-full min-h-[260px] bg-white rounded-xl border-2 border-dashed border-[#D0D0D0] flex flex-col justify-center items-center hover:bg-gray-50 transition-colors focus:outline-none group"
-                  >
-                    <span className="text-[40px] font-light text-[#A0A0A0] mb-2 transition-transform group-hover:scale-110">
-                      +
-                    </span>
-                    <span className="text-[16px] font-bold text-[#1A1A1A]">
-                      새 앨범 만들기
-                    </span>
+                  <button key={item.id} onClick={() => openAlbumDetail(item)} className="w-full h-full min-h-[260px] bg-white rounded-xl border-2 border-dashed border-[#D0D0D0] flex flex-col justify-center items-center hover:bg-gray-50 group">
+                    <span className="text-[40px] font-light text-[#A0A0A0] mb-2 group-hover:scale-110 transition-transform">+</span>
+                    <span className="text-[16px] font-bold text-[#1A1A1A]">새 앨범 만들기</span>
                   </button>
                 );
               }
-
-              // 일반 앨범 카드 (기존 로직 유지)
-              const isSelected = selectedIndexes.includes(index);
               return (
-                <AlbumCard 
-                  key={item.id}
-                  item={item}
-                  index={index}
-                  isSelected={isSelected}
-                  onToggleSelect={toggleSelect}
-                  onOpenDetail={openAlbumDetail}
-                />
+                <AlbumCard key={item.id} item={item} index={index} isSelected={selectedIndexes.includes(index)} onToggleSelect={toggleSelect} onOpenDetail={openAlbumDetail} />
               );
             })}
           </div>
         </div>
 
-      {/* 🚨 업그레이드된 앨범 상세 정보 오버레이 (사진 디자인 완벽 반영) */}
+      {/* 앨범 상세 오버레이 */}
       {isDetailModalVisible && selectedAlbum && (
         <div className="absolute inset-0 z-[9999] bg-white flex flex-row">
           <Sidebar /> 
-          
           <div className="flex-1 p-[40px] flex flex-col h-screen overflow-hidden">
-            
-            {/* 오버레이 헤더 영역 */}
             <div className="flex flex-row justify-between items-start mb-[30px] shrink-0">
-              
-              {/* 왼쪽: 수정 가능한 앨범 이름, 설명, 사진 수 */}
               <div className="flex-1 pr-5 flex flex-col">
-                <input 
-                  type="text"
-                  className="text-[32px] font-bold text-[#1A1A1A] mb-2 focus:outline-none bg-transparent placeholder-[#D0D0D0]"
-                  placeholder={selectedAlbum.id === 'new' ? "새 앨범 이름" : "앨범 이름을 입력하세요"}
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                />
-                <input 
-                  type="text"
-                  className="text-base text-[#666666] mb-4 focus:outline-none bg-transparent w-full placeholder-[#D0D0D0]"
-                  placeholder="앨범에 대한 설명을 입력하세요"
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                />
-                <span className="text-[15px] text-[#888] font-bold">
-                  총 {selectedAlbum.photoCount || 0}장의 사진
-                </span>
+                <input type="text" className="text-[32px] font-bold text-[#1A1A1A] mb-2 focus:outline-none bg-transparent" placeholder="앨범 제목" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                <input type="text" className="text-base text-[#666666] mb-4 focus:outline-none bg-transparent w-full" placeholder="설명 입력" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+                <span className="text-[15px] text-[#888] font-bold">총 {selectedAlbum.photoCount || 0}장의 사진</span>
               </div>
-
-              {/* 오른쪽: 버튼 그룹 */}
               <div className="flex flex-col items-end gap-4">
-                
-                {/* 상단: 저장(검정), 닫기(빨간 원) 버튼 */}
                 <div className="flex flex-row items-center gap-3">
-                  <button 
-                    onClick={handleSaveOverlay}
-                    className="bg-[#1A1A1A] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-black transition-colors focus:outline-none"
-                  >
-                    저장
-                  </button>
-                  <button 
-                    onClick={() => setIsDetailModalVisible(false)} 
-                    className="bg-[#8A0020] text-white w-10 h-10 rounded-full flex justify-center items-center text-[20px] font-bold hover:bg-red-900 transition-colors focus:outline-none"
-                  >
-                    ✕
-                  </button>
+                  <button onClick={handleSaveOverlay} className="bg-[#1A1A1A] text-white px-5 py-2.5 rounded-lg font-bold text-sm">저장</button>
+                  <button onClick={() => setIsDetailModalVisible(false)} className="bg-[#8A0020] text-white w-10 h-10 rounded-full flex justify-center items-center text-[20px] font-bold">✕</button>
                 </div>
-                
-                {/* 하단: 사진 제거(하양), 사진 추가(빨강) 버튼 (DB 연동 - 사진 제거는 사진마다 x 를 선택할 수 있도록 버튼 추가)*/}
+                {/* 🚨 [수정] 사진 제거 버튼 삭제 및 사진 추가 기능 연결 */}
                 <div className="flex flex-row items-center gap-3">
-                  <button className="border border-[#D0D0D0] bg-white text-[#1A1A1A] px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-50 transition-colors focus:outline-none">
-                    사진 제거
-                  </button>
                   <button 
                     onClick={() => {
-                      // 사진 추가 로직:
-                      // 실제로는 전체 사진 목록 모달을 띄워 선택하게 해야 합니다.
-                      // 임시로 동작 확인을 위해 '전체 사진 선택창'이 있다고 가정하거나 로직을 호출합니다.
-                      const mockSelectedIds = ["photo_id_1", "photo_id_2"]; // 실제로는 선택된 ID 배열
-                      if(confirm("테스트 사진 2장을 추가하시겠습니까?")) {
-                        handleAddPhotosToAlbum(mockSelectedIds);
-                      }
+                      setTempSelectedIds([]); // 팝업 열기 전 초기화
+                      setIsPhotoSelectModalVisible(true);
                     }}
-                    className="bg-[#8A0020] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-red-900 transition-colors focus:outline-none"
+                    className="bg-[#8A0020] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-red-900 transition-colors"
                   >
                     사진 추가
                   </button>
                 </div>
-
               </div>
             </div>
 
-            {/* 앨범 내부 사진 리스트 영역 */}
-            <div className={`flex-1 bg-[#F9F9F9] rounded-xl border border-[#E0E0E0] min-h-0 overflow-y-auto ${
-              albumPhotos && albumPhotos.length > 0 ? 'p-[30px] block' : 'flex justify-center items-center'
-            }`}>
-              
-              {selectedAlbum.id === 'new' ? (
-                /* 1. 새 앨범일 때 (원래 디자인) */
-                <span className="text-[18px] text-[#A0A0A0]">
-                  우측 상단의 '사진 추가' 버튼을 눌러 사진을 채워보세요.
-                </span>
-              ) : albumPhotos && albumPhotos.length > 0 ? (
-                /* 2. 사진이 있을 때 (그리드 레이아웃) */
+            <div className={`flex-1 bg-[#F9F9F9] rounded-xl border border-[#E0E0E0] min-h-0 overflow-y-auto ${albumPhotos.length > 0 ? 'p-[30px] block' : 'flex justify-center items-center'}`}>
+              {albumPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {albumPhotos.map((photo: any) => (
-                    <div 
-                      key={photo.id} 
-                      className="relative aspect-square bg-white rounded-lg overflow-hidden border border-[#EEE] group cursor-pointer"
-                    >
-                      <img 
-                        src={photo.blob_url} 
-                        alt={photo.original_name} 
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                      />
-                      {/* 마우스 올렸을 때만 보이는 삭제(제외) 버튼 추가 */}
+                    <div key={photo.id} className="relative aspect-square bg-white rounded-lg overflow-hidden border border-[#EEE] group">
+                      <img src={photo.blob_url} alt={photo.original_name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                       <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity" />
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation(); // 카드 클릭 이벤트 전파 방지
-                          handleRemovePhotoFromAlbum(photo.id);
-                        }}
-                        className="absolute top-2 right-2 bg-white/80 hover:bg-white text-red-600 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                      >
-                        ✕
-                      </button>
+                      {/* 개별 사진 삭제 버튼 */}
+                      <button onClick={(e) => { e.stopPropagation(); handleRemovePhotoFromAlbum(photo.id); }} className="absolute top-2 right-2 bg-white/80 text-red-600 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
                     </div>
                   ))}
                 </div>
               ) : (
-                /* 3. 사진이 없는 기존 앨범일 때 */
-                <span className="text-[18px] text-[#A0A0A0]">
-                  이 앨범에는 아직 등록된 사진이 없습니다.
-                </span>
+                <span className="text-[18px] text-[#A0A0A0]">앨범에 사진을 추가해보세요.</span>
               )}
             </div>
-            
           </div>
         </div>
       )}
 
-      {/* 중복 렌더링되던 기존 AlbumDetailModal은 제거하여 깔끔하게 정리했습니다. */}
+      {/* 🚨 [추가] 사진 선택 모달 (전체 사진 목록 팝업) */}
+      {isPhotoSelectModalVisible && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl w-[800px] h-[600px] flex flex-col p-8 shadow-2xl">
+            <div className="flex justify-between items-center mb-6 shrink-0">
+              <h2 className="text-2xl font-bold text-text-primary">사진 선택</h2>
+              <div className="flex gap-3">
+                <button 
+                  onClick={handleSaveSelectedPhotos}
+                  className="bg-accent text-white px-6 py-2 rounded-lg font-bold hover:bg-accent-dark transition-colors"
+                >
+                  저장
+                </button>
+                <button 
+                  onClick={() => setIsPhotoSelectModalVisible(false)}
+                  className="text-text-secondary hover:text-text-primary text-xl"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
+              <div className="grid grid-cols-4 gap-4 pb-4">
+                {allPhotos.map((photo) => {
+                  const isTempSelected = tempSelectedIds.includes(photo.id);
+                  return (
+                    <button 
+                      key={photo.id}
+                      onClick={() => {
+                        setTempSelectedIds(prev => 
+                          isTempSelected ? prev.filter(id => id !== photo.id) : [...prev, photo.id]
+                        );
+                      }}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                        isTempSelected ? 'border-accent ring-2 ring-accent' : 'border-transparent'
+                      }`}
+                    >
+                      <img src={photo.blob_url} className="w-full h-full object-cover" />
+                      <div className={`absolute top-2 left-2 w-6 h-6 rounded border-2 flex items-center justify-center ${
+                        isTempSelected ? 'bg-accent border-accent' : 'bg-white/80 border-gray-400'
+                      }`}>
+                        {isTempSelected && <span className="text-white text-xs font-bold">✓</span>}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   </div>
   );

@@ -19,25 +19,30 @@ const MOCK_DATA = [
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const [posts, setPosts] = useState<any[]>([]); //DB 연동
-  const shopId = "3sesac18"; //DB 연동
-
+  const [posts, setPosts] = useState<any[]>([]);
+  const [isGuest, setIsGuest] = useState(false);
+  
+  const shopId = "3sesac18";
+  
   useEffect(() => {
     const fetchPosts = async () => {
       try {
         const response = await apiClient.get(`/agent/posts/${shopId}`);
-        
-        // axios는 response.data 안에 실제 결과값이 들어있습니다.
         setPosts(response.data.posts || []);
       } catch (error) {
         console.error("데이터 로딩 실패:", error);
       }
     };
+  
     fetchPosts();
+  
+    const guestStatus = localStorage.getItem("isGuest");
+    if (guestStatus === "true") {
+      setIsGuest(true);
+    }
   }, [shopId]);
 
   return (
-    // 1. [핵심] min-h-screen을 h-screen으로 변경하고 overflow-hidden 추가
     <div className="flex flex-row h-screen w-full bg-background overflow-hidden">
       
       {/* 1. 좌측 사이드바 */}
@@ -50,6 +55,27 @@ export default function DashboardScreen() {
         <div className="flex flex-row justify-between items-center mb-large shrink-0">
           <h1 className="text-h1 text-text-primary font-bold">내 대시보드</h1>
         </div>
+
+        {/* 🚨 3. 체험 모드(Guest) 전용 우아한 경고 배너 */}
+        {isGuest && (
+          <div className="mb-large bg-[#FFF4F4] border border-[#FFD6D6] rounded-xl p-5 flex flex-row justify-between items-center shrink-0 shadow-sm">
+            <div className="flex flex-row items-center">
+              <div className="w-10 h-10 bg-[#FFE5E5] rounded-full flex items-center justify-center mr-4 shrink-0">
+                <span className="text-[#E02424] text-lg">⚠️</span>
+              </div>
+              <div>
+                <p className="text-[15px] font-bold text-[#E02424] mb-1">현재 체험 모드로 접속 중입니다.</p>
+                <p className="text-[13px] text-[#E02424]/80">개인 사진 업로드 및 인스타그램 자동 발행 기능이 제한됩니다. 전체 기능을 사용하시려면 계정을 연동해 주세요.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push('/login')}
+              className="ml-4 px-5 py-2.5 bg-[#E02424] text-white text-[13px] font-bold rounded-lg hover:bg-red-800 transition-colors shrink-0 focus:outline-none"
+            >
+              계정 연동하기
+            </button>
+          </div>
+        )}
 
         {/* 그리드 리스트 영역: 독립 스크롤을 위한 min-h-0 추가 */}
         <div className="flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-hide">
