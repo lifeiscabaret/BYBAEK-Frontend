@@ -48,6 +48,9 @@ export default function OnboardingScreen() {
       // 3. 백엔드 API로 전송! (POST)
       await apiClient.post(`/onboarding/${shopId}`, payload);
 
+      // 대시보드로 가기 전에 '튜토리얼 실행용 1회용 티켓'을 발급합니다.
+      sessionStorage.setItem('show_tutorial', 'true');
+
       // 4. 전송 완료 후 대시보드로 이동
       router.push('/dashboard');
 
