@@ -6,24 +6,36 @@ import { ONBOARDING_QUESTIONS, SurveyQuestion } from '../utils/constants/Onboard
 import { MockDB } from '../utils/MockDB';
 
 interface OnboardingSurveyProps {
-  initialQuestionId?: number; // 🚨 설정 화면에서 특정 질문으로 바로가기 위한 Props 추가
+  initialQuestionId?: number; 
+  initialAnswers?: Record<number, any>; 
   onFinish: (answers?: any) => void;
   onSkip: () => void;
 }
 
-export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuestionId, onFinish, onSkip }) => {
-  // 1. 초기 인덱스 계산 (initialQuestionId가 있으면 해당 질문 인덱스로, 없으면 0으로 시작)
+interface ScheduleAnswer {
+  amPm: string;
+  hour: string;
+  minute: string;
+  frequency: string;
+}
+
+export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ 
+  initialQuestionId, 
+  initialAnswers, 
+  onFinish, 
+  onSkip 
+}) => {
   const initialIndex = initialQuestionId
     ? ONBOARDING_QUESTIONS.findIndex((q) => q.id === initialQuestionId)
     : 0;
   
   const [currentIndex, setCurrentIndex] = useState(initialIndex !== -1 ? initialIndex : 0);
-  
-  // 🚨 설정 화면에서 진입한 "단일 수정 모드"인지 판별
   const isSingleEditMode = !!initialQuestionId;
 
-  // 2. 초기 답변 세팅 (MockDB에서 기존 저장된 데이터를 모두 불러와서 세팅)
   const [answers, setAnswers] = useState<Record<number, any>>(() => {
+    if (initialAnswers && Object.keys(initialAnswers).length > 0) {
+      return initialAnswers;
+    }
     const savedData = MockDB.getAll() as { id: number; answer: any }[];
     const loadedAnswers: Record<number, any> = {};
     savedData.forEach((item) => {
@@ -35,15 +47,19 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
   const currentQuestion: SurveyQuestion = ONBOARDING_QUESTIONS[currentIndex];
   const partTitle = currentQuestion.category === 'PERSONAL' ? '개인화 설정 - 설정 탭에서 언제든지 변경 가능' : '앱 설정 - 설정 탭에서 언제든지 변경 가능';
 
-  // 3. 주관식 입력창 초기값 세팅 (텍스트 답변이 존재하면 불러오기)
   const [inputText, setInputText] = useState('');
 
+  const [isHourDropdownOpen, setIsHourDropdownOpen] = useState(false);
+  const [isMinuteDropdownOpen, setIsMinuteDropdownOpen] = useState(false);
+  
+  const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
+  const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
+  const frequencies = ['매일', '2일마다', '3일마다', '4일마다', '5일마다', '6일마다', '일주일마다'];
+
   useEffect(() => {
-    // 이전 답변을 불러와서 세팅하는 건 '질문이 바뀔 때(currentQuestion.id)'만 딱 한 번 실행되어야 함.
     const currentAnswer = answers[currentQuestion.id];
     let newText = '';
     
-    // 현재 답변이 문자열이고, 단순 객관식이 아닐 때
     if (typeof currentAnswer === 'string' && currentQuestion.type !== 'SELECT') {
       if (currentQuestion.options && !currentQuestion.options.includes(currentAnswer)) {
         newText = currentAnswer;
@@ -53,36 +69,40 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
     }
     setInputText(newText);
     
-    // 🚨 eslint 경고가 뜨더라도 answers는 의존성 배열에서 무조건 빼야 해! 
-    // 안 그러면 타자 칠 때마다 초기화되는 버그가 생겨.
+    if (currentQuestion.type === 'SCHEDULE' && !currentAnswer) {
+      setAnswers((prev) => ({
+        ...prev,
+        [currentQuestion.id]: { amPm: 'AM', hour: '10', minute: '30', frequency: '매일' }
+      }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestion.id]);
-  // 답변 저장 및 다음 단계 (혹은 종료) 처리
+
   const handleNext = () => {
-    // 입력창에 적은 글이 있으면 우선시하고, 없으면 선택된 옵션 사용
-    let finalAnswer = inputText.trim() || answers[currentQuestion.id];
+    let finalAnswer = currentQuestion.type === 'SCHEDULE' 
+      ? answers[currentQuestion.id] 
+      : (inputText.trim() || answers[currentQuestion.id]);
     
-    // 1. 가상 DB에 저장
+    const updatedAnswers = { ...answers };
+
     if (finalAnswer) {
-      MockDB.saveAnswer(currentQuestion.id, finalAnswer);
+      updatedAnswers[currentQuestion.id] = finalAnswer;
+      MockDB.saveAnswer(currentQuestion.id, finalAnswer); // 하위 호환을 위해 남겨둠
     }
 
-    // 2. 🚨 단일 수정 모드면 여기서 바로 저장 후 팝업 닫기!
     if (isSingleEditMode) {
-      onFinish(MockDB.getAll());
+      onFinish(updatedAnswers); 
       return;
     }
 
-    // 3. 전체 진행 모드면 다음 질문으로 이동
     if (currentIndex < ONBOARDING_QUESTIONS.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setInputText('');
     } else {
-      onFinish(MockDB.getAll());
+      onFinish(updatedAnswers); 
     }
   };
 
-  // 객관식 선택 시 처리 (기존 로직 동일)
   const handleSelect = (option: string) => {
     const currentAnswer = answers[currentQuestion.id];
 
@@ -94,21 +114,25 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
           [currentQuestion.id]: prevSelected.filter((item) => item !== option),
         });
       } else {
-        if (prevSelected.length < 3) {
-          setAnswers({
-            ...answers,
-            [currentQuestion.id]: [...prevSelected, option],
-          });
-        }
+        setAnswers({
+          ...answers,
+          [currentQuestion.id]: [...prevSelected, option],
+        });
       }
     } else {
-      // 새로운 객관식을 선택하면 입력창(inputText)은 비워줌
       setInputText(''); 
       setAnswers({ ...answers, [currentQuestion.id]: option });
     }
   };
 
-  // 선택 여부 확인 로직 (기존 로직 동일)
+  const updateSchedule = (key: keyof ScheduleAnswer, value: string) => {
+    const currentSchedule = answers[currentQuestion.id] || { amPm: 'AM', hour: '10', minute: '30', frequency: '매일' };
+    setAnswers({
+      ...answers,
+      [currentQuestion.id]: { ...currentSchedule, [key]: value }
+    });
+  };
+
   const checkIsSelected = (option: string) => {
     const currentAnswer = answers[currentQuestion.id];
     if (currentQuestion.isMultiSelect && Array.isArray(currentAnswer)) {
@@ -117,27 +141,31 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
     return currentAnswer === option;
   };
 
+  const currentSchedule: ScheduleAnswer = answers[currentQuestion.id] || { amPm: 'AM', hour: '10', minute: '30', frequency: '매일' };
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[10000]">
-      <div className="w-[450px] min-h-[500px] max-h-[80vh] bg-background rounded-xl shadow-lg p-large flex flex-col relative">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[10000] p-4">
+      {/* 🚨 레이아웃 수정: 전체 높이를 max-h로 제한하고, 내부에서 스크롤되도록 flex-col 적용 */}
+      <div className="w-[450px] max-h-[85vh] bg-background rounded-xl shadow-lg flex flex-col overflow-hidden">
         
-        {/* 상단 헤더 */}
-        <div className="flex justify-between items-start mb-large shrink-0">
-          <div>
-            <p className="text-[14px] text-accent font-bold mb-1">{partTitle}</p>
-            <h2 className="text-h2 font-bold text-text-primary">
-              {/* 단일 수정 모드일 때는 제목을 살짝 다르게 표시 */}
-              {isSingleEditMode ? '프롬프트 수정' : `스무고개 (${currentIndex + 1}/${ONBOARDING_QUESTIONS.length})`}
-            </h2>
+        {/* 1. 상단 헤더 영역 (고정) */}
+        <div className="p-large pb-4 shrink-0">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-[14px] text-accent font-bold mb-1">{partTitle}</p>
+              <h2 className="text-h2 font-bold text-text-primary">
+                {isSingleEditMode ? '설정 수정' : `(${currentIndex + 1}/${ONBOARDING_QUESTIONS.length})`}
+              </h2>
+            </div>
+            <button onClick={onSkip} className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none">
+              ✕
+            </button>
           </div>
-          <button onClick={onSkip} className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none">
-            ✕
-          </button>
         </div>
 
-        {/* 본문 콘텐츠 (질문 및 답변) */}
-        <div className="flex-1 min-h-0 flex flex-col overflow-y-auto pr-2">
-          <p className="text-body font-bold text-text-primary mb-5">
+        {/* 2. 중앙 콘텐츠 영역 (🚨 스크롤 생성 영역) */}
+        <div className="px-large pb-large flex-1 overflow-y-auto scrollbar-hide">
+          <p className="text-body font-bold text-text-primary mb-5 whitespace-pre-wrap leading-relaxed">
             Q. {currentQuestion.question}
           </p>
           
@@ -147,11 +175,8 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
                 const isSelected = checkIsSelected(option); 
                 return (
                   <button 
-                    key={idx} 
-                    onClick={() => handleSelect(option)}
-                    className={`p-medium mt-3 border rounded-lg text-left transition-colors focus:outline-none ${
-                      isSelected ? 'border-accent border-[1.5px] bg-red-50' : 'border-border bg-background hover:bg-gray-50'
-                    }`}
+                    key={idx} onClick={() => handleSelect(option)}
+                    className={`p-medium mt-3 border rounded-lg text-left transition-colors focus:outline-none ${isSelected ? 'border-accent border-[1.5px] bg-red-50' : 'border-border bg-background hover:bg-gray-50'}`}
                   >
                     <span className={`text-body ${isSelected ? 'text-accent font-bold' : 'text-text-primary'}`}>
                       {isSelected ? (currentQuestion.isMultiSelect ? '☑️' : '🔘') : (currentQuestion.isMultiSelect ? '☐' : '⚪')} {option}
@@ -169,36 +194,76 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({ initialQuest
               )}
               <textarea 
                 className="w-full h-[120px] border border-border rounded-lg p-medium text-body text-text-primary placeholder:text-[#A0A0A0] resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
-                placeholder={currentQuestion.placeholder}
-                value={inputText}
+                placeholder={currentQuestion.placeholder} value={inputText}
                 onChange={(e) => {
                   setInputText(e.target.value);
-                  // 텍스트를 입력하면 객관식 선택은 해제 (단일 선택일 경우만)
-                  if (!currentQuestion.isMultiSelect) {
-                    setAnswers({ ...answers, [currentQuestion.id]: '' });
-                  }
+                  if (!currentQuestion.isMultiSelect) setAnswers({ ...answers, [currentQuestion.id]: '' });
                 }}
               />
             </div>
           )}
+
+          {currentQuestion.type === 'SCHEDULE' && (
+            <div className="flex flex-col mt-2">
+              <p className="text-sm font-bold text-[#666666] mb-3">시간 설정</p>
+              
+              <div className="flex flex-row gap-2 mb-4">
+                {['AM', 'PM'].map(p => (
+                  <button 
+                    key={p} onClick={() => updateSchedule('amPm', p)}
+                    className={`px-5 py-2 rounded-full border text-sm transition-colors focus:outline-none ${currentSchedule.amPm === p ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary hover:bg-gray-200'}`} 
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-row relative z-50 mb-8 gap-4">
+                <div className="relative w-[140px]">
+                  <button className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none hover:bg-gray-50" onClick={() => { setIsHourDropdownOpen(!isHourDropdownOpen); setIsMinuteDropdownOpen(false); }}>
+                    <span>{currentSchedule.hour} 시</span><span className="text-[12px] text-[#888888]">▼</span>
+                  </button>
+                  {isHourDropdownOpen && (
+                    <div className="absolute top-[110%] left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
+                      {hours.map(h => <button key={`hour-${h}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { updateSchedule('hour', h); setIsHourDropdownOpen(false); }}>{h} 시</button>)}
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative w-[140px]">
+                  <button className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none hover:bg-gray-50" onClick={() => { setIsMinuteDropdownOpen(!isMinuteDropdownOpen); setIsHourDropdownOpen(false); }}>
+                    <span>{currentSchedule.minute} 분</span><span className="text-[12px] text-[#888888]">▼</span>
+                  </button>
+                  {isMinuteDropdownOpen && (
+                    <div className="absolute top-[110%] left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
+                      {minutes.map(m => <button key={`min-${m}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { updateSchedule('minute', m); setIsMinuteDropdownOpen(false); }}>{m} 분</button>)}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-sm font-bold text-[#666666] mb-3">업로드 빈도</p>
+              <div className="flex flex-row flex-wrap gap-2">
+                {frequencies.map(f => (
+                  <button 
+                    key={f} onClick={() => updateSchedule('frequency', f)}
+                    className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${currentSchedule.frequency === f ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary hover:bg-gray-200'}`} 
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 하단 버튼 영역 */}
-        <div className="flex flex-row justify-between mt-large pt-2 shrink-0">
-          <button 
-            onClick={onSkip} 
-            className="flex-1 bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center mr-small text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none"
-          >
+        {/* 3. 하단 버튼 영역 (고정) */}
+        <div className="p-large bg-background border-t border-[#F0F0F0] flex flex-row justify-between shrink-0">
+          <button onClick={onSkip} className="flex-1 bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center mr-small text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none">
             취소
           </button>
-          <button 
-            onClick={handleNext} 
-            className="flex-1 bg-accent py-3 rounded-lg flex items-center justify-center ml-small text-text-inverse font-bold hover:bg-accent-dark transition-colors focus:outline-none"
-          >
-            {/* 단일 수정 모드일 때는 '저장 완료', 아니면 '다음' */}
-            {isSingleEditMode 
-              ? '수정 완료' 
-              : (currentIndex === ONBOARDING_QUESTIONS.length - 1 ? '완료 및 시작' : '저장 후 다음')}
+          <button onClick={handleNext} className="flex-1 bg-accent py-3 rounded-lg flex items-center justify-center ml-small text-text-inverse font-bold hover:bg-accent-dark transition-colors focus:outline-none">
+            {isSingleEditMode ? '수정 완료' : (currentIndex === ONBOARDING_QUESTIONS.length - 1 ? '완료 및 시작' : '저장 후 다음')}
           </button>
         </div>
 
