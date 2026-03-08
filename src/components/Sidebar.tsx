@@ -141,11 +141,19 @@ export const Sidebar: React.FC = () => {
               textClasses += isActive ? "text-text-inverse" : "text-text-secondary";
             }
 
+            // 🚨 [추가] 튜토리얼 타겟을 위한 동적 클래스 생성 로직
+            let tourClass = "";
+            if (item.path === '/dashboard') tourClass = " tour-step-dashboard";
+            else if (item.path === '/preview') tourClass = " tour-step-preview";
+            else if (item.path === '/photos') tourClass = " tour-step-photos";
+            else if (item.path === '/album') tourClass = " tour-step-album";
+            else if (item.path === '/setting') tourClass = " tour-step-setting";
+
             return (
               <button
                 key={index}
                 onClick={() => handleMenuClick(item)}
-                className={itemClasses}
+                className={itemClasses + tourClass}
                 title={isCollapsed ? item.name : undefined}
               >
                 <span className={textClasses}>

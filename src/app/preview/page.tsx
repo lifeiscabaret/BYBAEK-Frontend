@@ -206,9 +206,10 @@ export default function PreviewScreen() {
           <textarea className="w-full h-full resize-none text-body bg-transparent focus:outline-none" value={generatedCaption} onChange={(e) => setGeneratedCaption(e.target.value)} />
         </div>
 
-        <div className="flex gap-4 shrink-0">
-          <button className="flex-1 py-3 border border-text-primary rounded-lg font-bold hover:bg-gray-100">게시글 수정</button>
-          <button className="flex-1 py-3 bg-accent rounded-lg text-text-inverse font-bold hover:bg-accent-dark">인스타 업로드</button>
+        <div className="shrink-0">
+          <button className="w-full py-3.5 bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md">
+            인스타 업로드
+          </button>
         </div>
       </div>
 
