@@ -2,14 +2,16 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation'; // 🚨 useSearchParams 추가
+import { useRouter } from 'next/navigation'; // 🚨 useSearchParams 추가
 
 type LoginStep = 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
 export default function LoginScreen() {
+  if (typeof window === "undefined") return;
+
   const router = useRouter();
-  const searchParams = useSearchParams(); 
+  const searchParams = new URLSearchParams(window.location.search); 
   
   // 🚨 주소창에 ?from=sidebar 꼬리표가 있는지 확인
   const isFromSidebar = searchParams.get('from') === 'sidebar';
@@ -152,7 +154,11 @@ export default function LoginScreen() {
       {step === 'ONEDRIVE_QR' && renderModalContainer(
         'OneDrive 연동',
         <>
+          <p className="text-body text-text-primary text-center mb-small">아래 QR을 찍어 OneDrive를 설치해주세요.</p>
+          <p className="text-body text-text-primary text-center mb-small">이미지를 OneDrive에 올리면 자동으로<br /> BYBAEK에 등록됩니다.</p>
           <p className="text-body text-text-primary text-center mb-small">아래 QR을 찍어 휴대폰에 OneDrive를 설치해주세요.</p>
+          <p className="text-body text-text-primary text-center mb-small">로그인 → 좌측상단 로고 버튼 클릭 → 설정<br /> → 카메라 백업 → 계정 선택 → 백업켜기 확인</p>
+          <p className="text-body text-text-primary text-center mb-small">이미지가 OneDrive에 올라가면<br /> 자동으로 BYBAEK에 등록됩니다.</p>
           <div className="w-[150px] h-[150px] bg-[#EAEAEA] flex justify-center items-center mt-large">
             <span className="text-h2 text-text-secondary font-bold mb-small">QR 코드</span>
           </div>

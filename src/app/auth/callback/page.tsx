@@ -2,10 +2,11 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 export default function AuthCallback() {
-  const searchParams = useSearchParams();
+  if (typeof window === "undefined") return;
+
+  const searchParams = new URLSearchParams(window.location.search);
   const [statusMsg, setStatusMsg] = useState('로그인 처리 중입니다...');
   
   useEffect(() => {
@@ -19,7 +20,7 @@ export default function AuthCallback() {
       const sendCodeToBackend = async () => {
         try {
           // API 주소
-          const BACKEND_API_URL = 'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/login/instagram';
+          const BACKEND_API_URL = 'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/auth/instagram';
           
           const response = await fetch(BACKEND_API_URL, {
             method: 'POST',

@@ -12,14 +12,16 @@ export function TutorialTour() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // 🚨 2. 브라우저에서 실행될 때 isMounted를 true로 변경
     setIsMounted(true); 
 
-    const shouldShowTutorial = sessionStorage.getItem('show_tutorial');
+    // 🚨 1회용 티켓(sessionStorage) 대신, 로컬 스토리지로 '튜토리얼 본 적 있는지' 확인
+    const hasSeenTutorial = localStorage.getItem('has_seen_tutorial');
 
-    if (shouldShowTutorial === 'true' && pathname === '/dashboard') {
+    // 튜토리얼을 본 적이 없고, 현재 위치가 대시보드라면 튜토리얼 실행!
+    if (!hasSeenTutorial && pathname === '/dashboard') {
       setRun(true);
-      sessionStorage.removeItem('show_tutorial');
+      // 🚨 실행 즉시 도장을 찍어서, F5(새로고침)를 누르거나 메뉴를 왔다 갔다 해도 다시 안 뜨게 만듭니다.
+      localStorage.setItem('has_seen_tutorial', 'true');
     }
   }, [pathname]);
 

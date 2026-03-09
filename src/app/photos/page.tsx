@@ -34,7 +34,8 @@ export default function AllPhotosScreen() {
   const fetchPhotos = async () => {
     try {
       const shopId = "3sesac18"; // 실제로는 로그인된 정보를 사용합니다.
-      const response = await apiClient.get(`http://localhost:8000/api/photos/all/${shopId}`);
+      //const response = await apiClient.get(`http://localhost:8000/api/photos/all/${shopId}`);
+      const response = await apiClient.get(`https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/photos/all/${shopId}`);
       setPhotos(response.data.photos); // {"photos": [...]} 구조에 맞춤
     } catch (error) {
       console.error("사진 로딩 실패:", error);
@@ -198,31 +199,45 @@ export default function AllPhotosScreen() {
                   <p className="text-text-secondary">사진을 불러오는 중입니다...</p>
                 </div>
               ) : (
-                photos.map((photo, index) => { // 1. photoName 대신 진짜 photo 객체 사용
+                photos.map((photo, index) => {
                   const isSelected = selectedIndexes.includes(index);
                   
                   return (
-                    <button 
-                      key={photo.id || `photo-${index}`} // 2.DB의 진짜 ID 사용
-                      onClick={() => toggleSelect(index)}
-                      className={`relative w-[180px] h-[180px] bg-[#EAEAEA] rounded-lg border flex justify-center items-center overflow-hidden transition-all focus:outline-none shrink-0 ${
-                        isSelected ? 'border-accent border-2' : 'border-border hover:border-gray-400'
+                    // 버튼이 아닌 div로 감싸고, 내부에서 클릭 영역을 2개로 나눕니다.
+                    <div 
+                      key={photo.id || `photo-${index}`}
+                      className={`relative w-[180px] h-[180px] bg-[#EAEAEA] rounded-lg border overflow-hidden transition-all shrink-0 group ${
+                        isSelected ? 'border-accent border-[3px]' : 'border-border hover:border-gray-400'
                       }`}
                     >
-                      {/* 체크박스 디자인 유지 */}
-                      <div className={`absolute top-[10px] left-[10px] w-[22px] h-[22px] rounded border-2 z-10 flex justify-center items-center transition-colors ${
-                        isSelected ? 'bg-accent border-accent' : 'bg-white border-text-secondary'
-                      }`}>
-                        {isSelected && <span className="text-white text-sm font-bold leading-none">✓</span>}
-                      </div>
-                      
-                      {/* 3. 텍스트 대신 진짜 이미지를 꽉 차게 보여주기 */}
-                      <img 
-                        src={photo.blob_url} //DB의 blob_url
-                        alt={photo.original_name} //DB의 파일 이름
-                        className="w-full h-full object-cover" 
-                      />
-                    </button>
+                      {/* 1. 사진 영역 (클릭 시 확대 뷰어 오픈) */}
+                      <button 
+                        onClick={() => openViewer(index)}
+                        className="w-full h-full focus:outline-none"
+                      >
+                        <img 
+                          src={photo.blob_url} 
+                          alt={photo.original_name} 
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                        />
+                      </button>
+
+                      {/* 2. 좌측 상단 체크박스 영역 (클릭 시 사진 선택) */}
+                      {/* e.stopPropagation()으로 클릭 이벤트가 사진 영역으로 번지는 것을 막습니다. */}
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleSelect(index);
+                        }}
+                        className="absolute top-[8px] left-[8px] p-1 z-10 focus:outline-none"
+                      >
+                        <div className={`w-[22px] h-[22px] rounded border-2 flex justify-center items-center transition-colors shadow-sm ${
+                          isSelected ? 'bg-accent border-accent' : 'bg-white border-text-secondary hover:border-gray-500'
+                        }`}>
+                          {isSelected && <span className="text-white text-sm font-bold leading-none">✓</span>}
+                        </div>
+                      </button>
+                    </div>
                   );
                 })
               )}
@@ -263,11 +278,17 @@ export default function AllPhotosScreen() {
               </button>
 
               <div className="flex-1 h-full mx-4 bg-[#F5F5F5] border border-border rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-                <span className="text-[24px] font-bold text-text-primary">
-                  {photos[currentViewIndex]} <span className="text-accent text-lg ml-2">원본 고화질</span>
-                </span>
                 
-                <div className="absolute bottom-4 bg-black/40 px-4 py-1.5 rounded-full text-white text-sm">
+                {/* 텍스트 대신 실제 원본 이미지를 보여주도록 수정! */}
+                {photos[currentViewIndex] && (
+                  <img 
+                    src={photos[currentViewIndex].blob_url} 
+                    alt={photos[currentViewIndex].original_name}
+                    className="max-w-full max-h-[500px] object-contain rounded-md shadow-sm"
+                  />
+                )}
+                
+                <div className="absolute bottom-4 bg-black/50 px-4 py-1.5 rounded-full text-white text-sm font-medium backdrop-blur-sm">
                   {currentViewIndex + 1} / {photos.length}
                 </div>
               </div>
