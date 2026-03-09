@@ -154,7 +154,11 @@ export default function LoginScreen() {
       {step === 'ONEDRIVE_QR' && renderModalContainer(
         'OneDrive 연동',
         <>
+          <p className="text-body text-text-primary text-center mb-small">아래 QR을 찍어 OneDrive를 설치해주세요.</p>
+          <p className="text-body text-text-primary text-center mb-small">이미지를 OneDrive에 올리면 자동으로<br /> BYBAEK에 등록됩니다.</p>
           <p className="text-body text-text-primary text-center mb-small">아래 QR을 찍어 휴대폰에 OneDrive를 설치해주세요.</p>
+          <p className="text-body text-text-primary text-center mb-small">로그인 → 좌측상단 로고 버튼 클릭 → 설정<br /> → 카메라 백업 → 계정 선택 → 백업켜기 확인</p>
+          <p className="text-body text-text-primary text-center mb-small">이미지가 OneDrive에 올라가면<br /> 자동으로 BYBAEK에 등록됩니다.</p>
           <div className="w-[150px] h-[150px] bg-[#EAEAEA] flex justify-center items-center mt-large">
             <span className="text-h2 text-text-secondary font-bold mb-small">QR 코드</span>
           </div>
