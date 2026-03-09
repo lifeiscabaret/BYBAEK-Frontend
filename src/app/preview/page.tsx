@@ -17,6 +17,7 @@ const MOCK_CHAT: ChatMessage[] = [
 
 export default function PreviewScreen() {
   const shopId = '3sesac18';
+  const postId = ''; // 게시물 저장 시 필요
 
   const [messages, setMessages] = useState<ChatMessage[]>(MOCK_CHAT);
   const [inputText, setInputText] = useState('');
@@ -92,6 +93,44 @@ export default function PreviewScreen() {
     const newOrder = [...tempSelectedPhotos];
     [newOrder[index + 1], newOrder[index]] = [newOrder[index], newOrder[index + 1]];
     setTempSelectedPhotos(newOrder);
+  };
+
+  const handleUpload = async () => {
+    // 1. 데이터 검증
+    if (images.length === 0) {
+      alert("업로드할 사진을 선택해주세요.");
+      return;
+    }
+    if (!generatedCaption.trim()) {
+      alert("캡션 내용이 비어있습니다.");
+      return;
+    }
+
+    setIsLoading(true); // 로딩 상태 활성화
+
+    try {
+      // 2. 백엔드 /save 엔드포인트 호출
+      const payload = {
+        shop_id: shopId,
+        post_id: postId, // 초안 ID
+        caption: generatedCaption, // 생성된 캡션의 수정 여부에 따라 추출 로직 필요
+        hashtags: [], // 캡션 내에 포함되어 있거나 별도 추출 로직이 있다면 추가 필요
+        photo_ids: images.map(img => img.id),
+        cta: "" // 추출 로직 필요
+      };
+
+      const response = await apiClient.post('/save', payload);
+
+      if (response.data.status === "success") {
+        alert("성공적으로 저장되었습니다.");
+        // 필요 시 다른 페이지로 이동하거나 상태 초기화
+      }
+    } catch (error: any) {
+      console.error("업로드 실패:", error);
+      alert(error.response?.data?.detail || "저장 중 오류가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSendMessage = async (e?: FormEvent) => {
