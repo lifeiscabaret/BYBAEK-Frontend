@@ -108,7 +108,8 @@ export default function PreviewScreen() {
     setMessages((prev) => [...prev, { id: aiMessageId, sender: 'ai', text: '' }]);
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/agent/manual_chat`, {
+      //const response = await fetch(`http://127.0.0.1:8000/api/agent/manual_chat`, {
+      const response = await fetch(`https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/agent/manual_chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

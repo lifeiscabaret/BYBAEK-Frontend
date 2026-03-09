@@ -34,7 +34,8 @@ export default function AllPhotosScreen() {
   const fetchPhotos = async () => {
     try {
       const shopId = "3sesac18"; // 실제로는 로그인된 정보를 사용합니다.
-      const response = await apiClient.get(`http://localhost:8000/api/photos/all/${shopId}`);
+      //const response = await apiClient.get(`http://localhost:8000/api/photos/all/${shopId}`);
+      const response = await apiClient.get(`https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/photos/all/${shopId}`);
       setPhotos(response.data.photos); // {"photos": [...]} 구조에 맞춤
     } catch (error) {
       console.error("사진 로딩 실패:", error);
