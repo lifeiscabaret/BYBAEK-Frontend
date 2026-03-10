@@ -1,9 +1,11 @@
 // 타겟 경로: src/app/photos/page.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react'; //DB 연동
+import React, { useState, useEffect } from 'react'; 
 import { Sidebar } from '@/components/Sidebar';
-import apiClient from '@/api/index'; //DB 연동
+import apiClient from '@/api/index'; 
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface CustomAlertState {
   isOpen: boolean;
@@ -13,30 +15,27 @@ interface CustomAlertState {
 }
 
 export default function AllPhotosScreen() {
-  //const [photos, setPhotos] = useState(Array.from({ length: 20 }, (_, i) => `사진 ${i + 1}`)); //DB 연동
+  // 🚨 [다국어 적용] 번역 객체 t 장착
+  const { t } = useTranslation();
+
   const [photos, setPhotos] = useState<any[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
 
-  // 커스텀 알림/확인창 상태
   const [customAlert, setCustomAlert] = useState<CustomAlertState>({
     isOpen: false,
     message: '',
     type: 'ALERT'
   });
 
-  // 고화질 이미지 뷰어 모달 상태
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [currentViewIndex, setCurrentViewIndex] = useState(0);
-  const [loading, setLoading] = useState(true); //DB 연동
+  const [loading, setLoading] = useState(true); 
 
-  //************ DB 연동 START ************//
-  // 1. 데이터 불러오기 함수 (API 호출)
   const fetchPhotos = async () => {
     try {
-      const shopId = "3sesac18"; // 실제로는 로그인된 정보를 사용합니다.
-      //const response = await apiClient.get(`http://localhost:8000/api/photos/all/${shopId}`);
+      const shopId = "3sesac18"; 
       const response = await apiClient.get(`https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/photos/all/${shopId}`);
-      setPhotos(response.data.photos); // {"photos": [...]} 구조에 맞춤
+      setPhotos(response.data.photos); 
     } catch (error) {
       console.error("사진 로딩 실패:", error);
     } finally {
@@ -44,12 +43,9 @@ export default function AllPhotosScreen() {
     }
   };
 
-  // 2. 컴포넌트가 켜질 때 실행
   useEffect(() => {
     fetchPhotos();
   }, []);
-  
-  //************ DB 연동 END ************//
 
   const toggleSelect = (index: number) => {
     setSelectedIndexes((prev) =>
@@ -57,42 +53,56 @@ export default function AllPhotosScreen() {
     );
   };
 
+  // 🚨 [핵심 수정] 톤앤매너에 맞게 window.alert, confirm을 모두 customAlert로 교체!
   const handleDelete = async () => {
     if (selectedIndexes.length === 0) {
       setCustomAlert({
         isOpen: true,
-        message: '삭제할 사진을 먼저 선택해주세요.',
+        message: t.photos.select_photo_first,
         type: 'ALERT'
       });
       return;
     }
     
-    if (window.confirm(`선택한 ${selectedIndexes.length}개의 사진을 영구 삭제하시겠습니까?\n(앨범에서도 모두 삭제됩니다)`)) {
-      try {
-        const shopId = "3sesac18";
-        
-        // 🚨 백엔드 사진 삭제 API 호출
-        // Promise.all로 선택된 모든 사진을 병렬로 삭제 처리
-        await Promise.all(
-          selectedIndexes.map(async (idx) => {
-            const photoId = photos[idx].id;
-            return apiClient.delete(`/photos/${shopId}/${photoId}`);
-          })
-        );
+    const confirmMessage = t.photos.confirm_delete_msg.replace('{count}', selectedIndexes.length.toString());
 
-        window.alert('선택한 사진이 모두 삭제되었습니다.');
-        
-        // 🔄 삭제 후 서버에서 다시 목록 불러오기
-        fetchPhotos();
-        setSelectedIndexes([]); 
-      } catch (error) {
-        console.error("사진 삭제 실패:", error);
-        window.alert('사진 삭제 중 오류가 발생했습니다.');
+    setCustomAlert({
+      isOpen: true,
+      message: confirmMessage,
+      type: 'CONFIRM',
+      onConfirm: async () => {
+        try {
+          const shopId = "3sesac18";
+          
+          await Promise.all(
+            selectedIndexes.map(async (idx) => {
+              const photoId = photos[idx].id;
+              return apiClient.delete(`/photos/${shopId}/${photoId}`);
+            })
+          );
+
+          // 삭제 성공 알림창 띄우기
+          setCustomAlert({
+            isOpen: true,
+            message: t.photos.delete_success_msg,
+            type: 'ALERT'
+          });
+          
+          fetchPhotos();
+          setSelectedIndexes([]); 
+        } catch (error) {
+          console.error("사진 삭제 실패:", error);
+          // 삭제 실패 알림창 띄우기
+          setCustomAlert({
+            isOpen: true,
+            message: t.photos.delete_error_msg,
+            type: 'ALERT'
+          });
+        }
       }
-    }
+    });
   };
 
-    // 이미지 뷰어 제어 핸들러
   const openViewer = (index: number) => {
     setCurrentViewIndex(index);
     setIsViewerOpen(true);
@@ -124,7 +134,8 @@ export default function AllPhotosScreen() {
             }`}>!</span>
           </div>
           <h3 className="text-lg font-bold text-text-primary mb-2">
-            {customAlert.type === 'CONFIRM' ? '사진 삭제' : '알림'}
+            {/* 🚨 [다국어 적용] 타이틀 */}
+            {customAlert.type === 'CONFIRM' ? t.photos.delete_photo_title : t.photos.alert_title}
           </h3>
           <p className="text-sm text-text-secondary text-center mb-6 whitespace-pre-wrap leading-relaxed">
             {customAlert.message}
@@ -135,19 +146,22 @@ export default function AllPhotosScreen() {
                 onClick={() => setCustomAlert({ ...customAlert, isOpen: false })}
                 className="flex-1 py-3 bg-[#E0E0E0] text-text-primary rounded-lg font-bold hover:bg-gray-300 transition-colors focus:outline-none"
               >
-                취소
+                {/* 🚨 [다국어 적용] 취소 */}
+                {t.common.cancel}
               </button>
             )}
             <button
               onClick={() => {
-                if (customAlert.onConfirm) customAlert.onConfirm();
+                // 🚨 onConfirm이 있으면 모달을 닫은 뒤 바로 실행하도록 최적화
                 setCustomAlert({ ...customAlert, isOpen: false });
+                if (customAlert.onConfirm) customAlert.onConfirm();
               }}
               className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors focus:outline-none ${
                 customAlert.type === 'CONFIRM' ? 'bg-[#E02424] hover:bg-red-800' : 'bg-accent hover:bg-accent-dark'
               }`}
             >
-              {customAlert.type === 'CONFIRM' ? '삭제하기' : '확인'}
+              {/* 🚨 [다국어 적용] 확인 / 삭제하기 분기 */}
+              {customAlert.type === 'CONFIRM' ? t.photos.btn_delete : t.common.confirm}
             </button>
           </div>
         </div>
@@ -161,36 +175,36 @@ export default function AllPhotosScreen() {
       
       <div className="flex-1 p-large bg-[#FAFAFA] flex flex-col min-w-0 h-full">
         <div className="flex flex-row justify-between items-center mb-large pb-small border-b border-border shrink-0">
-          <h1 className="text-h1 text-text-primary font-bold">전체 사진</h1>
+          {/* 🚨 [다국어 적용] 타이틀 */}
+          <h1 className="text-h1 text-text-primary font-bold">{t.photos.title}</h1>
           <button 
             onClick={handleDelete}
             className="px-medium py-2 border border-accent rounded-md bg-white text-accent font-bold text-sm hover:bg-red-50 transition-colors focus:outline-none"
           >
-            선택된 사진 삭제
+            {/* 🚨 [다국어 적용] 선택된 사진 삭제 */}
+            {t.photos.delete_selected}
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-hide">
           <div className="flex flex-row flex-wrap gap-4 pb-large">
             
-              {/* DB 연동 */}
               {loading ? (
                 <div className="flex justify-center items-center w-full h-40">
-                  <p className="text-text-secondary">사진을 불러오는 중입니다...</p>
+                  {/* 🚨 [다국어 적용] 로딩 텍스트 */}
+                  <p className="text-text-secondary">{t.photos.loading_photos}</p>
                 </div>
               ) : (
                 photos.map((photo, index) => {
                   const isSelected = selectedIndexes.includes(index);
                   
                   return (
-                    // 버튼이 아닌 div로 감싸고, 내부에서 클릭 영역을 2개로 나눕니다.
                     <div 
                       key={photo.id || `photo-${index}`}
                       className={`relative w-[180px] h-[180px] bg-[#EAEAEA] rounded-lg border overflow-hidden transition-all shrink-0 group ${
                         isSelected ? 'border-accent border-[3px]' : 'border-border hover:border-gray-400'
                       }`}
                     >
-                      {/* 1. 사진 영역 (클릭 시 확대 뷰어 오픈) */}
                       <button 
                         onClick={() => openViewer(index)}
                         className="w-full h-full focus:outline-none"
@@ -202,8 +216,6 @@ export default function AllPhotosScreen() {
                         />
                       </button>
 
-                      {/* 2. 좌측 상단 체크박스 영역 (클릭 시 사진 선택) */}
-                      {/* e.stopPropagation()으로 클릭 이벤트가 사진 영역으로 번지는 것을 막습니다. */}
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -228,15 +240,14 @@ export default function AllPhotosScreen() {
 
       {renderCustomAlert()}
 
-      {/* 🚨 기존 서비스 테마(표준 모달창)를 완벽하게 적용한 사진 뷰어 */}
+      {/* 이미지 뷰어 */}
       {isViewerOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[9999]">
-          {/* 가로로 넓게 설정 (w-[800px]) */}
           <div className="w-[800px] h-[650px] bg-background rounded-xl shadow-lg p-large flex flex-col justify-between">
             
-            {/* 1. 상단 헤더 (타이틀 & 닫기버튼) */}
             <div className="flex justify-between items-center mb-large shrink-0">
-              <h2 className="text-h2 font-bold text-text-primary">원본 사진 보기</h2>
+              {/* 🚨 [다국어 적용] 뷰어 타이틀 */}
+              <h2 className="text-h2 font-bold text-text-primary">{t.photos.viewer_title}</h2>
               <button 
                 onClick={() => setIsViewerOpen(false)} 
                 className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
@@ -245,7 +256,6 @@ export default function AllPhotosScreen() {
               </button>
             </div>
 
-            {/* 2. 메인 콘텐츠 (좌우 화살표 + 사진 영역) */}
             <div className="flex-1 flex flex-row items-center justify-between min-h-0">
               <button 
                 onClick={handlePrevImage}
@@ -258,8 +268,6 @@ export default function AllPhotosScreen() {
               </button>
 
               <div className="flex-1 h-full mx-4 bg-[#F5F5F5] border border-border rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-                
-                {/* 텍스트 대신 실제 원본 이미지를 보여주도록 수정! */}
                 {photos[currentViewIndex] && (
                   <img 
                     src={photos[currentViewIndex].blob_url} 
@@ -284,13 +292,13 @@ export default function AllPhotosScreen() {
               </button>
             </div>
 
-            {/* 3. 하단 버튼 영역 (통일감을 위한 닫기 버튼) */}
             <div className="flex flex-row justify-center mt-large shrink-0">
               <button 
                 onClick={() => setIsViewerOpen(false)} 
                 className="w-full bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none"
               >
-                닫기
+                {/* 🚨 [다국어 적용] 공통 닫기 버튼 */}
+                {t.common.close}
               </button>
             </div>
 

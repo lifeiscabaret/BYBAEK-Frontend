@@ -2,8 +2,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { ONBOARDING_QUESTIONS, SurveyQuestion } from '../utils/constants/OnboardingData';
-import { MockDB } from '../utils/MockDB';
+import { getOnboardingQuestions, SurveyQuestion } from '../utils/constants/OnboardingData';
+// 🚨 MockDB 임포트 삭제!
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface OnboardingSurveyProps {
   initialQuestionId?: number; 
@@ -25,6 +27,11 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
   onFinish, 
   onSkip 
 }) => {
+  // 🚨 [다국어 적용] 번역 훅(t) 가져오기
+  const { t, lang } = useTranslation(); 
+
+  const ONBOARDING_QUESTIONS = getOnboardingQuestions(lang);
+  
   const initialIndex = initialQuestionId
     ? ONBOARDING_QUESTIONS.findIndex((q) => q.id === initialQuestionId)
     : 0;
@@ -32,20 +39,17 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
   const [currentIndex, setCurrentIndex] = useState(initialIndex !== -1 ? initialIndex : 0);
   const isSingleEditMode = !!initialQuestionId;
 
+  // 🚨 [MockDB 제거] 백엔드에서 받아온 initialAnswers가 있으면 쓰고, 없으면 빈 객체로 시작!
   const [answers, setAnswers] = useState<Record<number, any>>(() => {
-    if (initialAnswers && Object.keys(initialAnswers).length > 0) {
-      return initialAnswers;
-    }
-    const savedData = MockDB.getAll() as { id: number; answer: any }[];
-    const loadedAnswers: Record<number, any> = {};
-    savedData.forEach((item) => {
-      loadedAnswers[item.id] = item.answer;
-    });
-    return loadedAnswers;
+    return initialAnswers && Object.keys(initialAnswers).length > 0 ? initialAnswers : {};
   });
 
   const currentQuestion: SurveyQuestion = ONBOARDING_QUESTIONS[currentIndex];
-  const partTitle = currentQuestion.category === 'PERSONAL' ? '개인화 설정 - 설정 탭에서 언제든지 변경 가능' : '앱 설정 - 설정 탭에서 언제든지 변경 가능';
+  
+  // 🚨 [다국어 적용] 상단 카테고리 타이틀 번역
+  const partTitle = currentQuestion.category === 'PERSONAL' 
+    ? t.onboarding_survey.part_personal 
+    : t.onboarding_survey.part_app;
 
   const [inputText, setInputText] = useState('');
 
@@ -87,7 +91,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
 
     if (finalAnswer) {
       updatedAnswers[currentQuestion.id] = finalAnswer;
-      MockDB.saveAnswer(currentQuestion.id, finalAnswer); // 하위 호환을 위해 남겨둠
+      // 🚨 [MockDB 제거] 더 이상 중간 임시 저장을 하지 않고 상태(State)만 업데이트합니다.
     }
 
     if (isSingleEditMode) {
@@ -99,6 +103,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
       setCurrentIndex(currentIndex + 1);
       setInputText('');
     } else {
+      // 🚨 최종 완료 시 부모에게 전체 데이터(updatedAnswers) 전달 -> 부모가 진짜 DB에 저장!
       onFinish(updatedAnswers); 
     }
   };
@@ -145,7 +150,6 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[10000] p-4">
-      {/* 🚨 레이아웃 수정: 전체 높이를 max-h로 제한하고, 내부에서 스크롤되도록 flex-col 적용 */}
       <div className="w-[450px] max-h-[85vh] bg-background rounded-xl shadow-lg flex flex-col overflow-hidden">
         
         {/* 1. 상단 헤더 영역 (고정) */}
@@ -154,7 +158,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
             <div>
               <p className="text-[14px] text-accent font-bold mb-1">{partTitle}</p>
               <h2 className="text-h2 font-bold text-text-primary">
-                {isSingleEditMode ? '설정 수정' : `(${currentIndex + 1}/${ONBOARDING_QUESTIONS.length})`}
+                {isSingleEditMode ? t.onboarding_survey.edit_title : `(${currentIndex + 1}/${ONBOARDING_QUESTIONS.length})`}
               </h2>
             </div>
             <button onClick={onSkip} className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none">
@@ -163,7 +167,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
           </div>
         </div>
 
-        {/* 2. 중앙 콘텐츠 영역 (🚨 스크롤 생성 영역) */}
+        {/* 2. 중앙 콘텐츠 영역 (스크롤 생성 영역) */}
         <div className="px-large pb-large flex-1 overflow-y-auto scrollbar-hide">
           <p className="text-body font-bold text-text-primary mb-5 whitespace-pre-wrap leading-relaxed">
             Q. {currentQuestion.question}
@@ -190,7 +194,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
           {(currentQuestion.type === 'TEXT' || currentQuestion.type === 'SELECT_TEXT') && (
             <div className="mt-3 flex flex-col">
               {currentQuestion.type === 'SELECT_TEXT' && (
-                <span className="text-[13px] text-text-secondary mb-2">또는 직접 입력:</span>
+                <span className="text-[13px] text-text-secondary mb-2">{t.onboarding_survey.or_type_directly}</span>
               )}
               <textarea 
                 className="w-full h-[120px] border border-border rounded-lg p-medium text-body text-text-primary placeholder:text-[#A0A0A0] resize-none focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
@@ -205,7 +209,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
 
           {currentQuestion.type === 'SCHEDULE' && (
             <div className="flex flex-col mt-2">
-              <p className="text-sm font-bold text-[#666666] mb-3">시간 설정</p>
+              <p className="text-sm font-bold text-[#666666] mb-3">{t.onboarding_survey.time_setting}</p>
               
               <div className="flex flex-row gap-2 mb-4">
                 {['AM', 'PM'].map(p => (
@@ -221,35 +225,35 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
               <div className="flex flex-row relative z-50 mb-8 gap-4">
                 <div className="relative w-[140px]">
                   <button className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none hover:bg-gray-50" onClick={() => { setIsHourDropdownOpen(!isHourDropdownOpen); setIsMinuteDropdownOpen(false); }}>
-                    <span>{currentSchedule.hour} 시</span><span className="text-[12px] text-[#888888]">▼</span>
+                    <span>{currentSchedule.hour} {t.setting.hour}</span><span className="text-[12px] text-[#888888]">▼</span>
                   </button>
                   {isHourDropdownOpen && (
                     <div className="absolute top-[110%] left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
-                      {hours.map(h => <button key={`hour-${h}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { updateSchedule('hour', h); setIsHourDropdownOpen(false); }}>{h} 시</button>)}
+                      {hours.map(h => <button key={`hour-${h}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { updateSchedule('hour', h); setIsHourDropdownOpen(false); }}>{h} {t.setting.hour}</button>)}
                     </div>
                   )}
                 </div>
 
                 <div className="relative w-[140px]">
                   <button className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none hover:bg-gray-50" onClick={() => { setIsMinuteDropdownOpen(!isMinuteDropdownOpen); setIsHourDropdownOpen(false); }}>
-                    <span>{currentSchedule.minute} 분</span><span className="text-[12px] text-[#888888]">▼</span>
+                    <span>{currentSchedule.minute} {t.setting.minute}</span><span className="text-[12px] text-[#888888]">▼</span>
                   </button>
                   {isMinuteDropdownOpen && (
                     <div className="absolute top-[110%] left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
-                      {minutes.map(m => <button key={`min-${m}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { updateSchedule('minute', m); setIsMinuteDropdownOpen(false); }}>{m} 분</button>)}
+                      {minutes.map(m => <button key={`min-${m}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { updateSchedule('minute', m); setIsMinuteDropdownOpen(false); }}>{m} {t.setting.minute}</button>)}
                     </div>
                   )}
                 </div>
               </div>
 
-              <p className="text-sm font-bold text-[#666666] mb-3">업로드 빈도</p>
+              <p className="text-sm font-bold text-[#666666] mb-3">{t.onboarding_survey.upload_freq}</p>
               <div className="flex flex-row flex-wrap gap-2">
                 {frequencies.map(f => (
                   <button 
                     key={f} onClick={() => updateSchedule('frequency', f)}
                     className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${currentSchedule.frequency === f ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary hover:bg-gray-200'}`} 
                   >
-                    {f}
+                    {(t.setting.freq_map as any)[f] || f}
                   </button>
                 ))}
               </div>
@@ -260,10 +264,12 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
         {/* 3. 하단 버튼 영역 (고정) */}
         <div className="p-large bg-background border-t border-[#F0F0F0] flex flex-row justify-between shrink-0">
           <button onClick={onSkip} className="flex-1 bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center mr-small text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none">
-            취소
+            {t.common.cancel}
           </button>
           <button onClick={handleNext} className="flex-1 bg-accent py-3 rounded-lg flex items-center justify-center ml-small text-text-inverse font-bold hover:bg-accent-dark transition-colors focus:outline-none">
-            {isSingleEditMode ? '수정 완료' : (currentIndex === ONBOARDING_QUESTIONS.length - 1 ? '완료 및 시작' : '저장 후 다음')}
+            {isSingleEditMode 
+              ? t.onboarding_survey.btn_edit_complete 
+              : (currentIndex === ONBOARDING_QUESTIONS.length - 1 ? t.onboarding_survey.btn_complete_start : t.onboarding_survey.btn_save_next)}
           </button>
         </div>
 

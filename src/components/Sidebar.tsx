@@ -4,28 +4,21 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
-// 🚨 1. 타입스크립트 에러 해결: 메뉴 객체의 생김새(타입)를 명확히 정의합니다.
-// (? 기호를 붙이면 "이 속성은 있을 수도 있고 없을 수도 있어" 라는 뜻입니다)
 interface MenuItem {
   name: string;
   path?: string;
   action?: string;
 }
 
-// 🚨 2. BASE_MENU_ITEMS가 이 규격(MenuItem)을 따른다고 선언합니다.
-const BASE_MENU_ITEMS: MenuItem[] = [
-  { name: '대시보드', path: '/dashboard' },
-  { name: '게시글 작성', path: '/preview' },
-  { name: '전체 사진', path: '/photos' },
-  { name: '내 앨범', path: '/album' },
-  { name: '설정', path: '/setting' },
-  { name: '테스트', path: '/' },
-];
-
 export const Sidebar: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
+  
+  // 🚨 [다국어 적용] 번역 객체 가져오기
+  const { t } = useTranslation();
   
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -41,37 +34,39 @@ export const Sidebar: React.FC = () => {
     return () => window.removeEventListener('storage', checkLoginStatus);
   }, [pathname]);
 
-  // 🚨 3. menuItems 배열도 이 규격을 따른다고 선언합니다.
+  // 🚨 [다국어 적용] 번역 객체(t)를 사용하기 위해 메뉴 배열을 컴포넌트 내부로 이동했습니다.
   const menuItems: MenuItem[] = [
-    ...BASE_MENU_ITEMS,
-    isLoggedIn 
-      ? { name: '로그아웃', action: 'LOGOUT' } 
-      : { name: '로그인', path: '/login?from=sidebar' }
+    { name: t.sidebar.dashboard, path: '/dashboard' },
+    { name: t.sidebar.create_post, path: '/preview' },
+    { name: t.sidebar.all_photos, path: '/photos' },
+    { name: t.sidebar.my_album, path: '/album' },
+    { name: t.sidebar.setting, path: '/setting' },
+    { name: t.sidebar.test, path: '/' },
+    ...(isLoggedIn 
+      ? [{ name: t.sidebar.logout, action: 'LOGOUT' }] 
+      : [{ name: t.sidebar.login, path: '/login?from=sidebar' }])
   ];
 
-  const handleMenuClick = (item: any) => {
-    
-    // 로그아웃 초기화 코드 적용 파트
-    if (item.name === '로그아웃') {
-      localStorage.clear(); // 로그인 및 MockDB 찌꺼기 완벽 초기화
-      window.location.href = '/'; // 메인(로그인/테스트) 화면으로 강제 이동 및 새로고침
-      return; // 아래 코드가 더 이상 실행되지 않도록 여기서 함수 종료!
+  const handleMenuClick = (item: MenuItem) => {
+    // 🚨 [핵심 버그 수정 및 다국어 지원]
+    // 1. 번역이 적용되면 item.name이 'Logout'으로 바뀔 수 있으므로 고정값인 action='LOGOUT'으로 검사합니다.
+    // 2. 이전에 연결이 끊어져 있던 '로그아웃 확인 모달'을 띄우도록 수정했습니다!
+    if (item.action === 'LOGOUT') {
+      setIsLogoutModalOpen(true);
+      return; 
     }
 
-    // 2. 로그아웃이 아닌 일반 메뉴라면 기존처럼 페이지 이동 처리
     if (item.path) {
-      router.push(item.path); // (혹은 기존에 쓰시던 라우팅 코드)
+      router.push(item.path); 
     }
   };
 
   const handleConfirmLogout = () => {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('isGuest');
-    
+    // 🚨 원래 handleMenuClick에 있던 강력한 초기화 로직을 모달 '예' 버튼으로 옮겨왔습니다.
+    localStorage.clear(); 
     setIsLoggedIn(false);
     setIsLogoutModalOpen(false);
-    
-    router.push('/');
+    window.location.href = '/'; 
   };
 
   return (
@@ -85,7 +80,7 @@ export const Sidebar: React.FC = () => {
         <div className={`flex flex-row items-center mb-xlarge px-medium ${
           isCollapsed ? 'justify-center px-0' : 'justify-between'
         }`}>
-          {/* 로고 홈 버튼 (가독성 + 버건디 밑줄 애니메이션 적용) */}
+          {/* 로고 홈 버튼 */}
           {!isCollapsed && (
             <button 
               onClick={() => router.push('/dashboard')}
@@ -99,14 +94,10 @@ export const Sidebar: React.FC = () => {
                   className="object-contain"
                 />
               </div>
-              
-              {/* 글자와 밑줄을 감싸는 컨테이너 */}
               <div className="relative ml-2 overflow-hidden py-1">
-                {/* 글자는 하얀색(text-inverse)으로 유지해서 가독성 확보 */}
                 <span className="text-h2 text-text-inverse font-bold block">
                   BYBAEK
                 </span>
-                {/* 핵심: 평소엔 왼쪽 밖(-100%)에 숨어있다가, 마우스를 올리면 제자리(0)로 스르륵 밀려 들어오는 버건디색 밑줄 */}
                 <span className="absolute bottom-0 left-0 w-full h-[3px] bg-accent -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out"></span>
               </div>
             </button>
@@ -123,7 +114,6 @@ export const Sidebar: React.FC = () => {
         {/* 메뉴 리스트 영역 */}
         <div className="flex-1 flex flex-col">
           {menuItems.map((item, index) => {
-            // item.path가 있을 때만 pathname과 비교하도록 안전하게 처리
             const isActive = item.path ? (pathname === item.path || (pathname === '/' && item.path === '/dashboard')) : false;
 
             let itemClasses = "py-[14px] mb-small flex transition-colors focus:outline-none ";
@@ -141,7 +131,6 @@ export const Sidebar: React.FC = () => {
               textClasses += isActive ? "text-text-inverse" : "text-text-secondary";
             }
 
-            // 🚨 [추가] 튜토리얼 타겟을 위한 동적 클래스 생성 로직
             let tourClass = "";
             if (item.path === '/dashboard') tourClass = " tour-step-dashboard";
             else if (item.path === '/preview') tourClass = " tour-step-preview";
@@ -175,9 +164,10 @@ export const Sidebar: React.FC = () => {
               <span className="text-red-500 text-2xl leading-none">!</span>
             </div>
             
-            <h3 className="text-lg font-bold text-gray-900 mb-2">로그아웃</h3>
-            <p className="text-sm text-gray-500 text-center mb-6">
-              정말 로그아웃 하시겠습니까?<br />다시 이용하시려면 계정 연동이 필요합니다.
+            {/* 🚨 [다국어 적용] */}
+            <h3 className="text-lg font-bold text-gray-900 mb-2">{t.sidebar.logout_title}</h3>
+            <p className="text-sm text-gray-500 text-center mb-6 whitespace-pre-wrap">
+              {t.sidebar.logout_confirm}
             </p>
             
             <div className="flex flex-row w-full gap-3">
@@ -185,13 +175,15 @@ export const Sidebar: React.FC = () => {
                 onClick={() => setIsLogoutModalOpen(false)}
                 className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors focus:outline-none"
               >
-                아니오
+                {/* 🚨 [다국어 적용] */}
+                {t.sidebar.btn_no}
               </button>
               <button 
                 onClick={handleConfirmLogout}
                 className="flex-1 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors focus:outline-none"
               >
-                예
+                {/* 🚨 [다국어 적용] */}
+                {t.sidebar.btn_yes}
               </button>
             </div>
 

@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface AlbumData {
   id: string;
@@ -24,6 +26,9 @@ const MOCK_PHOTOS = Array.from({ length: 10 }, (_, i) => ({ id: `photo_${i}`, ti
 const MOCK_ALL_PHOTOS = Array.from({ length: 20 }, (_, i) => ({ id: `all_photo_${i}`, title: `전체 사진 ${i + 1}` }));
 
 export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, album, onClose, onSave }) => {
+  // 🚨 [다국어 적용] 번역 객체 t 가져오기
+  const { t } = useTranslation();
+
   const [tempTitle, setTempTitle] = useState('');
   const [tempDesc, setTempDesc] = useState('');
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
@@ -74,16 +79,19 @@ export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, a
               className="text-[32px] font-bold text-text-primary mb-2 focus:outline-none bg-transparent w-full"
               value={tempTitle}
               onChange={(e) => setTempTitle(e.target.value)}
-              placeholder="앨범 이름을 입력하세요"
+              placeholder={t.album.placeholder_title} // 🚨 [다국어 적용]
             />
             <input 
               type="text"
               className="text-base text-text-secondary mb-3 focus:outline-none bg-transparent w-full"
               value={tempDesc}
               onChange={(e) => setTempDesc(e.target.value)}
-              placeholder="앨범에 대한 설명을 입력하세요"
+              placeholder={t.album.placeholder_desc} // 🚨 [다국어 적용]
             />
-            <span className="text-[14px] text-[#888] font-bold">총 {album.photoCount || 0}장의 사진</span>
+            {/* 🚨 [다국어 적용] */}
+            <span className="text-[14px] text-[#888] font-bold">
+              {t.album.total_photos.replace('{count}', String(album.photoCount || 0))}
+            </span>
           </div>
 
           {/* 우측 액션 버튼 영역 */}
@@ -94,7 +102,7 @@ export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, a
                 onClick={handleSave} 
                 className="bg-text-primary text-white py-2 px-4 rounded-lg font-bold mr-3 hover:bg-gray-800 transition-colors focus:outline-none"
               >
-                저장
+                {t.common.save} {/* 🚨 [다국어 적용] */}
               </button>
               <button 
                 onClick={onClose} 
@@ -106,13 +114,13 @@ export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, a
             
             <div className="flex flex-row items-center">
               <button className="border border-text-primary py-2.5 px-5 rounded-lg text-text-primary font-bold mr-2.5 hover:bg-gray-50 transition-colors focus:outline-none">
-                사진 제거
+                {t.album.btn_remove_photo} {/* 🚨 [다국어 적용] */}
               </button>
               <button 
                 onClick={() => setIsAddPhotoModalVisible(true)}
                 className="bg-accent py-2.5 px-5 rounded-lg text-white font-bold hover:bg-accent-dark transition-colors focus:outline-none"
               >
-                사진 추가
+                {t.album.add_photo} {/* 🚨 [다국어 적용] */}
               </button>
             </div>
           </div>
@@ -151,18 +159,19 @@ export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, a
           <div className="w-[85%] h-[85%] bg-white rounded-[16px] p-[30px] flex flex-col shadow-2xl">
             
             <div className="flex flex-row justify-between items-center mb-[20px] shrink-0">
-              <h2 className="text-[24px] font-bold text-text-primary">전체 사진</h2>
+              <h2 className="text-[24px] font-bold text-text-primary">{t.album.modal_all_photos_title}</h2> {/* 🚨 [다국어 적용] */}
               
               <div className="flex flex-row items-center">
                 <button 
                   onClick={() => {
-                    window.alert(`선택된 ${selectedAllPhotoIds.length}장의 사진을 앨범에 추가했습니다!`);
+                    // 🚨 [다국어 적용] 모달 알림창 텍스트
+                    window.alert(t.album.alert_add_success.replace('{count}', String(selectedAllPhotoIds.length)));
                     setIsAddPhotoModalVisible(false);
                     setSelectedAllPhotoIds([]);
                   }}
                   className="bg-accent py-2.5 px-5 rounded-lg mr-4 text-white font-bold text-sm hover:bg-accent-dark transition-colors focus:outline-none"
                 >
-                  선택된 사진 추가
+                  {t.album.btn_add_selected} {/* 🚨 [다국어 적용] */}
                 </button>
                 <button 
                   onClick={() => setIsAddPhotoModalVisible(false)} 

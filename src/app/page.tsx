@@ -4,9 +4,14 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function LandingScreen() {
   const router = useRouter();
+  
+  // 🚨 [다국어 적용] 번역 객체 t 가져오기
+  const { t } = useTranslation();
 
   // 화면(로고) 클릭 시 실행되는 분기 로직
   const handleStartClick = () => {
@@ -40,7 +45,8 @@ export default function LandingScreen() {
           <span className="text-[64px] font-bold text-text-primary group-hover:text-accent transition-colors">BYBAEK</span>
         </div>
         <p className="text-body text-text-secondary mt-4 animate-pulse">
-          화면을 클릭하여 시작하세요
+          {/* 🚨 [다국어 적용] */}
+          {t.landing.click_to_start}
         </p>
       </button>
     </div>
