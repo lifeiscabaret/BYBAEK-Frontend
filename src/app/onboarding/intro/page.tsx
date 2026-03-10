@@ -3,9 +3,14 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function OnboardingIntroScreen() {
   const router = useRouter();
+  
+  // 🚨 [다국어 적용] 번역 객체 t 가져오기
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
@@ -22,13 +27,15 @@ export default function OnboardingIntroScreen() {
           </div>
           
           <h2 className="text-[28px] font-bold text-text-primary mb-4 leading-tight">
-            나만의 마케터를<br />만들어볼까요?
+            {/* 🚨 [다국어 적용] <br /> 기준으로 줄바꿈 유지 */}
+            {t.onboarding_intro.title_line1}<br />{t.onboarding_intro.title_line2}
           </h2>
           
           <p className="text-body text-text-secondary leading-relaxed">
-            사장님의 샵 스타일을 완벽히 이해하고<br />
-            인스타그램 관리를 도와줄 전담 AI가<br />
-            지금 바로 생성을 기다리고 있습니다.
+            {/* 🚨 [다국어 적용] 설명글 줄바꿈 유지 */}
+            {t.onboarding_intro.desc_line1}<br />
+            {t.onboarding_intro.desc_line2}<br />
+            {t.onboarding_intro.desc_line3}
           </p>
         </div>
 
@@ -38,14 +45,16 @@ export default function OnboardingIntroScreen() {
             onClick={() => router.push('/onboarding')} 
             className="w-full py-4 bg-accent rounded-lg flex items-center justify-center text-text-inverse font-bold text-[17px] hover:bg-accent-dark transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-md"
           >
-            진행하기
+            {/* 🚨 [다국어 적용] 진행하기 버튼 */}
+            {t.onboarding_intro.btn_proceed}
           </button>
           
           <button 
             onClick={() => router.push('/dashboard')} 
             className="w-full py-3 text-text-secondary font-medium text-sm hover:text-text-primary transition-colors"
           >
-            나중에 설정할게요
+            {/* 🚨 [다국어 적용] 나중에 설정할게요 버튼 */}
+            {t.onboarding_intro.btn_later}
           </button>
         </div>
       </div>

@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import apiClient from '@/api/index';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Next.js App Router의 동적 라우팅 파라미터 타입 정의
 interface PostDetailProps {
@@ -13,15 +15,12 @@ interface PostDetailProps {
 
 export default function PostDetailScreen({ params }: PostDetailProps) {
   const router = useRouter();
-  const searchParams = useSearchParams(); //DB 연동
+  const searchParams = useSearchParams(); 
   const { id } = React.use(params);
-  const shopId = searchParams.get('shop_id') || "3sesac18"; //DB 연동
+  const shopId = searchParams.get('shop_id') || "3sesac18"; 
 
-  // const [postData, setPostData] = useState({
-  //   title: '첫 게시글',
-  //   images: Array.from({ length: 15 }, (_, i) => i + 1),
-  //   content: '여기에 DB에서 불러온 게시글 텍스트 내용이 표시됩니다.\n\n고객님의 깔끔한 페이드컷 스타일링입니다. 가을 트렌드에 맞춰 정돈된 느낌을 주었습니다.\n\n#바버샵 #남자머리 #페이드컷 #가을유행',
-  // });
+  // 🚨 [다국어 적용] 번역 객체 t 가져오기
+  const { t } = useTranslation();
 
   const [postData, setPostData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +28,6 @@ export default function PostDetailScreen({ params }: PostDetailProps) {
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        // 쿼리 파라미터는 params 객체에 담아서 보냅니다.
         const response = await apiClient.get(`/agent/post/detail/${id}`, {
           params: { shop_id: shopId }
         });
@@ -46,8 +44,9 @@ export default function PostDetailScreen({ params }: PostDetailProps) {
     fetchDetail();
   }, [id, shopId]);
 
-  if (loading) return <div className="p-10">로딩 중...</div>;
-  if (!postData) return <div className="p-10">게시물을 찾을 수 없습니다.</div>;
+  // 🚨 [다국어 적용] 로딩 및 에러 메시지
+  if (loading) return <div className="p-10">{t.post_detail.loading}</div>;
+  if (!postData) return <div className="p-10">{t.post_detail.not_found}</div>;
 
   return (
     // 메인 컨테이너 (사이드바 + 콘텐츠 가로 배치)
@@ -59,7 +58,8 @@ export default function PostDetailScreen({ params }: PostDetailProps) {
         
         {/* 상단 타이틀 및 닫기 버튼 */}
         <div className="flex flex-row justify-between items-center mb-[32px] shrink-0">
-          <h1 className="text-[28px] font-bold text-[#1A1A1A]">게시물 상세</h1>
+          {/* 🚨 [다국어 적용] 타이틀 */}
+          <h1 className="text-[28px] font-bold text-[#1A1A1A]">{t.post_detail.title}</h1>
           <button
             onClick={() => router.back()}
             className="w-9 h-9 rounded-full bg-accent flex items-center justify-center text-white hover:bg-accent-dark transition-colors shrink-0"

@@ -5,13 +5,14 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { SettingEditModal } from '@/components/SettingEditModal';
 import { OnboardingSurvey } from '@/components/OnboardingSurvey';
-import { ONBOARDING_QUESTIONS, mapDBToSurveyAnswers } from '@/utils/constants/OnboardingData';
-import apiClient from '@/api/index'; // DB 연동
+import { getOnboardingQuestions, mapDBToSurveyAnswers } from '@/utils/constants/OnboardingData';
+import apiClient from '@/api/index';
+// 🚨 [다국어 적용] 번역 훅 추가
+import { useTranslation } from '@/hooks/useTranslation';
 
 type AuthModalType = 'NONE' | 'Microsoft' | 'Instagram' | 'Gmail';
 type AuthStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
-// 커스텀 알림/확인창을 위한 타입 정의
 interface CustomAlertState {
   isOpen: boolean;
   message: string;
@@ -23,9 +24,13 @@ export default function SettingScreen() {
   const [shopId] = useState('3sesac18');
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. 환경 설정 State (초기값은 비워두고 API에서 받아옵니다)
+  // 🚨 [다국어 적용] 번역 객체 t 가져오기
+  const { t } = useTranslation();
+
+  // 1. 환경 설정 State
   const [isAutoUploadEnabled, setIsAutoUploadEnabled] = useState(false);
-  const [language, setLanguage] = useState('한국어');
+  // 🚨 [언어 연동 수정] 기본값을 'ko'로 설정
+  const [language, setLanguage] = useState('ko');
   
   // 2. 계정 연동 State
   const [isMicrosoftConnected, setIsMicrosoftConnected] = useState(false);
@@ -49,7 +54,7 @@ export default function SettingScreen() {
     type: 'ALERT'
   });
 
-  // 4. 업로드 시간 설정 State
+  // 4. 업로드 시간 설정 State (백엔드 전송용은 한국어 유지)
   const frequencies = ['매일', '2일마다', '3일마다', '4일마다', '5일마다', '6일마다', '일주일마다'];
   const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
@@ -67,10 +72,9 @@ export default function SettingScreen() {
   const [isHourDropdownOpen, setIsHourDropdownOpen] = useState(false);
   const [isMinuteDropdownOpen, setIsMinuteDropdownOpen] = useState(false);
 
-  // 5. 스무고개(설문) 답변 State (MockDB 대체)
+  // 5. 스무고개(설문) 답변 State
   const [surveyAnswers, setSurveyAnswers] = useState<Record<number, any>>({});
 
-  // --- API: 데이터 저장 (POST) ---
   const updateSetting = async (payload: Record<string, any>) => {
     try {
       await apiClient.post(`/onboarding/${shopId}`, payload);
@@ -79,13 +83,12 @@ export default function SettingScreen() {
       console.error("설정 업데이트 실패:", error);
       setCustomAlert({
         isOpen: true,
-        message: '변경사항 저장 중 오류가 발생했습니다.',
+        message: t.setting.alert_save_error, // 🚨 [다국어 적용]
         type: 'ALERT'
       });
     }
   };
 
-  // --- API: 초기 데이터 로드 (GET) ---
   useEffect(() => {
     const fetchOnboardingData = async () => {
       try {
@@ -93,13 +96,12 @@ export default function SettingScreen() {
         const data = response.data.shop_info || response.data; 
 
         if (data) {
-          // 짠! 방금 만든 헬퍼 함수 하나로 코드가 엄청 깔끔해졌습니다.
-          const mappedAnswers = mapDBToSurveyAnswers(data);
+          const mappedAnswers = mapDBToSurveyAnswers(data, data.language || 'ko');
           setSurveyAnswers(mappedAnswers);
 
-          // 개별 State 세팅
           setIsAutoUploadEnabled(data.insta_auto_upload_yn === 'Y');
-          setLanguage(data.language || '한국어');
+          // 🚨 [언어 연동 수정] DB에서 받아온 값(ko/en)으로 세팅
+          setLanguage(data.language || 'ko');
           setIsInstagramConnected(data.is_insta_connected || false);
           setIsMicrosoftConnected(data.is_ms_connected || false);
           setIsGmailConnected(data.is_gmail_connected || false);
@@ -121,7 +123,6 @@ export default function SettingScreen() {
     fetchOnboardingData();
   }, [shopId]);
 
-  // 외부 팝업창 로그인 성공 메시지 수신 (로그인 성공 시 API 업데이트도 같이 호출)
   useEffect(() => {
     const handleAuthMessage = (event: MessageEvent) => {
       if (event.data === 'MS_LOGIN_SUCCESS' && activeAuthModal === 'Microsoft') {
@@ -142,19 +143,26 @@ export default function SettingScreen() {
     };
     window.addEventListener('message', handleAuthMessage);
     return () => window.removeEventListener('message', handleAuthMessage);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeAuthModal]);
 
-  // --- 핸들러 함수들 ---
   const handleToggleAutoUpload = (val: boolean) => {
     setIsAutoUploadEnabled(val);
     updateSetting({ insta_auto_upload_yn: val ? 'Y' : 'N' });
   };
 
+  // 🚨 [핵심 변경] 언어 토글 로직 최적화 (새로고침 적용)
   const handleToggleLanguage = () => {
-    const nextLang = language === '한국어' ? 'English' : '한국어';
+    const nextLang = language === 'ko' ? 'en' : 'ko';
+    
+    // 1. 상태 및 DB 업데이트
     setLanguage(nextLang);
     updateSetting({ language: nextLang });
+    
+    // 2. 로컬스토리지 업데이트
+    localStorage.setItem('language', nextLang);
+    
+    // 3. 앱 전체에 언어를 즉시 적용하기 위해 브라우저 새로고침
+    window.location.reload();
   };
 
   const triggerExternalPopup = (platform: AuthModalType) => {
@@ -177,7 +185,7 @@ export default function SettingScreen() {
       if (!popup) {
         setCustomAlert({
           isOpen: true,
-          message: '팝업 차단이 감지되었습니다.\n브라우저 설정에서 팝업을 허용해주세요.',
+          message: t.setting.popup_blocked, // 🚨 [다국어 적용]
           type: 'ALERT'
         });
         setAuthStatus('IDLE');
@@ -194,9 +202,9 @@ export default function SettingScreen() {
     </button>
   );
 
-  if (isLoading) return <div className="flex h-screen w-full items-center justify-center font-bold text-text-secondary">설정 데이터를 불러오는 중입니다...</div>;
+  // 🚨 [다국어 적용]
+  if (isLoading) return <div className="flex h-screen w-full items-center justify-center font-bold text-text-secondary">{t.setting.loading}</div>;
 
-  // --- UI 렌더링 함수들 ---
   const renderCustomAlert = () => {
     if (!customAlert.isOpen) return null;
     return (
@@ -206,12 +214,15 @@ export default function SettingScreen() {
             <span className={`text-2xl font-bold leading-none ${customAlert.type === 'CONFIRM' ? 'text-[#E02424]' : 'text-accent'}`}>!</span>
           </div>
           <h3 className="text-lg font-bold text-text-primary mb-2">
-            {customAlert.type === 'CONFIRM' ? '연동 해제' : '알림'}
+            {/* 🚨 [다국어 적용] */}
+            {customAlert.type === 'CONFIRM' ? t.setting.alert_disconnect_title : t.setting.alert_notice}
           </h3>
           <p className="text-sm text-text-secondary text-center mb-6 whitespace-pre-wrap leading-relaxed">{customAlert.message}</p>
           <div className="flex flex-row w-full gap-3">
             {customAlert.type === 'CONFIRM' && (
-              <button onClick={() => setCustomAlert({ ...customAlert, isOpen: false })} className="flex-1 py-3 bg-[#E0E0E0] text-text-primary rounded-lg font-bold hover:bg-gray-300 transition-colors focus:outline-none">취소</button>
+              <button onClick={() => setCustomAlert({ ...customAlert, isOpen: false })} className="flex-1 py-3 bg-[#E0E0E0] text-text-primary rounded-lg font-bold hover:bg-gray-300 transition-colors focus:outline-none">
+                {t.common.cancel}
+              </button>
             )}
             <button
               onClick={() => {
@@ -220,7 +231,8 @@ export default function SettingScreen() {
               }}
               className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors focus:outline-none ${customAlert.type === 'CONFIRM' ? 'bg-[#E02424] hover:bg-red-800' : 'bg-accent hover:bg-accent-dark'}`}
             >
-              {customAlert.type === 'CONFIRM' ? '해제하기' : '확인'}
+              {/* 🚨 [다국어 적용] */}
+              {customAlert.type === 'CONFIRM' ? t.setting.btn_disconnect : t.common.confirm}
             </button>
           </div>
         </div>
@@ -232,12 +244,13 @@ export default function SettingScreen() {
     if (activeAuthModal === 'NONE') return null;
     let title = '', desc = '', btnText = '';
 
+    // 🚨 [다국어 적용] 이전에 만들어둔 login 사전을 재활용합니다.
     if (activeAuthModal === 'Microsoft') {
-      title = 'MS 로그인 화면'; desc = '보안을 위해 외부 브라우저에서 로그인을 진행합니다.'; btnText = 'Microsoft 계정으로 로그인';
+      title = t.login.ms_title; desc = t.login.ms_desc; btnText = t.login.ms_btn;
     } else if (activeAuthModal === 'Instagram') {
-      title = '인스타 연동'; desc = 'Instagram 연동을 위해 권한을 부여해 주세요.'; btnText = 'Instagram 연동하기';
+      title = t.login.insta_title; desc = t.login.insta_desc; btnText = t.login.insta_btn;
     } else if (activeAuthModal === 'Gmail') {
-      title = 'Gmail 연동'; desc = '이메일 알림을 위해 Gmail 계정을 연동해 주세요.'; btnText = 'Gmail 계정으로 로그인';
+      title = t.setting.auth_gmail_title; desc = t.setting.auth_gmail_desc; btnText = t.setting.auth_gmail_btn;
     }
 
     return (
@@ -259,26 +272,30 @@ export default function SettingScreen() {
             {authStatus === 'IN_PROGRESS' && (
               <div className="flex flex-col items-center animate-pulse">
                 <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-body text-text-primary text-center font-bold">로그인 진행 중입니다...</p>
-                <p className="text-[14px] text-text-secondary text-center mt-2">외부 창에서 로그인이 완료되면<br />자동으로 이 화면이 넘어갑니다.</p>
+                <p className="text-body text-text-primary text-center font-bold">{t.login.in_progress}</p>
+                <p className="text-[14px] text-text-secondary text-center mt-2 whitespace-pre-wrap">{t.setting.auth_progress_desc}</p>
                 <button onClick={() => {
                   setAuthStatus('COMPLETED');
                   if(activeAuthModal === 'Microsoft') { setIsMicrosoftConnected(true); updateSetting({ is_ms_connected: true }); }
                   if(activeAuthModal === 'Instagram') { setIsInstagramConnected(true); updateSetting({ is_insta_connected: true }); }
                   if(activeAuthModal === 'Gmail') { setIsGmailConnected(true); updateSetting({ is_gmail_connected: true }); }
-                }} className="mt-8 text-xs text-gray-400 underline">(테스트용) 로그인 완료 강제 트리거</button>
+                }} className="mt-8 text-xs text-gray-400 underline">{t.login.test_trigger}</button>
               </div>
             )}
             {authStatus === 'COMPLETED' && (
               <div className="flex flex-col items-center">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"><span className="text-green-600 text-3xl">✓</span></div>
-                <p className="text-[18px] font-bold text-text-primary">인증 완료!</p>
+                <p className="text-[18px] font-bold text-text-primary">{t.login.ms_completed}</p>
               </div>
             )}
           </div>
           <div className="flex flex-row justify-between mt-large">
-            <button onClick={() => setActiveAuthModal('NONE')} className="flex-1 bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center mr-small text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none">취소</button>
-            <button onClick={() => setActiveAuthModal('NONE')} disabled={authStatus !== 'COMPLETED'} className={`flex-1 py-3 rounded-lg flex items-center justify-center font-bold transition-colors focus:outline-none ${authStatus !== 'COMPLETED' ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-accent text-text-inverse hover:bg-accent-dark'}`}>완료</button>
+            <button onClick={() => setActiveAuthModal('NONE')} className="flex-1 bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center mr-small text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none">
+              {t.common.cancel}
+            </button>
+            <button onClick={() => setActiveAuthModal('NONE')} disabled={authStatus !== 'COMPLETED'} className={`flex-1 py-3 rounded-lg flex items-center justify-center font-bold transition-colors focus:outline-none ${authStatus !== 'COMPLETED' ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-accent text-text-inverse hover:bg-accent-dark'}`}>
+              {t.login.btn_complete}
+            </button>
           </div>
         </div>
       </div>
@@ -290,29 +307,32 @@ export default function SettingScreen() {
       <Sidebar />
       <div className="flex-1 p-large flex flex-col min-w-0 h-full">
         <div className="mb-large border-b border-border pb-small shrink-0">
-          <h1 className="text-[28px] text-text-primary font-bold">설정</h1>
+          {/* 🚨 [다국어 적용] */}
+          <h1 className="text-[28px] text-text-primary font-bold">{t.setting.title}</h1>
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 pb-large min-h-0 scrollbar-hide">
           
-          {/* 나만의 마케터 (DB에서 불러온 surveyAnswers 렌더링) */}
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
             <div className="flex flex-row justify-between items-center">
-              <h2 className="text-base font-bold text-text-primary m-0">나만의 마케터</h2>
+              <h2 className="text-base font-bold text-text-primary m-0">{t.setting.section_marketer}</h2>
               <button onClick={() => setIsPromptListOpen(!isPromptListOpen)} className="flex items-center text-sm font-bold text-text-primary hover:text-accent transition-colors focus:outline-none">
-                {isPromptListOpen ? '▲ 닫기' : '▼ 열기'}
+                {isPromptListOpen ? t.setting.btn_close : t.setting.btn_open}
               </button>
             </div>
             {isPromptListOpen && (
               <div className="flex flex-col gap-5 mt-4 pt-4 border-t border-[#E0E0E0]">
-                {ONBOARDING_QUESTIONS.filter(q => q.category === 'PERSONAL').map((q, index) => {
+                {getOnboardingQuestions(language).filter(q => q.category === 'PERSONAL').map((q, index) => {
                   const rawAnswer = surveyAnswers[q.id];
-                  const displayAnswer = rawAnswer ? (Array.isArray(rawAnswer) ? rawAnswer.join(', ') : rawAnswer) : '미입력';
+                  const displayAnswer = rawAnswer ? (Array.isArray(rawAnswer) ? rawAnswer.join(', ') : rawAnswer) : t.setting.unentered;
                   return (
                     <div key={q.id} className="flex flex-row items-center justify-between gap-4">
+                      {/* 🚨 질문 자체는 DB나 상수에 고정된 언어를 사용 (번역 제외) */}
                       <p className="flex-[2] text-[14px] text-text-primary leading-snug">{index + 1}. {q.question}</p>
                       <p className="flex-[1] text-[14px] text-text-secondary font-bold text-right truncate">{displayAnswer}</p>
-                      <button className="px-4 py-1.5 bg-background border border-[#D0D0D0] rounded-full text-[13px] font-semibold text-text-primary hover:bg-gray-50 transition-colors focus:outline-none shrink-0" onClick={() => { setTargetQuestionId(q.id); setIsOnboardingModalOpen(true); }}>수정</button>
+                      <button className="px-4 py-1.5 bg-background border border-[#D0D0D0] rounded-full text-[13px] font-semibold text-text-primary hover:bg-gray-50 transition-colors focus:outline-none shrink-0" onClick={() => { setTargetQuestionId(q.id); setIsOnboardingModalOpen(true); }}>
+                        {t.setting.btn_edit}
+                      </button>
                     </div>
                   );
                 })}
@@ -322,28 +342,27 @@ export default function SettingScreen() {
 
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4 transition-all">
             <div className="flex flex-row justify-between items-center">
-              <h2 className="text-base font-bold text-text-primary m-0">계정 연동</h2>
+              <h2 className="text-base font-bold text-text-primary m-0">{t.setting.section_account}</h2>
               <button onClick={() => setIsAccountListOpen(!isAccountListOpen)} className="flex items-center text-sm font-bold text-text-primary hover:text-accent transition-colors focus:outline-none">
-                {isAccountListOpen ? '▲ 닫기' : '▼ 열기'}
+                {isAccountListOpen ? t.setting.btn_close : t.setting.btn_open}
               </button>
             </div>
 
             {isAccountListOpen && (
               <div className="flex flex-col gap-5 mt-4 pt-4 border-t border-[#E0E0E0]">
-                {/* Microsoft 연동 */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Microsoft</span>
                   </div>
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
-                    {isMicrosoftConnected ? 'bybaek_barber@outlook.com' : '연동된 계정 없음'}
+                    {isMicrosoftConnected ? 'bybaek_barber@outlook.com' : t.setting.no_account}
                   </p>
                   <button 
                     onClick={() => {
                       if (isMicrosoftConnected) {
                         setCustomAlert({
                           isOpen: true,
-                          message: 'Microsoft 계정 연동을 해제하시겠습니까?\n해제 시 관련 기능을 사용할 수 없습니다.',
+                          message: t.setting.ms_disconnect_confirm,
                           type: 'CONFIRM',
                           onConfirm: () => {
                             setIsMicrosoftConnected(false);
@@ -357,24 +376,23 @@ export default function SettingScreen() {
                     }}
                     className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isMicrosoftConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
                   >
-                    {isMicrosoftConnected ? '연동 해제' : '연동하기'}
+                    {isMicrosoftConnected ? t.setting.btn_disconnect : t.setting.btn_connect}
                   </button>
                 </div>
 
-                {/* Instagram 연동 */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Instagram</span>
                   </div>
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
-                    {isInstagramConnected ? '@bybaek_official' : '연동된 계정 없음'}
+                    {isInstagramConnected ? '@bybaek_official' : t.setting.no_account}
                   </p>
                   <button 
                     onClick={() => {
                       if (isInstagramConnected) {
                         setCustomAlert({
                           isOpen: true,
-                          message: 'Instagram 연동을 해제하시겠습니까?\n자동 포스팅 기능이 중지됩니다.',
+                          message: t.setting.insta_disconnect_confirm,
                           type: 'CONFIRM',
                           onConfirm: () => {
                             setIsInstagramConnected(false);
@@ -388,24 +406,23 @@ export default function SettingScreen() {
                     }}
                     className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isInstagramConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
                   >
-                    {isInstagramConnected ? '연동 해제' : '연동하기'}
+                    {isInstagramConnected ? t.setting.btn_disconnect : t.setting.btn_connect}
                   </button>
                 </div>
 
-                {/* Gmail 연동 */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Gmail</span>
                   </div>
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
-                    {isGmailConnected ? (gmailAddress || '연동된 계정 없음') : '연동된 계정 없음'}
+                    {isGmailConnected ? (gmailAddress || t.setting.no_account) : t.setting.no_account}
                   </p>
                   <button 
                     onClick={() => {
                       if (isGmailConnected) {
                         setCustomAlert({
                           isOpen: true,
-                          message: 'Gmail 연동을 해제하시겠습니까?\n더 이상 알림 메일을 받을 수 없습니다.',
+                          message: t.setting.gmail_disconnect_confirm,
                           type: 'CONFIRM',
                           onConfirm: () => {
                             setIsGmailConnected(false);
@@ -419,7 +436,7 @@ export default function SettingScreen() {
                     }}
                     className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isGmailConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
                   >
-                    {isGmailConnected ? '연동 해제' : '연동하기'}
+                    {isGmailConnected ? t.setting.btn_disconnect : t.setting.btn_connect}
                   </button>
                 </div>
               </div>
@@ -427,74 +444,59 @@ export default function SettingScreen() {
           </div>
 
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
-            <h2 className="text-base font-bold text-text-primary mb-4">환경 설정</h2>
+            <h2 className="text-base font-bold text-text-primary mb-4">{t.setting.section_env}</h2>
             <div className="flex flex-row justify-between items-center mb-4">
-              <span className="text-[15px] text-text-primary">사용 언어(Language)</span>
+              <span className="text-[15px] text-text-primary">{t.setting.language_setting}</span>
               <div className="flex flex-row items-center">
-                <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">{language}</span>
-                <button className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none" onClick={handleToggleLanguage}>변경</button>
+                {/* 🚨 화면 표시용 매핑: ko -> 한국어, en -> English */}
+                <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">{language === 'ko' ? '한국어' : 'English'}</span>
+                <button className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none" onClick={handleToggleLanguage}>
+                  {t.setting.btn_change}
+                </button>
               </div>
             </div>
             <div className="flex flex-row justify-between items-center">
-              <span className="text-[15px] text-text-primary">인스타 자동 업로드</span>
+              <span className="text-[15px] text-text-primary">{t.setting.insta_auto_upload}</span>
               <CustomSwitch isOn={isAutoUploadEnabled} onToggle={handleToggleAutoUpload} />
             </div>
           </div>
 
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
-            <h2 className="text-base font-bold text-text-primary mb-4">자동 업로드 설정</h2>
-            
-            {/* 🚨 수정 포인트 1: 부모 컨테이너. justify-between을 제거하고 
-               gap-4를 주어 자식들이 지닌 너비만큼 자연스럽게 배치되도록 수정 */}
+            <h2 className="text-base font-bold text-text-primary mb-4">{t.setting.section_auto_upload}</h2>
             <div className="flex flex-row items-center gap-4">
-              
-              {/* 🚨 수정 포인트 2: 왼쪽 라벨. shrink-0을 주어 절대로 찌그러지지 않게 고정 */}
-              <span className="text-[15px] text-text-primary shrink-0">업로드 시간</span>
-              
-              {/* 오른쪽 영역 (박스 + 수정버튼) */}
+              <span className="text-[15px] text-text-primary shrink-0">{t.setting.upload_time}</span>
               <div className="flex flex-row items-center flex-1 justify-end gap-3">
-                
-                {/* 🚨 수정 포인트 3: 글씨 박스.
-                   w-[140px] 같은 하드코딩된 너비가 있다면 반드시 제거!
-                   대신 px-5로 양옆 여백을 넉넉히 주고 whitespace-nowrap으로 줄바꿈 차단.
-                   이렇게 하면 내부에 데이터가 늘어나는 대로 박스가 옆으로 쭉 늘어납니다. */}
                 <span className="bg-background border border-border px-5 py-2 rounded-md text-sm whitespace-nowrap text-text-primary">
-                  {frequency} {amPm} {hour}:{minute}
+                  {/* 🚨 [다국어 적용] 영어일 경우 매일 -> Everyday 등 번역 맵핑 */}
+                  {(t.setting.freq_map as any)[frequency] || frequency} {amPm} {hour}:{minute}
                 </span>
-                
-                {/* 수정 버튼 */}
                 <button 
                   className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none shrink-0" 
                   onClick={() => { setTempFrequency(frequency); setTempAmPm(amPm); setTempHour(hour); setTempMinute(minute); setTimeModalVisible(true); }}
                 >
-                  수정
+                  {t.setting.btn_edit}
                 </button>
               </div>
-
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- 모달 영역 --- */}
       {renderAuthModal()}
       {renderCustomAlert()}
 
       <SettingEditModal
-        isVisible={isTimeModalVisible} title="업로드 스케줄 설정" onClose={() => setTimeModalVisible(false)}
+        isVisible={isTimeModalVisible} title={t.setting.modal_schedule_title} onClose={() => setTimeModalVisible(false)}
         onSave={() => {
           setFrequency(tempFrequency); setAmPm(tempAmPm); setHour(tempHour); setMinute(tempMinute);
-          
-          // 🚨 시간 설정도 API POST로 쏘도록 변경
           updateSetting({ 
             insta_upload_time_slot: tempFrequency, 
             insta_upload_time: `${tempHour}:${tempMinute} ${tempAmPm}` 
           });
-          
           setTimeModalVisible(false);
         }}
       >
-        <p className="text-sm font-bold text-[#666666] mb-2 mt-4">시간 설정</p>
+        <p className="text-sm font-bold text-[#666666] mb-2 mt-4">{t.setting.modal_time_setting}</p>
         <div className="flex flex-row gap-2 mb-4">
           {['AM', 'PM'].map(p => (
             <button key={p} className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${tempAmPm === p ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'}`} onClick={() => setTempAmPm(p)}>{p}</button>
@@ -503,29 +505,32 @@ export default function SettingScreen() {
         <div className="flex flex-row relative z-50 mb-6 gap-4">
           <div className="relative w-[140px]">
             <button className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none" onClick={() => { setIsHourDropdownOpen(!isHourDropdownOpen); setIsMinuteDropdownOpen(false); }}>
-              <span>{tempHour} 시</span><span className="text-[12px] text-[#888888]">▼</span>
+              <span>{tempHour} {t.setting.hour}</span><span className="text-[12px] text-[#888888]">▼</span>
             </button>
             {isHourDropdownOpen && (
               <div className="absolute top-[110%] left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
-                {hours.map(h => <button key={`hour-${h}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { setTempHour(h); setIsHourDropdownOpen(false); }}>{h} 시</button>)}
+                {hours.map(h => <button key={`hour-${h}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { setTempHour(h); setIsHourDropdownOpen(false); }}>{h} {t.setting.hour}</button>)}
               </div>
             )}
           </div>
           <div className="relative w-[140px]">
             <button className="w-full flex justify-between items-center bg-background border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none" onClick={() => { setIsMinuteDropdownOpen(!isMinuteDropdownOpen); setIsHourDropdownOpen(false); }}>
-              <span>{tempMinute} 분</span><span className="text-[12px] text-[#888888]">▼</span>
+              <span>{tempMinute} {t.setting.minute}</span><span className="text-[12px] text-[#888888]">▼</span>
             </button>
             {isMinuteDropdownOpen && (
               <div className="absolute top-[110%] left-0 w-full bg-background border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto">
-                {minutes.map(m => <button key={`min-${m}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { setTempMinute(m); setIsMinuteDropdownOpen(false); }}>{m} 분</button>)}
+                {minutes.map(m => <button key={`min-${m}`} className="w-full text-left px-4 py-3 border-b border-[#F0F0F0] text-sm hover:bg-gray-50 focus:outline-none" onClick={() => { setTempMinute(m); setIsMinuteDropdownOpen(false); }}>{m} {t.setting.minute}</button>)}
               </div>
             )}
           </div>
         </div>
-        <p className="text-sm font-bold text-[#666666] mb-2">업로드 빈도</p>
+        <p className="text-sm font-bold text-[#666666] mb-2">{t.setting.modal_upload_freq}</p>
         <div className="flex flex-row flex-wrap gap-2">
           {frequencies.map(f => (
-            <button key={f} className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${tempFrequency === f ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'}`} onClick={() => setTempFrequency(f)}>{f}</button>
+            <button key={f} className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${tempFrequency === f ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'}`} onClick={() => setTempFrequency(f)}>
+              {/* 🚨 화면에는 번역된 값을 보여주고, 실제 State에는 한글값 유지 */}
+              {(t.setting.freq_map as any)[f] || f}
+            </button>
           ))}
         </div>
       </SettingEditModal>
@@ -533,14 +538,13 @@ export default function SettingScreen() {
       {isOnboardingModalOpen && (
         <OnboardingSurvey 
           initialQuestionId={targetQuestionId} 
-          initialAnswers={surveyAnswers} // 백엔드에서 받아온 최신 DB 데이터를 모달에 꽂아줌!
+          initialAnswers={surveyAnswers} 
           onFinish={(newAnswers) => {
             setIsOnboardingModalOpen(false);
             if (newAnswers) {
-              setSurveyAnswers(newAnswers); // 전체 답변 즉시 갱신
+              setSurveyAnswers(newAnswers); 
               setGmailAddress(newAnswers[12] || '');
 
-              // 핵심!: 13번 스케줄 문항이 변경되었다면, 즉시 화면 State를 업데이트하고 API도 쏜다!
               const schedule = newAnswers[13];
               if (schedule) {
                 setFrequency(schedule.frequency || '매일');
@@ -548,7 +552,6 @@ export default function SettingScreen() {
                 setHour(schedule.hour || '10');
                 setMinute(schedule.minute || '30');
 
-                // 백엔드 API 즉시 저장 요청
                 updateSetting({
                   insta_upload_time_slot: schedule.frequency,
                   insta_upload_time: `${schedule.hour}:${schedule.minute} ${schedule.amPm}`

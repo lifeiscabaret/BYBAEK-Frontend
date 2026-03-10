@@ -2,6 +2,8 @@
 "use client";
 
 import React from 'react';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface PostCardProps {
   id: string;
@@ -20,7 +22,9 @@ export const PostCard: React.FC<PostCardProps> = ({
   isNewButton = false, 
   onPress 
 }) => {
-  
+  // 🚨 [다국어 적용] 번역 객체 t 가져오기
+  const { t } = useTranslation();
+
   // 1. 새 게시물 만들기 카드
   if (isNewButton) {
     return (
@@ -32,7 +36,8 @@ export const PostCard: React.FC<PostCardProps> = ({
           +
         </span>
         <span className="text-sm font-bold text-gray-500 group-hover:text-text-primary transition-colors">
-          새 게시물 만들기
+          {/* 🚨 [다국어 적용] */}
+          {t.post_card.create_new}
         </span>
       </button>
     );
@@ -42,25 +47,29 @@ export const PostCard: React.FC<PostCardProps> = ({
   return (
     <button 
       onClick={onPress}
-      className="w-full h-[200px] bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden hover:shadow-md hover:border-accent transition-all focus:outline-none text-left"
+      className="w-full h-[200px] bg-white border border-gray-200 rounded-lg flex flex-col overflow-hidden hover:shadow-md hover:border-accent transition-all focus:outline-none text-left group"
     >
       {/* 사진 영역 (추후 Image 컴포넌트로 교체) */}
-      <div className="h-3/5 bg-gray-100 flex justify-center items-center w-full">
+      <div className="h-3/5 bg-gray-100 flex justify-center items-center w-full overflow-hidden">
         {imageUrl ? (
           <img 
             src={imageUrl} 
-            alt={title || "게시물 이미지"} 
+            alt={title || t.post_card.alt_image} // 🚨 [다국어 적용]
             className="w-full h-full object-cover transition-transform group-hover:scale-110"
           />
         ) : (
-          <span className="text-sm text-gray-400">사진 없음</span>
+          <span className="text-sm text-gray-400">
+            {/* 🚨 [다국어 적용] */}
+            {t.post_card.no_photo}
+          </span>
         )}
       </div>
       
       {/* 텍스트 영역 */}
       <div className="h-2/5 p-3 flex flex-col justify-center bg-white w-full border-t border-gray-100">
         <span className="text-sm font-semibold text-text-primary truncate w-full">
-          {title || '게시물 설명'}
+          {/* 🚨 [다국어 적용] */}
+          {title || t.post_card.default_title}
         </span>
         {description && (
           <span className="text-xs text-gray-500 mt-1 line-clamp-2 w-full">
