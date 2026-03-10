@@ -4,51 +4,52 @@
 import { useState, useEffect } from 'react';
 import Joyride, { Step, CallBackProps, STATUS } from 'react-joyride';
 import { usePathname } from 'next/navigation';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 export function TutorialTour() {
   const [run, setRun] = useState(false);
-  // 🚨 1. 컴포넌트가 브라우저에 마운트되었는지 확인하는 상태 추가
   const [isMounted, setIsMounted] = useState(false); 
   const pathname = usePathname();
+
+  // 🚨 [다국어 적용] 번역 객체 가져오기 (반드시 early return 이전에 선언!)
+  const { t } = useTranslation();
 
   useEffect(() => {
     setIsMounted(true); 
 
-    // 🚨 1회용 티켓(sessionStorage) 대신, 로컬 스토리지로 '튜토리얼 본 적 있는지' 확인
     const hasSeenTutorial = localStorage.getItem('has_seen_tutorial');
 
-    // 튜토리얼을 본 적이 없고, 현재 위치가 대시보드라면 튜토리얼 실행!
     if (!hasSeenTutorial && pathname === '/dashboard') {
       setRun(true);
-      // 🚨 실행 즉시 도장을 찍어서, F5(새로고침)를 누르거나 메뉴를 왔다 갔다 해도 다시 안 뜨게 만듭니다.
       localStorage.setItem('has_seen_tutorial', 'true');
     }
   }, [pathname]);
 
-  // 🚨 3. 브라우저에 마운트되기 전(서버 사이드)에는 아무것도 그리지 않음! (에러 방지 핵심)
   if (!isMounted) return null;
 
+  // 🚨 [다국어 적용] 튜토리얼 스텝 내용 번역
   const steps: Step[] = [
     {
       target: '.tour-step-dashboard',
-      content: '이곳은 대시보드입니다. AI 마케터의 최근 활동 요약과 오늘의 업로드 스케줄을 한눈에 확인할 수 있어요.',
+      content: t.tutorial.step_dashboard,
       disableBeacon: true, 
     },
     {
       target: '.tour-step-preview',
-      content: 'AI와 대화하며 나만의 인스타그램 게시글을 작성하고, 즉시 업로드까지 진행할 수 있는 가장 중요한 메뉴입니다!',
+      content: t.tutorial.step_preview,
     },
     {
       target: '.tour-step-photos',
-      content: '원드라이브와 연동되어 AI가 필터링한 모든 시술 사진들을 모아보는 창고 같은 곳입니다.',
+      content: t.tutorial.step_photos,
     },
     {
       target: '.tour-step-album',
-      content: '페이드컷, 펌 등 헤어 스타일별로 사진을 묶어서 나만의 깔끔한 포트폴리오 앨범을 만들어보세요.',
+      content: t.tutorial.step_album,
     },
     {
       target: '.tour-step-setting',
-      content: '샵의 브랜드 톤, 피해야 할 금지어 등 AI 마케터의 기본 성격을 언제든지 이곳에서 변경할 수 있습니다.',
+      content: t.tutorial.step_setting,
     }
   ];
 
@@ -83,12 +84,13 @@ export function TutorialTour() {
           color: '#666',
         }
       }}
+      // 🚨 [다국어 적용] 하단 버튼 텍스트 번역
       locale={{
-        back: '이전',
-        close: '닫기',
-        last: '시작하기',
-        next: '다음',
-        skip: '건너뛰기',
+        back: t.tutorial.btn_back,
+        close: t.tutorial.btn_close,
+        last: t.tutorial.btn_last,
+        next: t.tutorial.btn_next,
+        skip: t.tutorial.btn_skip,
       }}
     />
   );

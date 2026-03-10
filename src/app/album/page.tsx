@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { AlbumCard } from '@/components/AlbumCard';
 import apiClient from '@/api/index';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface AlbumData {
   id: string;
@@ -18,7 +19,9 @@ interface AlbumData {
 export default function MyAlbumScreen() {
   const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
 
-  const [albums, setAlbums] = useState<AlbumData[]>([]);
+  const { t } = useTranslation();
+
+  const [albums, setAlbums] = useState<AlbumData[]>([{ id: 'new', isNew: true }]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
 
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
@@ -41,12 +44,13 @@ export default function MyAlbumScreen() {
         id: album.id,
         title: album.album_name,
         photoCount: album.photo_count,
-        description: album.description || "설명이 없습니다.",
+        description: album.description || t.album.no_desc,
         thumbnailUrl: album.thumbnail_url
       }));
       setAlbums([{ id: 'new', isNew: true }, ...dbAlbums]);
     } catch (error) {
       console.error("앨범 로딩 실패:", error);
+      setAlbums([{ id: 'new', isNew: true }]);
     }
   };
 
@@ -68,7 +72,7 @@ export default function MyAlbumScreen() {
   // 앨범 내 사진 제거 (개별 ✕ 버튼)
   const handleRemovePhotoFromAlbum = async (photoId: string) => {
     if (!selectedAlbum) return;
-    if (!window.confirm("이 사진을 앨범에서 제외하시겠습니까?")) return;
+    if (!window.confirm(t.album.confirm_remove)) return;
 
     const updatedPhotos = albumPhotos.filter(p => p.id !== photoId);
     const updatedPhotoIds = updatedPhotos.map(p => p.id);
@@ -148,7 +152,7 @@ export default function MyAlbumScreen() {
       await apiClient.post("/photos/albums", {
         shop_id: shopId,
         album_id: selectedAlbum.id === 'new' ? null : selectedAlbum.id,
-        album_name: editTitle || "새 앨범",
+        album_name: editTitle || t.album.default_new_name,
         description: editDesc,
         photo_ids: photoIds
       });
@@ -161,7 +165,10 @@ export default function MyAlbumScreen() {
 
   const handleDeleteAlbums = async () => {
     if (selectedIndexes.length === 0) return;
-    if (window.confirm(`선택한 ${selectedIndexes.length}개의 앨범을 삭제하시겠습니까?`)) {
+    // 🚨 [다국어 적용] {count} 부분을 실제 숫자로 교체해서 텍스트 생성
+    const confirmMessage = t.album.confirm_delete.replace('{count}', selectedIndexes.length.toString());
+    
+    if (window.confirm(confirmMessage)) {
       try {
         await Promise.all(
           selectedIndexes.map(async (idx) => {
@@ -183,9 +190,11 @@ export default function MyAlbumScreen() {
 
       <div className="flex-1 p-large flex flex-col min-w-0 h-full">
         <div className="flex flex-row justify-between items-center mb-large shrink-0">
-          <h1 className="text-h1 font-bold text-text-primary">내 앨범</h1>
+          {/* 🚨 [다국어 적용] 타이틀 */}
+          <h1 className="text-h1 font-bold text-text-primary">{t.album.title}</h1>
           <button onClick={handleDeleteAlbums} className="px-medium py-2 border border-accent rounded-md bg-white text-accent font-bold text-sm hover:bg-red-50 transition-colors">
-            선택된 앨범 삭제
+            {/* 🚨 [다국어 적용] 선택된 앨범 삭제 */}
+            {t.album.delete_selected}
           </button>
         </div>
 
@@ -196,7 +205,8 @@ export default function MyAlbumScreen() {
                 return (
                   <button key={item.id} onClick={() => openAlbumDetail(item)} className="w-full h-full min-h-[260px] bg-white rounded-xl border-2 border-dashed border-[#D0D0D0] flex flex-col justify-center items-center hover:bg-gray-50 group">
                     <span className="text-[40px] font-light text-[#A0A0A0] mb-2 group-hover:scale-110 transition-transform">+</span>
-                    <span className="text-[16px] font-bold text-[#1A1A1A]">새 앨범 만들기</span>
+                    {/* 🚨 [다국어 적용] 새 앨범 만들기 */}
+                    <span className="text-[16px] font-bold text-[#1A1A1A]">{t.album.create_new}</span>
                   </button>
                 );
               }
@@ -214,25 +224,31 @@ export default function MyAlbumScreen() {
           <div className="flex-1 p-[40px] flex flex-col h-screen overflow-hidden">
             <div className="flex flex-row justify-between items-start mb-[30px] shrink-0">
               <div className="flex-1 pr-5 flex flex-col">
-                <input type="text" className="text-[32px] font-bold text-[#1A1A1A] mb-2 focus:outline-none bg-transparent" placeholder="앨범 제목" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-                <input type="text" className="text-base text-[#666666] mb-4 focus:outline-none bg-transparent w-full" placeholder="설명 입력" value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
-                <span className="text-[15px] text-[#888] font-bold">총 {selectedAlbum.photoCount || 0}장의 사진</span>
+                {/* 🚨 [다국어 적용] 앨범 제목 Placeholder */}
+                <input type="text" className="text-[32px] font-bold text-[#1A1A1A] mb-2 focus:outline-none bg-transparent" placeholder={t.album.placeholder_title} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                {/* 🚨 [다국어 적용] 설명 입력 Placeholder */}
+                <input type="text" className="text-base text-[#666666] mb-4 focus:outline-none bg-transparent w-full" placeholder={t.album.placeholder_desc} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
+                {/* 🚨 [다국어 적용] 총 N장의 사진 */}
+                <span className="text-[15px] text-[#888] font-bold">
+                  {t.album.total_photos.replace('{count}', (selectedAlbum.photoCount || 0).toString())}
+                </span>
               </div>
               <div className="flex flex-col items-end gap-4">
                 <div className="flex flex-row items-center gap-3">
-                  <button onClick={handleSaveOverlay} className="bg-[#1A1A1A] text-white px-5 py-2.5 rounded-lg font-bold text-sm">저장</button>
+                  {/* 🚨 [다국어 적용] 공통 저장 버튼 */}
+                  <button onClick={handleSaveOverlay} className="bg-[#1A1A1A] text-white px-5 py-2.5 rounded-lg font-bold text-sm">{t.common.save}</button>
                   <button onClick={() => setIsDetailModalVisible(false)} className="bg-[#8A0020] text-white w-10 h-10 rounded-full flex justify-center items-center text-[20px] font-bold">✕</button>
                 </div>
-                {/* 🚨 [수정] 사진 제거 버튼 삭제 및 사진 추가 기능 연결 */}
                 <div className="flex flex-row items-center gap-3">
                   <button 
                     onClick={() => {
-                      setTempSelectedIds([]); // 팝업 열기 전 초기화
+                      setTempSelectedIds([]); 
                       setIsPhotoSelectModalVisible(true);
                     }}
                     className="bg-[#8A0020] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-red-900 transition-colors"
                   >
-                    사진 추가
+                    {/* 🚨 [다국어 적용] 사진 추가 */}
+                    {t.album.add_photo}
                   </button>
                 </div>
               </div>
@@ -251,25 +267,27 @@ export default function MyAlbumScreen() {
                   ))}
                 </div>
               ) : (
-                <span className="text-[18px] text-[#A0A0A0]">앨범에 사진을 추가해보세요.</span>
+                <span className="text-[18px] text-[#A0A0A0]">{t.album.empty_album}</span>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* 🚨 [추가] 사진 선택 모달 (전체 사진 목록 팝업) */}
+      {/* 사진 선택 모달 */}
       {isPhotoSelectModalVisible && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-2xl w-[800px] h-[600px] flex flex-col p-8 shadow-2xl">
             <div className="flex justify-between items-center mb-6 shrink-0">
-              <h2 className="text-2xl font-bold text-text-primary">사진 선택</h2>
+              {/* 🚨 [다국어 적용] 모달 타이틀 */}
+              <h2 className="text-2xl font-bold text-text-primary">{t.album.modal_photo_title}</h2>
               <div className="flex gap-3">
                 <button 
                   onClick={handleSaveSelectedPhotos}
                   className="bg-accent text-white px-6 py-2 rounded-lg font-bold hover:bg-accent-dark transition-colors"
                 >
-                  저장
+                  {/* 🚨 [다국어 적용] 공통 저장 버튼 */}
+                  {t.common.save}
                 </button>
                 <button 
                   onClick={() => setIsPhotoSelectModalVisible(false)}

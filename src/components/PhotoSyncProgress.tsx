@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '@/api/index';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface SyncStatus {
   is_syncing: boolean;
@@ -10,17 +12,21 @@ interface SyncStatus {
   processed_count: number;
   saved_count: number;
   filtered_count: number;
-  is_first_sync?: boolean; // 🚨 백엔드에서 내려줄 최초 동기화 여부
+  is_first_sync?: boolean;
 }
 
 export function PhotoSyncProgress() {
   const shopId = '3sesac18'; 
+  
+  // 🚨 [다국어 적용] 번역 객체 t 가져오기
+  const { t } = useTranslation();
+
   const [status, setStatus] = useState<SyncStatus | null>(null);
   
   // 상태바 표시 여부
   const [isVisible, setIsVisible] = useState(false);
   
-  // 🚨 [추가] 베스트 3장 선택 모달 관련 상태
+  // 베스트 3장 선택 모달 관련 상태
   const [showFavoriteModal, setShowFavoriteModal] = useState(false);
   const [allPhotos, setAllPhotos] = useState<any[]>([]);
   const [selectedFavorites, setSelectedFavorites] = useState<string[]>([]);
@@ -45,7 +51,7 @@ export function PhotoSyncProgress() {
           wasSyncingRef.current = false;
           
           if (data.is_first_sync) {
-            // 🚨 최초 동기화라면: 상태바를 숨기고 사진 선택 모달을 띄움
+            // 최초 동기화라면: 상태바를 숨기고 사진 선택 모달을 띄움
             setIsVisible(false);
             fetchPhotosForSelection(); // 전체 사진 불러오기
             setShowFavoriteModal(true);
@@ -64,7 +70,6 @@ export function PhotoSyncProgress() {
     return () => clearInterval(intervalId);
   }, []);
 
-  // 🚨 [추가] 모달에 띄울 전체 사진 목록 불러오기
   const fetchPhotosForSelection = async () => {
     try {
       const response = await apiClient.get(`/photos/all/${shopId}`);
@@ -74,14 +79,14 @@ export function PhotoSyncProgress() {
     }
   };
 
-  // 🚨 [추가] 사진 선택 토글 (최대 3장까지만 선택 가능)
   const toggleFavoriteSelect = (photoId: string) => {
     setSelectedFavorites((prev) => {
       if (prev.includes(photoId)) {
         return prev.filter(id => id !== photoId); // 해제
       } else {
         if (prev.length >= 3) {
-          alert('베스트 사진은 최대 3장까지만 선택할 수 있습니다.');
+          // 🚨 [다국어 적용]
+          alert(t.photo_sync.alert_max_3);
           return prev;
         }
         return [...prev, photoId]; // 추가
@@ -89,10 +94,10 @@ export function PhotoSyncProgress() {
     });
   };
 
-  // 🚨 [추가] 3장 선택 완료 후 DB에 저장하기
   const handleSaveFavorites = async () => {
     if (selectedFavorites.length < 3) {
-      alert('AI가 샵의 스타일을 분석할 수 있도록 꼭 3장을 선택해주세요!');
+      // 🚨 [다국어 적용]
+      alert(t.photo_sync.alert_min_3);
       return;
     }
 
@@ -100,14 +105,15 @@ export function PhotoSyncProgress() {
       await apiClient.post(`/onboarding/favorites/${shopId}`, {
         favorite_photos: selectedFavorites
       });
-      alert('나만의 AI 마케터 설정이 모두 완료되었습니다!');
+      // 🚨 [다국어 적용]
+      alert(t.photo_sync.alert_setup_complete);
       setShowFavoriteModal(false); // 모달 닫기
     } catch (error) {
       console.error("즐겨찾기 저장 실패:", error);
-      alert('저장 중 오류가 발생했습니다.');
+      // 🚨 [다국어 적용]
+      alert(t.photo_sync.alert_save_error);
     }
   };
-
 
   // 퍼센트 계산
   const percent = status && status.total_detected > 0 
@@ -127,7 +133,8 @@ export function PhotoSyncProgress() {
                 <div className="w-3.5 h-3.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
               )}
               <h3 className="text-[15px] font-bold text-gray-800">
-                {status.is_syncing ? 'OneDrive 사진을 가져오는 중입니다' : '사진 동기화 완료!'}
+                {/* 🚨 [다국어 적용] */}
+                {status.is_syncing ? t.photo_sync.syncing_msg : t.photo_sync.sync_complete_msg}
               </h3>
             </div>
             {!status.is_syncing && !status.is_first_sync && (
@@ -138,13 +145,20 @@ export function PhotoSyncProgress() {
             <div className={`h-full transition-all duration-500 ease-out rounded-full ${status.is_syncing ? 'bg-blue-500' : 'bg-green-500'}`} style={{ width: `${percent}%` }} />
           </div>
           <div className="flex justify-between text-[13px] text-gray-500 mb-3 px-1">
-            <span>처리 진행률</span>
-            <span className="font-bold">{status.processed_count} / {status.total_detected} 장 ({percent}%)</span>
+            {/* 🚨 [다국어 적용] */}
+            <span>{t.photo_sync.progress_label}</span>
+            <span className="font-bold">
+              {t.photo_sync.progress_status
+                .replace('{processed}', String(status.processed_count))
+                .replace('{total}', String(status.total_detected))
+                .replace('{percent}', String(percent))
+              }
+            </span>
           </div>
         </div>
       )}
 
-      {/* 2. 🚨 최초 동기화 완료 후: 베스트 사진 3장 선택 모달 */}
+      {/* 2. 최초 동기화 완료 후: 베스트 사진 3장 선택 모달 */}
       {showFavoriteModal && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl w-[850px] h-[650px] flex flex-col p-8 shadow-2xl animate-in zoom-in-95 duration-300">
@@ -153,11 +167,15 @@ export function PhotoSyncProgress() {
             <div className="flex justify-between items-start mb-6 shrink-0">
               <div>
                 <h2 className="text-[26px] font-bold text-text-primary mb-2">
-                  🎉 OneDrive 연동이 완료되었습니다!
+                  {/* 🚨 [다국어 적용] */}
+                  {t.photo_sync.modal_title}
                 </h2>
                 <p className="text-text-secondary text-[15px]">
-                  AI 마케터가 사장님 샵의 시그니처 스타일을 완벽히 파악할 수 있도록,<br/>
-                  성공적으로 업로드된 사진 중 <strong className="text-accent">가장 마음에 드는 베스트 사진 3장</strong>을 선택해 주세요.
+                  {/* 🚨 [다국어 적용] 번역 조각 조합 */}
+                  {t.photo_sync.modal_desc_1}<br/>
+                  {t.photo_sync.modal_desc_2}
+                  <strong className="text-accent">{t.photo_sync.modal_desc_strong}</strong>
+                  {t.photo_sync.modal_desc_3}
                   ({selectedFavorites.length}/3)
                 </p>
               </div>
@@ -170,7 +188,8 @@ export function PhotoSyncProgress() {
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                선택 완료
+                {/* 🚨 [다국어 적용] */}
+                {t.photo_sync.btn_complete_select}
               </button>
             </div>
 
@@ -178,7 +197,8 @@ export function PhotoSyncProgress() {
             <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide border-t border-gray-100 pt-6">
               {allPhotos.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-gray-400">
-                  불러올 사진이 없습니다.
+                  {/* 🚨 [다국어 적용] */}
+                  {t.photo_sync.no_photos_to_load}
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-4 pb-4">
@@ -192,7 +212,8 @@ export function PhotoSyncProgress() {
                           isSelected ? 'border-accent ring-4 ring-accent/20' : 'border-transparent hover:border-gray-300'
                         }`}
                       >
-                        <img src={photo.blob_url} className="w-full h-full object-cover" alt="후보 사진" />
+                        {/* 🚨 [다국어 적용] */}
+                        <img src={photo.blob_url} className="w-full h-full object-cover" alt={t.photo_sync.alt_candidate_photo} />
                         
                         {/* 체크박스 UI */}
                         <div className={`absolute top-3 left-3 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
