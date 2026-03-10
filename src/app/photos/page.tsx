@@ -92,15 +92,6 @@ export default function AllPhotosScreen() {
     }
   };
 
-  const openOneDrive = () => {
-    const oneDriveUrl = 'https://onedrive.live.com'; 
-    try {
-      window.open(oneDriveUrl, '_blank');
-    } catch (error) {
-      window.alert('오류: 원드라이브를 열 수 없습니다.');
-    }
-  };
-
     // 이미지 뷰어 제어 핸들러
   const openViewer = (index: number) => {
     setCurrentViewIndex(index);
@@ -182,17 +173,6 @@ export default function AllPhotosScreen() {
         <div className="flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-hide">
           <div className="flex flex-row flex-wrap gap-4 pb-large">
             
-            <button 
-              onClick={openOneDrive} 
-              className="w-[180px] h-[180px] bg-white rounded-lg border-2 border-dashed border-border flex flex-col justify-center items-center hover:bg-gray-50 transition-colors focus:outline-none group shrink-0"
-            >
-              <span className="text-[40px] font-light text-accent mb-2 transition-transform group-hover:scale-110">
-                +
-              </span>
-              <span className="text-body font-bold text-text-secondary group-hover:text-text-primary transition-colors">
-                새 사진 업로드
-              </span>
-            </button>
               {/* DB 연동 */}
               {loading ? (
                 <div className="flex justify-center items-center w-full h-40">

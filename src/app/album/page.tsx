@@ -18,7 +18,7 @@ interface AlbumData {
 export default function MyAlbumScreen() {
   const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
 
-  const [albums, setAlbums] = useState<AlbumData[]>([]);
+  const [albums, setAlbums] = useState<AlbumData[]>([{ id: 'new', isNew: true }]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
 
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
@@ -47,6 +47,7 @@ export default function MyAlbumScreen() {
       setAlbums([{ id: 'new', isNew: true }, ...dbAlbums]);
     } catch (error) {
       console.error("앨범 로딩 실패:", error);
+      setAlbums([{ id: 'new', isNew: true }]);
     }
   };
 
