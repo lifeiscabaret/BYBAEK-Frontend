@@ -10,14 +10,14 @@ import apiClient from '@/api/index';
 import { useTranslation } from '@/hooks/useTranslation';
 
 // 임시 Mock Data (이 데이터는 렌더링에 직접 쓰이지 않으므로 그대로 둡니다)
-const MOCK_DATA = [
-  { id: 'new', isNew: true },
-  { id: '1', title: '깔끔한 페이드컷 스타일' },
-  { id: '2', title: '가을 트렌드 바버 스타일링' },
-  { id: '3', title: '포마드 스타일링 팁' },
-  { id: '4', title: '고객 리뷰 사진' },
-  { id: '5', title: '바버샵 내부 전경' },
-];
+// const MOCK_DATA = [
+//   { id: 'new', isNew: true },
+//   { id: '1', title: '깔끔한 페이드컷 스타일' },
+//   { id: '2', title: '가을 트렌드 바버 스타일링' },
+//   { id: '3', title: '포마드 스타일링 팁' },
+//   { id: '4', title: '고객 리뷰 사진' },
+//   { id: '5', title: '바버샵 내부 전경' },
+// ];
 
 export default function DashboardScreen() {
   const router = useRouter();
