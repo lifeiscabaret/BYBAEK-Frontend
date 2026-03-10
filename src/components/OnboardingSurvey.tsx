@@ -3,7 +3,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { getOnboardingQuestions, SurveyQuestion } from '../utils/constants/OnboardingData';
-// 🚨 MockDB 임포트 삭제!
 // 🚨 [다국어 적용] 번역 훅 불러오기
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -39,7 +38,6 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
   const [currentIndex, setCurrentIndex] = useState(initialIndex !== -1 ? initialIndex : 0);
   const isSingleEditMode = !!initialQuestionId;
 
-  // 🚨 [MockDB 제거] 백엔드에서 받아온 initialAnswers가 있으면 쓰고, 없으면 빈 객체로 시작!
   const [answers, setAnswers] = useState<Record<number, any>>(() => {
     return initialAnswers && Object.keys(initialAnswers).length > 0 ? initialAnswers : {};
   });
@@ -91,7 +89,6 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
 
     if (finalAnswer) {
       updatedAnswers[currentQuestion.id] = finalAnswer;
-      // 🚨 [MockDB 제거] 더 이상 중간 임시 저장을 하지 않고 상태(State)만 업데이트합니다.
     }
 
     if (isSingleEditMode) {

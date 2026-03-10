@@ -158,6 +158,72 @@ export const translations = {
     },
     landing: {
       click_to_start: "화면을 클릭하여 시작하세요"
+    },
+    image_edit: {
+      title: "선택된 이미지",
+      btn_add: "추가",
+      btn_remove: "제거"
+    },
+    onboarding_survey: {
+      part_personal: "개인화 설정 - 설정 탭에서 언제든지 변경 가능",
+      part_app: "앱 설정 - 설정 탭에서 언제든지 변경 가능",
+      edit_title: "설정 수정",
+      or_type_directly: "또는 직접 입력:",
+      time_setting: "시간 설정",
+      upload_freq: "업로드 빈도",
+      btn_edit_complete: "수정 완료",
+      btn_complete_start: "완료 및 시작",
+      btn_save_next: "저장 후 다음"
+    },
+    photo_sync: {
+      alert_max_3: "베스트 사진은 최대 3장까지만 선택할 수 있습니다.",
+      alert_min_3: "AI가 샵의 스타일을 분석할 수 있도록 꼭 3장을 선택해주세요!",
+      alert_setup_complete: "나만의 AI 마케터 설정이 모두 완료되었습니다!",
+      alert_save_error: "저장 중 오류가 발생했습니다.",
+      syncing_msg: "OneDrive 사진을 가져오는 중입니다",
+      sync_complete_msg: "사진 동기화 완료!",
+      progress_label: "처리 진행률",
+      progress_status: "{processed} / {total} 장 ({percent}%)",
+      modal_title: "🎉 OneDrive 연동이 완료되었습니다!",
+      modal_desc_1: "AI 마케터가 사장님 샵의 시그니처 스타일을 완벽히 파악할 수 있도록,",
+      modal_desc_2: "성공적으로 업로드된 사진 중 ",
+      modal_desc_strong: "가장 마음에 드는 베스트 사진 3장",
+      modal_desc_3: "을 선택해 주세요.",
+      btn_complete_select: "선택 완료",
+      no_photos_to_load: "불러올 사진이 없습니다.",
+      alt_candidate_photo: "후보 사진"
+    },
+    post_card: {
+      create_new: "새 게시물 만들기",
+      alt_image: "게시물 이미지",
+      no_photo: "사진 없음",
+      default_title: "게시물 설명"
+    },
+    sidebar: {
+      dashboard: "대시보드",
+      create_post: "게시글 작성",
+      all_photos: "전체 사진",
+      my_album: "내 앨범",
+      setting: "설정",
+      test: "테스트",
+      login: "로그인",
+      logout: "로그아웃",
+      logout_title: "로그아웃",
+      logout_confirm: "정말 로그아웃 하시겠습니까?\n다시 이용하시려면 계정 연동이 필요합니다.",
+      btn_yes: "예",
+      btn_no: "아니오"
+    },
+    tutorial: {
+      step_dashboard: "이곳은 대시보드입니다. AI 마케터의 최근 활동 요약과 오늘의 업로드 스케줄을 한눈에 확인할 수 있어요.",
+      step_preview: "AI와 대화하며 나만의 인스타그램 게시글을 작성하고, 즉시 업로드까지 진행할 수 있는 가장 중요한 메뉴입니다!",
+      step_photos: "원드라이브와 연동되어 AI가 필터링한 모든 시술 사진들을 모아보는 창고 같은 곳입니다.",
+      step_album: "페이드컷, 펌 등 헤어 스타일별로 사진을 묶어서 나만의 깔끔한 포트폴리오 앨범을 만들어보세요.",
+      step_setting: "샵의 브랜드 톤, 피해야 할 금지어 등 AI 마케터의 기본 성격을 언제든지 이곳에서 변경할 수 있습니다.",
+      btn_back: "이전",
+      btn_close: "닫기",
+      btn_last: "시작하기",
+      btn_next: "다음",
+      btn_skip: "건너뛰기"
     }
   },
   en: {
@@ -316,6 +382,72 @@ export const translations = {
     },
     landing: {
       click_to_start: "Click the screen to start"
+    },
+    image_edit: {
+      title: "Selected Images",
+      btn_add: "Add",
+      btn_remove: "Remove"
+    },
+    onboarding_survey: {
+      part_personal: "Personalization - Change anytime in Settings",
+      part_app: "App Settings - Change anytime in Settings",
+      edit_title: "Edit Settings",
+      or_type_directly: "Or type directly:",
+      time_setting: "Time Setting",
+      upload_freq: "Upload Frequency",
+      btn_edit_complete: "Complete Edit",
+      btn_complete_start: "Complete & Start",
+      btn_save_next: "Save & Next"
+    },
+    photo_sync: {
+      alert_max_3: "You can select up to 3 best photos.",
+      alert_min_3: "Please select exactly 3 photos so AI can analyze your shop's style!",
+      alert_setup_complete: "Your AI marketer setup is complete!",
+      alert_save_error: "An error occurred while saving.",
+      syncing_msg: "Fetching photos from OneDrive...",
+      sync_complete_msg: "Photo sync complete!",
+      progress_label: "Progress",
+      progress_status: "{processed} / {total} photos ({percent}%)",
+      modal_title: "🎉 OneDrive connection complete!",
+      modal_desc_1: "So that the AI marketer can perfectly understand your shop's signature style,",
+      modal_desc_2: "please select the ",
+      modal_desc_strong: "3 best photos you like the most",
+      modal_desc_3: " from the successfully uploaded photos.",
+      btn_complete_select: "Selection Complete",
+      no_photos_to_load: "No photos to load.",
+      alt_candidate_photo: "Candidate photo"
+    },
+    post_card: {
+      create_new: "Create New Post",
+      alt_image: "Post Image",
+      no_photo: "No Photo",
+      default_title: "Post Description"
+    },
+    sidebar: {
+      dashboard: "Dashboard",
+      create_post: "Create Post",
+      all_photos: "All Photos",
+      my_album: "My Album",
+      setting: "Settings",
+      test: "Test",
+      login: "Login",
+      logout: "Logout",
+      logout_title: "Logout",
+      logout_confirm: "Are you sure you want to log out?\nYou will need to reconnect your account to use it again.",
+      btn_yes: "Yes",
+      btn_no: "No"
+    },
+    tutorial: {
+      step_dashboard: "This is the dashboard. You can check the recent activity summary of your AI marketer and today's upload schedule at a glance.",
+      step_preview: "This is the most important menu where you can chat with AI to create your own Instagram posts and even upload them instantly!",
+      step_photos: "This is a warehouse-like place that connects with OneDrive to collect all the procedure photos filtered by AI.",
+      step_album: "Group photos by hair styles to create your own neat portfolio album.",
+      step_setting: "You can always change the basic personality of the AI marketer here, such as the shop's brand tone and forbidden words to avoid.",
+      btn_back: "Back",
+      btn_close: "Close",
+      btn_last: "Start",
+      btn_next: "Next",
+      btn_skip: "Skip"
     }
   }
 };
