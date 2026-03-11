@@ -28,9 +28,30 @@ export default function DashboardScreen() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isGuest, setIsGuest] = useState(false);
   
-  const shopId = "3sesac18";
+  //const shopId = "3sesac18";
+  const [shopId, setShopId] = useState<string | null>(null);
   
+  // 1. 페이지 로드 시 localStorage에서 정보를 먼저 가져옴
   useEffect(() => {
+    const storedShopId = localStorage.getItem("shop_id");
+    const guestStatus = localStorage.getItem("isGuest");
+
+    if (guestStatus === "true") {
+      setIsGuest(true);
+      setShopId("guest"); // 게스트용 임시 ID
+    } else if (storedShopId) {
+      setShopId(storedShopId);
+    } else {
+      // 로그인 정보도 없고 게스트도 아니면 로그인 페이지로 튕겨내기
+      router.push('/login');
+    }
+  }, [router]);
+
+  // 2. shopId가 제대로 설정되었을 때만 API 호출
+  useEffect(() => {
+    // shopId가 null이거나 초기 상태일 때는 실행하지 않음
+    if (!shopId) return;
+
     const fetchPosts = async () => {
       try {
         const response = await apiClient.get(`/agent/posts/${shopId}`);
@@ -41,11 +62,6 @@ export default function DashboardScreen() {
     };
   
     fetchPosts();
-  
-    const guestStatus = localStorage.getItem("isGuest");
-    if (guestStatus === "true") {
-      setIsGuest(true);
-    }
   }, [shopId]);
 
   return (

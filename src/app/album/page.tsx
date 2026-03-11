@@ -17,7 +17,13 @@ interface AlbumData {
 }
 
 export default function MyAlbumScreen() {
-  const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
+  const [shopId, setShopId] = useState<string | null>(null);
+  // const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
+
+  useEffect(() => {
+    const storedShopId = localStorage.getItem('shop_id');
+    setShopId(storedShopId || '3sesac18'); // 실서버에서는 'guest_shop' 등으로 처리
+  }, []);
 
   const { t } = useTranslation();
 
@@ -36,6 +42,12 @@ export default function MyAlbumScreen() {
   const [allPhotos, setAllPhotos] = useState<any[]>([]); // 전체 사진 목록
   const [tempSelectedIds, setTempSelectedIds] = useState<string[]>([]); // 팝업 내 임시 선택
 
+  useEffect(() => {
+    if (!shopId) return;
+    fetchAlbums();
+    fetchAllPhotos();
+  }, [shopId]);
+  
   // 1. 앨범 목록 조회
   const fetchAlbums = async () => {
     try {

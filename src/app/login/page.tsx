@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 // 🚨 [다국어 적용] 번역 훅 불러오기
 import { useTranslation } from '@/hooks/useTranslation';
+import apiClient from '@/api/index';
 
 type LoginStep = 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
@@ -26,9 +27,22 @@ export default function LoginScreen() {
   const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
 
   useEffect(() => {
-    const handleAuthMessage = (event: MessageEvent) => {
+    const handleAuthMessage = async (event: MessageEvent) => {
       if (event.data === 'MS_LOGIN_SUCCESS') {
-        setMsLoginStatus('COMPLETED');
+        try {
+          const response = await apiClient.get('/auth/me');
+          
+          // axios는 응답 데이터가 .data 안에 담깁니다.
+          const { shop_id } = response.data;
+
+          if (shop_id) {
+            localStorage.setItem('shop_id', shop_id);
+            setMsLoginStatus('COMPLETED');
+            console.log("Shop ID 동기화 성공:", shop_id);
+          }
+        } catch (error) {
+          console.error("MS 유저 동기화 실패:", error);
+        }
       }
       if (event.data === 'INSTA_LOGIN_SUCCESS') {
         setInstaLoginStatus('COMPLETED'); 

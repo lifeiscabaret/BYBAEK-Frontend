@@ -13,8 +13,15 @@ interface ChatMessage {
 }
 
 export default function PreviewScreen() {
-  const shopId = '3sesac18';
+  // const shopId = '3sesac18';
+  const [shopId, setShopId] = useState<string | null>(null);
+
   const postId = '';
+
+  useEffect(() => {
+    const storedShopId = localStorage.getItem('shop_id');
+    setShopId(storedShopId || 'guest_shop');
+  }, []);
 
   const { t } = useTranslation();
 
@@ -51,6 +58,7 @@ export default function PreviewScreen() {
   }, [t, generatedCaption]);
 
   useEffect(() => {
+    if (!shopId) return;
     const fetchPhotos = async () => {
       try {
         const response = await apiClient.get(`/photos/all/${shopId}`);
@@ -172,7 +180,7 @@ export default function PreviewScreen() {
         cta: '',
       };
 
-      const response = await apiClient.post('/save', payload);
+      const response = await apiClient.post('/api/agent/save', payload);
 
       if (response.data.status === 'success') {
         alert(t.preview.alert_save_success);

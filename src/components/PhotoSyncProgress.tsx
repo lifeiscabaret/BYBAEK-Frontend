@@ -16,8 +16,12 @@ interface SyncStatus {
 }
 
 export function PhotoSyncProgress() {
-  const shopId = '3sesac18'; 
-  
+  //const shopId = '3sesac18'; 
+  const [shopId, setShopId] = useState<string | null>(null);
+  useEffect(() => {
+    const storedId = localStorage.getItem('shop_id');
+    setShopId(storedId || '3sesac18');
+  }, []);
   // 🚨 [다국어 적용] 번역 객체 t 가져오기
   const { t } = useTranslation();
 
@@ -35,6 +39,7 @@ export function PhotoSyncProgress() {
   const wasSyncingRef = useRef<boolean>(false);
 
   useEffect(() => {
+    if (!shopId) return;
     const checkSyncStatus = async () => {
       try {
         const response = await apiClient.get(`/photos/sync-status/${shopId}`);

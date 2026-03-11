@@ -17,7 +17,15 @@ export default function PostDetailScreen({ params }: PostDetailProps) {
   const router = useRouter();
   const searchParams = useSearchParams(); 
   const { id } = React.use(params);
-  const shopId = searchParams.get('shop_id') || "3sesac18"; 
+  // const shopId = searchParams.get('shop_id') || "3sesac18"; 
+  const [shopId, setShopId] = useState<string | null>(null);  
+
+  useEffect(() => {
+    const queryShopId = searchParams.get('shop_id');
+    const storedShopId = localStorage.getItem('shop_id');
+    
+    setShopId(queryShopId || storedShopId || "guest_shop");
+  }, [searchParams]);
 
   // 🚨 [다국어 적용] 번역 객체 t 가져오기
   const { t } = useTranslation();
@@ -26,7 +34,9 @@ export default function PostDetailScreen({ params }: PostDetailProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!shopId || !id) return;
     const fetchDetail = async () => {
+      setLoading(true);
       try {
         const response = await apiClient.get(`/agent/post/detail/${id}`, {
           params: { shop_id: shopId }
