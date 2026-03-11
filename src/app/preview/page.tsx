@@ -27,17 +27,23 @@ export default function PreviewScreen() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 🚨 [추가] 우측 텍스트 에디터 참조 및 화면 분할 비율(33.3% ~ 66.6%) 상태 관리
   const rightTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [textRatio, setTextRatio] = useState(50); // 기본 절반(50%)
+  const [textRatio, setTextRatio] = useState(50); 
 
   const [allPhotos, setAllPhotos] = useState<any[]>([]);
+  const [albums, setAlbums] = useState<any[]>([]); // 🚨 [추가] 앨범 목록 상태
+  
   const [images, setImages] = useState<any[]>([]);
   const [tempSelectedPhotos, setTempSelectedPhotos] = useState<any[]>([]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
+
+  // 🚨 [추가] 모달 내 2 Depth 상태 관리 (ALBUM_LIST: 앨범 목록, PHOTO_LIST: 특정 앨범 내 사진 목록)
+  const [modalStep, setModalStep] = useState<'ALBUM_LIST' | 'PHOTO_LIST'>('ALBUM_LIST');
+  const [currentAlbumPhotos, setCurrentAlbumPhotos] = useState<any[]>([]);
+  const [currentAlbumTitle, setCurrentAlbumTitle] = useState('');
 
   const [generatedCaption, setGeneratedCaption] = useState(
     t.preview.default_caption
@@ -54,27 +60,31 @@ export default function PreviewScreen() {
     }
   }, [t, generatedCaption]);
 
-  // 🚨 [추가] 텍스트 양이 많아지면 텍스트창 비율을 자동으로 조금씩 늘려주는 효과
   useEffect(() => {
     const el = rightTextareaRef.current;
     if (!el) return;
-    // 내용이 박스보다 길어지면 비율을 최대 66.6%까지 확장
     if (el.scrollHeight > el.clientHeight && textRatio < 66.6) {
       setTextRatio(prev => Math.min(66.6, prev + 2));
     }
   }, [generatedCaption, textRatio]);
 
+  // 🚨 [수정] 모달에 띄워줄 전체 사진과 앨범 목록을 동시에 불러옵니다.
   useEffect(() => {
-    const fetchPhotos = async () => {
+    const fetchData = async () => {
       try {
-        const response = await apiClient.get(`/photos/all/${shopId}`);
-        setAllPhotos(response.data.photos || []);
+        // 1. 전체 사진 불러오기
+        const allRes = await apiClient.get(`/photos/all/${shopId}`);
+        setAllPhotos(allRes.data.photos || []);
+
+        // 2. 앨범 목록 불러오기
+        const albumRes = await apiClient.get(`/album/${shopId}`);
+        setAlbums(albumRes.data.albums || albumRes.data || []);
       } catch (error) {
-        console.error('사진 로딩 실패:', error);
+        console.error('데이터 로딩 실패:', error);
       }
     };
 
-    fetchPhotos();
+    fetchData();
   }, [shopId]);
 
   useEffect(() => {
@@ -93,7 +103,6 @@ export default function PreviewScreen() {
     }
   };
 
-  // 🚨 [추가] 우측 텍스트 에디터에서 마우스 휠 이벤트 처리
   const handleRightWheel = (e: React.WheelEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
     const { scrollTop, scrollHeight, clientHeight } = el;
@@ -101,18 +110,18 @@ export default function PreviewScreen() {
     const isAtTop = scrollTop === 0;
     const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) <= 1;
 
-    // 스크롤 올림(위로) & 텍스트 최상단: 이미지 확대 (텍스트 비율 감소)
     if (e.deltaY < 0 && isAtTop) {
       setTextRatio(prev => Math.max(33.3, prev - 4));
     } 
-    // 스크롤 내림(아래로) & 텍스트 최하단: 텍스트 확대 (이미지 비율 감소)
     else if (e.deltaY > 0 && isAtBottom) {
       setTextRatio(prev => Math.min(66.6, prev + 4));
     }
   };
 
+  // 🚨 [수정] 모달을 열 때 첫 화면은 무조건 '앨범 목록'으로 세팅
   const openPhotoModal = () => {
     setTempSelectedPhotos(images);
+    setModalStep('ALBUM_LIST'); 
     setIsEditModalVisible(true);
   };
 
@@ -150,23 +159,15 @@ export default function PreviewScreen() {
 
   const movePhotoUp = (index: number) => {
     if (index === 0) return;
-
     const newOrder = [...tempSelectedPhotos];
-    [newOrder[index - 1], newOrder[index]] = [
-      newOrder[index],
-      newOrder[index - 1],
-    ];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
     setTempSelectedPhotos(newOrder);
   };
 
   const movePhotoDown = (index: number) => {
     if (index === tempSelectedPhotos.length - 1) return;
-
     const newOrder = [...tempSelectedPhotos];
-    [newOrder[index + 1], newOrder[index]] = [
-      newOrder[index],
-      newOrder[index + 1],
-    ];
+    [newOrder[index + 1], newOrder[index]] = [newOrder[index], newOrder[index + 1]];
     setTempSelectedPhotos(newOrder);
   };
 
@@ -176,6 +177,19 @@ export default function PreviewScreen() {
 
   const handleNextImage = () => {
     setCurrentImageIndex((prev) => Math.min(images.length - 1, prev + 1));
+  };
+
+  const handleRemoveCurrentImage = () => {
+    if (images.length === 0) return;
+    const updatedImages = [...images];
+    updatedImages.splice(currentImageIndex, 1);
+    setImages(updatedImages);
+    
+    if (currentImageIndex >= updatedImages.length && updatedImages.length > 0) {
+      setCurrentImageIndex(updatedImages.length - 1);
+    } else if (updatedImages.length === 0) {
+      setCurrentImageIndex(0);
+    }
   };
 
   const handleUpload = async () => {
@@ -352,38 +366,45 @@ export default function PreviewScreen() {
 
       {/* 우측 프리뷰 영역 */}
       <div className="flex-1 p-large bg-[#FAFAFA] flex flex-col min-w-0 h-full overflow-hidden">
+        
         <div className="flex flex-row justify-between items-center mb-medium shrink-0">
           <h2 className="text-h2 text-text-primary font-bold">
             {t.preview.title_result}
           </h2>
-          <button
-            onClick={openPhotoModal}
-            className="px-3 py-1.5 border border-accent rounded-md bg-background text-[12px] text-text-secondary font-medium hover:bg-gray-50 cursor-pointer"
-          >
-            {t.preview.btn_add_photo}
-          </button>
         </div>
 
-        {/* 🚨 [수정] flex 비율을 상태(textRatio)로 동적으로 조절, 스무스한 애니메이션 추가 */}
         <div 
-          className="relative min-h-0 bg-[#EAEAEA] rounded-lg mb-small overflow-hidden flex items-center justify-center transition-all duration-300 ease-out"
+          className="relative min-h-0 bg-[#EAEAEA] rounded-lg mb-small overflow-hidden flex items-center justify-center transition-all duration-300 ease-out group/viewer"
           style={{ flex: 100 - textRatio }}
         >
-          <button
-            onClick={handlePrevImage}
-            disabled={currentImageIndex === 0}
-            className="absolute left-2 z-10 text-white text-3xl drop-shadow-md disabled:opacity-30 cursor-pointer"
-          >
-            {'<'}
-          </button>
+          {images.length > 0 && currentImageIndex > 0 && (
+            <button
+              onClick={handlePrevImage}
+              className="absolute left-4 z-10 flex items-center justify-center text-white text-4xl drop-shadow-md cursor-pointer hover:scale-110 transition-transform focus:outline-none"
+            >
+              {'<'}
+            </button>
+          )}
 
-          <div className="w-full h-full">
+          <div className="w-full h-full relative">
             {images.length > 0 ? (
-              <img
-                src={images[currentImageIndex].blob_url}
-                alt="preview"
-                className="w-full h-full object-contain"
-              />
+              <>
+                <img
+                  src={images[currentImageIndex].blob_url}
+                  alt="preview"
+                  className="w-full h-full object-contain"
+                />
+                
+                <button
+                  onClick={handleRemoveCurrentImage}
+                  className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full border-2 border-text-primary bg-[#E0E0E0]/80 flex justify-center items-center hover:bg-gray-300 transition-colors shadow-sm focus:outline-none cursor-pointer"
+                  title="현재 사진 제외"
+                >
+                  <svg className="w-6 h-6 text-white drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-text-secondary">
                 {t.preview.no_photo}
@@ -391,15 +412,24 @@ export default function PreviewScreen() {
             )}
           </div>
 
-          <button
-            onClick={handleNextImage}
-            disabled={
-              currentImageIndex === images.length - 1 || images.length === 0
-            }
-            className="absolute right-2 z-10 text-white text-3xl drop-shadow-md disabled:opacity-30 cursor-pointer"
-          >
-            {'>'}
-          </button>
+          {images.length === 0 || currentImageIndex === images.length - 1 ? (
+            <button
+              onClick={openPhotoModal}
+              className="absolute right-4 z-10 w-12 h-12 rounded-full border-2 border-text-primary bg-[#E0E0E0]/80 flex items-center justify-center hover:bg-gray-300 transition-colors shadow-sm cursor-pointer focus:outline-none hover:scale-105"
+              title={t.preview.btn_add_photo}
+            >
+              <svg className="w-7 h-7 text-white drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handleNextImage}
+              className="absolute right-4 z-10 flex items-center justify-center text-white text-4xl drop-shadow-md cursor-pointer hover:scale-110 transition-transform focus:outline-none"
+            >
+              {'>'}
+            </button>
+          )}
         </div>
 
         <button
@@ -409,14 +439,13 @@ export default function PreviewScreen() {
           {t.preview.btn_reorder_photo}
         </button>
 
-        {/* 🚨 [수정] flex 비율을 상태(textRatio)로 동적으로 조절, 스무스한 애니메이션 추가 */}
         <div 
           className="min-h-0 bg-background border border-border rounded-lg p-medium mb-large flex flex-col transition-all duration-300 ease-out"
           style={{ flex: textRatio }}
         >
           <textarea
             ref={rightTextareaRef}
-            onWheel={handleRightWheel} // 🚨 휠 감지 이벤트 부착
+            onWheel={handleRightWheel} 
             className="flex-1 w-full h-full resize-none text-body bg-transparent focus:outline-none scrollbar-hide"
             value={generatedCaption}
             onChange={(e) => setGeneratedCaption(e.target.value)}
@@ -433,14 +462,28 @@ export default function PreviewScreen() {
         </div>
       </div>
 
-      {/* 1. 사진 선택 모달 */}
+      {/* 🚨 1. 사진 추가 모달 (앨범 2-Depth 구조) */}
       {isEditModalVisible && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[9999]">
           <div className="w-[600px] h-[600px] bg-background rounded-xl shadow-lg p-large flex flex-col">
+            
+            {/* 모달 헤더 (Depth에 따라 제목 및 뒤로가기 버튼 표시) */}
             <div className="flex justify-between items-center mb-large border-b pb-small">
-              <h2 className="text-h2 font-bold">
-                {t.preview.modal_photo_select}
-              </h2>
+              <div className="flex items-center gap-3">
+                {/* 사진 목록 뷰일 때만 뒤로가기(<) 버튼 노출 */}
+                {modalStep === 'PHOTO_LIST' && (
+                  <button 
+                    onClick={() => setModalStep('ALBUM_LIST')} 
+                    className="text-text-secondary hover:text-accent font-bold text-2xl pb-1 cursor-pointer transition-colors"
+                  >
+                    {'<'}
+                  </button>
+                )}
+                <h2 className="text-h2 font-bold text-text-primary">
+                  {modalStep === 'ALBUM_LIST' ? t.preview.modal_album_select : currentAlbumTitle}
+                </h2>
+              </div>
+
               <div className="flex gap-3">
                 <button
                   onClick={handleSavePhotos}
@@ -457,42 +500,95 @@ export default function PreviewScreen() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-4">
-              {allPhotos.map((photo) => {
-                const isSelected = tempSelectedPhotos.some(
-                  (p) => p.id === photo.id
-                );
+            {/* 1 Depth: 앨범 리스트 뷰 */}
+            {modalStep === 'ALBUM_LIST' ? (
+              <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-4 pr-2 scrollbar-hide content-start">
+                {/* 1. 고정 앨범: 전체 사진 */}
+                <button
+                  onClick={() => {
+                    setCurrentAlbumPhotos(allPhotos);
+                    setCurrentAlbumTitle(t.preview.all_photos || '전체 사진');
+                    setModalStep('PHOTO_LIST');
+                  }}
+                  className="flex flex-col items-center gap-2 group cursor-pointer"
+                >
+                  <div className="w-full aspect-square bg-[#EAEAEA] rounded-xl border border-border overflow-hidden group-hover:border-accent transition-colors flex items-center justify-center">
+                    {allPhotos.length > 0 ? (
+                      <img src={allPhotos[0].blob_url} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" alt="전체사진 커버" />
+                    ) : (
+                      <span className="text-4xl text-gray-400">📁</span>
+                    )}
+                  </div>
+                  <span className="font-bold text-text-primary text-[15px]">{t.preview.all_photos || '전체 사진'}</span>
+                </button>
 
-                return (
+                {/* 2. 내 앨범들 (API 데이터) */}
+                {albums.map((album) => (
                   <button
-                    key={photo.id}
-                    onClick={() => toggleTempSelect(photo)}
-                    className={`relative aspect-square rounded-lg border overflow-hidden cursor-pointer ${
-                      isSelected
-                        ? 'border-accent border-[3px]'
-                        : 'border-border'
-                    }`}
+                    key={album.id}
+                    onClick={async () => {
+                      try {
+                        const res = await apiClient.get(`/album/${shopId}/${album.id}/photos`);
+                        setCurrentAlbumPhotos(res.data.photos || []);
+                        setCurrentAlbumTitle(album.title);
+                        setModalStep('PHOTO_LIST');
+                      } catch (error) {
+                        console.error('앨범 사진 로딩 실패', error);
+                      }
+                    }}
+                    className="flex flex-col items-center gap-2 group cursor-pointer"
                   >
-                    <div
-                      className={`absolute top-2 left-2 w-[22px] h-[22px] rounded border-2 flex justify-center items-center ${
-                        isSelected
-                          ? 'bg-accent border-accent'
-                          : 'bg-white border-text-secondary'
-                      }`}
-                    >
-                      {isSelected && (
-                        <span className="text-white text-sm font-bold">✓</span>
-                      )}
+                    <div className="w-full aspect-square bg-[#EAEAEA] rounded-xl border border-border overflow-hidden group-hover:border-accent transition-colors flex items-center justify-center relative">
+                       {/* 앨범 커버가 있다면 뿌려주고, 없다면 기본 폴더 아이콘 노출 */}
+                       <span className="text-4xl text-gray-400">📁</span>
+                       {/* (추후 백엔드에서 album.cover_image 같은 속성을 주면 여기에 img 태그 추가) */}
                     </div>
-                    <img
-                      src={photo.blob_url}
-                      alt={photo.original_name || 'photo'}
-                      className="w-full h-full object-cover"
-                    />
+                    <span className="font-bold text-text-primary text-[15px] truncate w-full px-2 text-center">{album.title}</span>
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              /* 2 Depth: 특정 앨범의 사진 리스트 뷰 (기존 로직과 동일) */
+              <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
+                {currentAlbumPhotos.length === 0 ? (
+                  <div className="flex w-full h-full items-center justify-center text-text-secondary font-bold">
+                    앨범에 사진이 없습니다.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-4 content-start">
+                    {currentAlbumPhotos.map((photo) => {
+                      const isSelected = tempSelectedPhotos.some((p) => p.id === photo.id);
+
+                      return (
+                        <button
+                          key={photo.id}
+                          onClick={() => toggleTempSelect(photo)}
+                          className={`relative aspect-square rounded-lg border overflow-hidden cursor-pointer ${
+                            isSelected ? 'border-accent border-[3px]' : 'border-border'
+                          }`}
+                        >
+                          <div
+                            className={`absolute top-2 left-2 w-[22px] h-[22px] rounded border-2 flex justify-center items-center ${
+                              isSelected ? 'bg-accent border-accent' : 'bg-white border-text-secondary'
+                            }`}
+                          >
+                            {isSelected && (
+                              <span className="text-white text-sm font-bold">✓</span>
+                            )}
+                          </div>
+                          <img
+                            src={photo.blob_url}
+                            alt={photo.original_name || 'photo'}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
       )}
