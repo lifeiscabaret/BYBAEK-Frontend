@@ -66,7 +66,8 @@ export const translations = {
       insta_completed: "인스타그램 연동 완료!",
       btn_next: "다음",
       btn_later: "나중에",
-      btn_complete: "완료"
+      btn_complete: "완료",
+      not_authenticated: "아직 인증되지 않았습니다.",
     },
     onboarding_intro: {
       title_line1: "나만의 마케터를",
@@ -173,7 +174,8 @@ export const translations = {
       upload_freq: "업로드 빈도",
       btn_edit_complete: "수정 완료",
       btn_complete_start: "완료 및 시작",
-      btn_save_next: "저장 후 다음"
+      btn_save_next: "저장 후 다음",
+      alert_time_1hour: "업로드 시간은 현재 시간 기준 최소 1시간 이후로 설정해주세요."
     },
     photo_sync: {
       alert_max_3: "베스트 사진은 최대 3장까지만 선택할 수 있습니다.",
@@ -291,7 +293,8 @@ export const translations = {
       insta_completed: "Instagram connection complete!",
       btn_next: "Next",
       btn_later: "Later",
-      btn_complete: "Complete"
+      btn_complete: "Complete",
+      not_authenticated: "Not authenticated yet.",
     },
     onboarding_intro: {
       title_line1: "Let's create your",
@@ -397,7 +400,8 @@ export const translations = {
       upload_freq: "Upload Frequency",
       btn_edit_complete: "Complete Edit",
       btn_complete_start: "Complete & Start",
-      btn_save_next: "Save & Next"
+      btn_save_next: "Save & Next",
+      alert_time_1hour: "Please set the upload time at least 1 hour from the current time."
     },
     photo_sync: {
       alert_max_3: "You can select up to 3 best photos.",

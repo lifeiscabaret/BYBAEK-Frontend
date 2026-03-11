@@ -27,6 +27,10 @@ export default function PreviewScreen() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 🚨 [추가] 우측 텍스트 에디터 참조 및 화면 분할 비율(33.3% ~ 66.6%) 상태 관리
+  const rightTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [textRatio, setTextRatio] = useState(50); // 기본 절반(50%)
+
   const [allPhotos, setAllPhotos] = useState<any[]>([]);
   const [images, setImages] = useState<any[]>([]);
   const [tempSelectedPhotos, setTempSelectedPhotos] = useState<any[]>([]);
@@ -49,6 +53,16 @@ export default function PreviewScreen() {
       setGeneratedCaption(t.preview.default_caption);
     }
   }, [t, generatedCaption]);
+
+  // 🚨 [추가] 텍스트 양이 많아지면 텍스트창 비율을 자동으로 조금씩 늘려주는 효과
+  useEffect(() => {
+    const el = rightTextareaRef.current;
+    if (!el) return;
+    // 내용이 박스보다 길어지면 비율을 최대 66.6%까지 확장
+    if (el.scrollHeight > el.clientHeight && textRatio < 66.6) {
+      setTextRatio(prev => Math.min(66.6, prev + 2));
+    }
+  }, [generatedCaption, textRatio]);
 
   useEffect(() => {
     const fetchPhotos = async () => {
@@ -76,6 +90,24 @@ export default function PreviewScreen() {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${target.scrollHeight}px`;
+    }
+  };
+
+  // 🚨 [추가] 우측 텍스트 에디터에서 마우스 휠 이벤트 처리
+  const handleRightWheel = (e: React.WheelEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    
+    const isAtTop = scrollTop === 0;
+    const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) <= 1;
+
+    // 스크롤 올림(위로) & 텍스트 최상단: 이미지 확대 (텍스트 비율 감소)
+    if (e.deltaY < 0 && isAtTop) {
+      setTextRatio(prev => Math.max(33.3, prev - 4));
+    } 
+    // 스크롤 내림(아래로) & 텍스트 최하단: 텍스트 확대 (이미지 비율 감소)
+    else if (e.deltaY > 0 && isAtBottom) {
+      setTextRatio(prev => Math.min(66.6, prev + 4));
     }
   };
 
@@ -310,7 +342,7 @@ export default function PreviewScreen() {
             <button
               type="submit"
               disabled={isLoading || !inputText.trim()}
-              className="font-bold text-accent px-medium mb-1.5"
+              className="font-bold text-accent px-medium mb-1.5 cursor-pointer"
             >
               {t.preview.btn_send}
             </button>
@@ -326,17 +358,21 @@ export default function PreviewScreen() {
           </h2>
           <button
             onClick={openPhotoModal}
-            className="px-3 py-1.5 border border-accent rounded-md bg-background text-[12px] text-text-secondary font-medium hover:bg-gray-50"
+            className="px-3 py-1.5 border border-accent rounded-md bg-background text-[12px] text-text-secondary font-medium hover:bg-gray-50 cursor-pointer"
           >
             {t.preview.btn_add_photo}
           </button>
         </div>
 
-        <div className="relative flex-1 min-h-0 bg-[#EAEAEA] rounded-lg mb-small overflow-hidden flex items-center justify-center">
+        {/* 🚨 [수정] flex 비율을 상태(textRatio)로 동적으로 조절, 스무스한 애니메이션 추가 */}
+        <div 
+          className="relative min-h-0 bg-[#EAEAEA] rounded-lg mb-small overflow-hidden flex items-center justify-center transition-all duration-300 ease-out"
+          style={{ flex: 100 - textRatio }}
+        >
           <button
             onClick={handlePrevImage}
             disabled={currentImageIndex === 0}
-            className="absolute left-2 z-10 text-white text-3xl drop-shadow-md disabled:opacity-30"
+            className="absolute left-2 z-10 text-white text-3xl drop-shadow-md disabled:opacity-30 cursor-pointer"
           >
             {'<'}
           </button>
@@ -360,7 +396,7 @@ export default function PreviewScreen() {
             disabled={
               currentImageIndex === images.length - 1 || images.length === 0
             }
-            className="absolute right-2 z-10 text-white text-3xl drop-shadow-md disabled:opacity-30"
+            className="absolute right-2 z-10 text-white text-3xl drop-shadow-md disabled:opacity-30 cursor-pointer"
           >
             {'>'}
           </button>
@@ -368,13 +404,19 @@ export default function PreviewScreen() {
 
         <button
           onClick={openOrderModal}
-          className="w-full py-2 mb-medium border border-border rounded-lg bg-white text-[13px] text-text-secondary hover:bg-gray-50 transition-colors shrink-0"
+          className="w-full py-2 mb-medium border border-border rounded-lg bg-white text-[13px] text-text-secondary hover:bg-gray-50 transition-colors shrink-0 cursor-pointer"
         >
           {t.preview.btn_reorder_photo}
         </button>
 
-        <div className="flex-1 min-h-0 bg-background border border-border rounded-lg p-medium mb-large flex flex-col">
+        {/* 🚨 [수정] flex 비율을 상태(textRatio)로 동적으로 조절, 스무스한 애니메이션 추가 */}
+        <div 
+          className="min-h-0 bg-background border border-border rounded-lg p-medium mb-large flex flex-col transition-all duration-300 ease-out"
+          style={{ flex: textRatio }}
+        >
           <textarea
+            ref={rightTextareaRef}
+            onWheel={handleRightWheel} // 🚨 휠 감지 이벤트 부착
             className="flex-1 w-full h-full resize-none text-body bg-transparent focus:outline-none scrollbar-hide"
             value={generatedCaption}
             onChange={(e) => setGeneratedCaption(e.target.value)}
@@ -384,7 +426,7 @@ export default function PreviewScreen() {
         <div className="shrink-0">
           <button
             onClick={handleUpload}
-            className="w-full py-3.5 bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md"
+            className="w-full py-3.5 bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md cursor-pointer"
           >
             {t.preview.btn_upload_insta}
           </button>
@@ -402,13 +444,13 @@ export default function PreviewScreen() {
               <div className="flex gap-3">
                 <button
                   onClick={handleSavePhotos}
-                  className="px-5 py-2 bg-accent text-white rounded-md font-bold text-sm"
+                  className="px-5 py-2 bg-accent text-white rounded-md font-bold text-sm cursor-pointer"
                 >
                   {t.common.save}
                 </button>
                 <button
                   onClick={closePhotoModal}
-                  className="text-[20px] text-text-secondary"
+                  className="text-[20px] text-text-secondary cursor-pointer"
                 >
                   ✕
                 </button>
@@ -425,7 +467,7 @@ export default function PreviewScreen() {
                   <button
                     key={photo.id}
                     onClick={() => toggleTempSelect(photo)}
-                    className={`relative aspect-square rounded-lg border overflow-hidden ${
+                    className={`relative aspect-square rounded-lg border overflow-hidden cursor-pointer ${
                       isSelected
                         ? 'border-accent border-[3px]'
                         : 'border-border'
@@ -466,13 +508,13 @@ export default function PreviewScreen() {
               <div className="flex gap-3">
                 <button
                   onClick={handleSavePhotoOrder}
-                  className="px-5 py-2 bg-accent text-white rounded-md font-bold text-sm"
+                  className="px-5 py-2 bg-accent text-white rounded-md font-bold text-sm cursor-pointer"
                 >
                   {t.common.save}
                 </button>
                 <button
                   onClick={closeOrderModal}
-                  className="text-[20px] text-text-secondary"
+                  className="text-[20px] text-text-secondary cursor-pointer"
                 >
                   ✕
                 </button>
@@ -500,14 +542,14 @@ export default function PreviewScreen() {
                     <button
                       onClick={() => movePhotoUp(index)}
                       disabled={index === 0}
-                      className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+                      className="p-1 hover:bg-gray-200 rounded disabled:opacity-30 cursor-pointer"
                     >
                       ▲
                     </button>
                     <button
                       onClick={() => movePhotoDown(index)}
                       disabled={index === tempSelectedPhotos.length - 1}
-                      className="p-1 hover:bg-gray-200 rounded disabled:opacity-30"
+                      className="p-1 hover:bg-gray-200 rounded disabled:opacity-30 cursor-pointer"
                     >
                       ▼
                     </button>
