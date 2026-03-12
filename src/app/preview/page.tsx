@@ -24,6 +24,8 @@ export default function PreviewScreen() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +33,7 @@ export default function PreviewScreen() {
   const [textRatio, setTextRatio] = useState(50); 
 
   const [allPhotos, setAllPhotos] = useState<any[]>([]);
-  const [albums, setAlbums] = useState<any[]>([]); // 🚨 [추가] 앨범 목록 상태
+  const [albums, setAlbums] = useState<any[]>([]); 
   
   const [images, setImages] = useState<any[]>([]);
   const [tempSelectedPhotos, setTempSelectedPhotos] = useState<any[]>([]);
@@ -40,7 +42,6 @@ export default function PreviewScreen() {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
 
-  // 🚨 [추가] 모달 내 2 Depth 상태 관리 (ALBUM_LIST: 앨범 목록, PHOTO_LIST: 특정 앨범 내 사진 목록)
   const [modalStep, setModalStep] = useState<'ALBUM_LIST' | 'PHOTO_LIST'>('ALBUM_LIST');
   const [currentAlbumPhotos, setCurrentAlbumPhotos] = useState<any[]>([]);
   const [currentAlbumTitle, setCurrentAlbumTitle] = useState('');
@@ -68,15 +69,12 @@ export default function PreviewScreen() {
     }
   }, [generatedCaption, textRatio]);
 
-  // 🚨 [수정] 모달에 띄워줄 전체 사진과 앨범 목록을 동시에 불러옵니다.
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. 전체 사진 불러오기
         const allRes = await apiClient.get(`/photos/all/${shopId}`);
         setAllPhotos(allRes.data.photos || []);
 
-        // 2. 앨범 목록 불러오기
         const albumRes = await apiClient.get(`/album/${shopId}`);
         setAlbums(albumRes.data.albums || albumRes.data || []);
       } catch (error) {
@@ -118,7 +116,6 @@ export default function PreviewScreen() {
     }
   };
 
-  // 🚨 [수정] 모달을 열 때 첫 화면은 무조건 '앨범 목록'으로 세팅
   const openPhotoModal = () => {
     setTempSelectedPhotos(images);
     setModalStep('ALBUM_LIST'); 
@@ -192,9 +189,10 @@ export default function PreviewScreen() {
     }
   };
 
+  // 🚨 [핵심 수정] 백엔드와 약속한 데이터만 담아서 딱 한 번만 쏘는 로직으로 롤백
   const handleUpload = async () => {
     if (images.length === 0) {
-      alert(t.preview.alert_no_photo);
+      setAlertMessage(t.preview.alert_no_photo);
       return;
     }
 
@@ -202,30 +200,32 @@ export default function PreviewScreen() {
       !generatedCaption.trim() ||
       generatedCaption === t.preview.default_caption
     ) {
-      alert(t.preview.alert_no_caption);
+      setAlertMessage(t.preview.alert_no_caption);
       return;
     }
 
     setIsLoading(true);
 
     try {
+      // 🚨 프론트엔드는 이제 딱 필요한 정보만 깔끔하게 보냅니다.
       const payload = {
         shop_id: shopId,
         post_id: postId,
         caption: generatedCaption,
-        hashtags: [],
-        photo_ids: images.map((img) => img.id),
-        cta: '',
+        image_urls: images.map((img) => img.blob_url), // 팀원과 합의한 '사진 URL 배열' 추가!
+        photo_ids: images.map((img) => img.id),        // (기존 백엔드 DB 저장용, 필요없어지면 나중에 빼셔도 됩니다)
       };
 
+      // 이제 '/save' 라는 통합 엔드포인트 하나만 호출합니다! 
+      // (엔드포인트 주소는 추후 백엔드 개발자분이 지정해주시는 주소로 맞추시면 됩니다)
       const response = await apiClient.post('/save', payload);
 
       if (response.data.status === 'success') {
-        alert(t.preview.alert_save_success);
+        setAlertMessage("DB 업데이트 및 인스타그램 업로드가 성공적으로 완료되었습니다! 🎉");
       }
     } catch (error: any) {
       console.error('업로드 실패:', error);
-      alert(error.response?.data?.detail || t.preview.alert_save_error);
+      setAlertMessage(error.response?.data?.detail || "작업 중 서버 오류가 발생했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -303,174 +303,173 @@ export default function PreviewScreen() {
   };
 
   return (
-    <div className="flex flex-row h-screen w-full bg-background overflow-hidden relative">
-      <Sidebar />
+    <>
+      <div className="flex flex-row h-screen w-full bg-background overflow-hidden relative">
+        <Sidebar />
 
-      {/* 중앙 채팅 영역 */}
-      <div className="flex-[1.5] bg-background border-r border-border p-large flex flex-col min-w-0 h-full">
-        <div className="mb-large pb-small border-b border-border shrink-0">
-          <h1 className="text-h1 text-text-primary font-bold">
-            {t.preview.title_chat}
-          </h1>
-        </div>
-
-        <div className="flex-1 overflow-y-auto flex flex-col gap-4 pr-2 scrollbar-hide min-h-0">
-          {messages.map((item) => (
-            <div
-              key={item.id}
-              className={`max-w-[80%] p-medium rounded-xl break-words shrink-0 ${
-                item.sender === 'user'
-                  ? 'self-end bg-sidebar text-text-inverse'
-                  : 'self-start bg-[#F5F5F5] text-text-primary'
-              }`}
-            >
-              <p className="text-body whitespace-pre-wrap">{item.text}</p>
-            </div>
-          ))}
-
-          {isLoading && (
-            <div className="max-w-[80%] p-medium rounded-xl self-start bg-[#F5F5F5] text-text-secondary flex items-center gap-3">
-              <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-              <p className="text-body">{t.preview.ai_typing}</p>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        <form
-          onSubmit={handleSendMessage}
-          className="flex flex-col py-medium bg-background mt-4 shrink-0"
-        >
-          <div className="flex items-end gap-2 border border-[#E0E0E0] rounded-lg p-2 bg-background focus-within:border-accent">
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              disabled={isLoading}
-              className="flex-1 bg-transparent resize-none focus:outline-none min-h-[40px] max-h-[33vh] py-2 px-2"
-              placeholder={t.preview.placeholder_req}
-              value={inputText}
-              onChange={handleTextareaChange}
-              onKeyDown={handleInputKeyDown}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !inputText.trim()}
-              className="font-bold text-accent px-medium mb-1.5 cursor-pointer"
-            >
-              {t.preview.btn_send}
-            </button>
+        {/* 중앙 채팅 영역 */}
+        <div className="flex-[1.5] bg-background border-r border-border p-large flex flex-col min-w-0 h-full">
+          <div className="mb-large pb-small border-b border-border shrink-0">
+            <h1 className="text-h1 text-text-primary font-bold">
+              {t.preview.title_chat}
+            </h1>
           </div>
-        </form>
-      </div>
 
-      {/* 우측 프리뷰 영역 */}
-      <div className="flex-1 p-large bg-[#FAFAFA] flex flex-col min-w-0 h-full overflow-hidden">
-        
-        <div className="flex flex-row justify-between items-center mb-medium shrink-0">
-          <h2 className="text-h2 text-text-primary font-bold">
-            {t.preview.title_result}
-          </h2>
+          <div className="flex-1 overflow-y-auto flex flex-col gap-4 pr-2 scrollbar-hide min-h-0">
+            {messages.map((item) => (
+              <div
+                key={item.id}
+                className={`max-w-[80%] p-medium rounded-xl break-words shrink-0 ${
+                  item.sender === 'user'
+                    ? 'self-end bg-sidebar text-text-inverse'
+                    : 'self-start bg-[#F5F5F5] text-text-primary'
+                }`}
+              >
+                <p className="text-body whitespace-pre-wrap">{item.text}</p>
+              </div>
+            ))}
+
+            {isLoading && (
+              <div className="max-w-[80%] p-medium rounded-xl self-start bg-[#F5F5F5] text-text-secondary flex items-center gap-3">
+                <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                <p className="text-body">{t.preview.ai_typing}</p>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          <form
+            onSubmit={handleSendMessage}
+            className="flex flex-col py-medium bg-background mt-4 shrink-0"
+          >
+            <div className="flex items-end gap-2 border border-[#E0E0E0] rounded-lg p-2 bg-background focus-within:border-accent">
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                disabled={isLoading}
+                className="flex-1 bg-transparent resize-none focus:outline-none min-h-[40px] max-h-[33vh] py-2 px-2"
+                placeholder={t.preview.placeholder_req}
+                value={inputText}
+                onChange={handleTextareaChange}
+                onKeyDown={handleInputKeyDown}
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !inputText.trim()}
+                className="font-bold text-accent px-medium mb-1.5 cursor-pointer"
+              >
+                {t.preview.btn_send}
+              </button>
+            </div>
+          </form>
         </div>
 
-        <div 
-          className="relative min-h-0 bg-[#EAEAEA] rounded-lg mb-small overflow-hidden flex items-center justify-center transition-all duration-300 ease-out group/viewer"
-          style={{ flex: 100 - textRatio }}
-        >
-          {images.length > 0 && currentImageIndex > 0 && (
-            <button
-              onClick={handlePrevImage}
-              className="absolute left-4 z-10 flex items-center justify-center text-white text-4xl drop-shadow-md cursor-pointer hover:scale-110 transition-transform focus:outline-none"
-            >
-              {'<'}
-            </button>
-          )}
+        {/* 우측 프리뷰 영역 */}
+        <div className="flex-1 p-large bg-[#FAFAFA] flex flex-col min-w-0 h-full overflow-hidden">
+          
+          <div className="flex flex-row justify-between items-center mb-medium shrink-0">
+            <h2 className="text-h2 text-text-primary font-bold">
+              {t.preview.title_result}
+            </h2>
+          </div>
 
-          <div className="w-full h-full relative">
-            {images.length > 0 ? (
-              <>
-                <img
-                  src={images[currentImageIndex].blob_url}
-                  alt="preview"
-                  className="w-full h-full object-contain"
-                />
-                
-                <button
-                  onClick={handleRemoveCurrentImage}
-                  className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full border-2 border-text-primary bg-[#E0E0E0]/80 flex justify-center items-center hover:bg-gray-300 transition-colors shadow-sm focus:outline-none cursor-pointer"
-                  title="현재 사진 제외"
-                >
-                  <svg className="w-6 h-6 text-white drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </>
+          <div 
+            className="relative min-h-0 bg-[#EAEAEA] rounded-lg mb-small overflow-hidden flex items-center justify-center transition-all duration-300 ease-out group/viewer"
+            style={{ flex: 100 - textRatio }}
+          >
+            {images.length > 0 && currentImageIndex > 0 && (
+              <button
+                onClick={handlePrevImage}
+                className="absolute left-4 z-10 flex items-center justify-center text-white text-4xl drop-shadow-md cursor-pointer hover:scale-110 transition-transform focus:outline-none"
+              >
+                {'<'}
+              </button>
+            )}
+
+            <div className="w-full h-full relative">
+              {images.length > 0 ? (
+                <>
+                  <img
+                    src={images[currentImageIndex].blob_url}
+                    alt="preview"
+                    className="w-full h-full object-contain"
+                  />
+                  
+                  <button
+                    onClick={handleRemoveCurrentImage}
+                    className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full border-2 border-text-primary bg-[#E0E0E0]/80 flex justify-center items-center hover:bg-gray-300 transition-colors shadow-sm focus:outline-none cursor-pointer"
+                    title="현재 사진 제외"
+                  >
+                    <svg className="w-6 h-6 text-white drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-text-secondary">
+                  {t.preview.no_photo}
+                </div>
+              )}
+            </div>
+
+            {images.length === 0 || currentImageIndex === images.length - 1 ? (
+              <button
+                onClick={openPhotoModal}
+                className="absolute right-4 z-10 w-12 h-12 rounded-full border-2 border-text-primary bg-[#E0E0E0]/80 flex items-center justify-center hover:bg-gray-300 transition-colors shadow-sm cursor-pointer focus:outline-none hover:scale-105"
+                title={t.preview.btn_add_photo}
+              >
+                <svg className="w-7 h-7 text-white drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-text-secondary">
-                {t.preview.no_photo}
-              </div>
+              <button
+                onClick={handleNextImage}
+                className="absolute right-4 z-10 flex items-center justify-center text-white text-4xl drop-shadow-md cursor-pointer hover:scale-110 transition-transform focus:outline-none"
+              >
+                {'>'}
+              </button>
             )}
           </div>
 
-          {images.length === 0 || currentImageIndex === images.length - 1 ? (
-            <button
-              onClick={openPhotoModal}
-              className="absolute right-4 z-10 w-12 h-12 rounded-full border-2 border-text-primary bg-[#E0E0E0]/80 flex items-center justify-center hover:bg-gray-300 transition-colors shadow-sm cursor-pointer focus:outline-none hover:scale-105"
-              title={t.preview.btn_add_photo}
-            >
-              <svg className="w-7 h-7 text-white drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              onClick={handleNextImage}
-              className="absolute right-4 z-10 flex items-center justify-center text-white text-4xl drop-shadow-md cursor-pointer hover:scale-110 transition-transform focus:outline-none"
-            >
-              {'>'}
-            </button>
-          )}
-        </div>
-
-        <button
-          onClick={openOrderModal}
-          className="w-full py-2 mb-medium border border-border rounded-lg bg-white text-[13px] text-text-secondary hover:bg-gray-50 transition-colors shrink-0 cursor-pointer"
-        >
-          {t.preview.btn_reorder_photo}
-        </button>
-
-        <div 
-          className="min-h-0 bg-background border border-border rounded-lg p-medium mb-large flex flex-col transition-all duration-300 ease-out"
-          style={{ flex: textRatio }}
-        >
-          <textarea
-            ref={rightTextareaRef}
-            onWheel={handleRightWheel} 
-            className="flex-1 w-full h-full resize-none text-body bg-transparent focus:outline-none scrollbar-hide"
-            value={generatedCaption}
-            onChange={(e) => setGeneratedCaption(e.target.value)}
-          />
-        </div>
-
-        <div className="shrink-0">
           <button
-            onClick={handleUpload}
-            className="w-full py-3.5 bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md cursor-pointer"
+            onClick={openOrderModal}
+            className="w-full py-2 mb-medium border border-border rounded-lg bg-white text-[13px] text-text-secondary hover:bg-gray-50 transition-colors shrink-0 cursor-pointer"
           >
-            {t.preview.btn_upload_insta}
+            {t.preview.btn_reorder_photo}
           </button>
+
+          <div 
+            className="min-h-0 bg-background border border-border rounded-lg p-medium mb-large flex flex-col transition-all duration-300 ease-out"
+            style={{ flex: textRatio }}
+          >
+            <textarea
+              ref={rightTextareaRef}
+              onWheel={handleRightWheel} 
+              className="flex-1 w-full h-full resize-none text-body bg-transparent focus:outline-none scrollbar-hide"
+              value={generatedCaption}
+              onChange={(e) => setGeneratedCaption(e.target.value)}
+            />
+          </div>
+
+          <div className="shrink-0">
+            <button
+              onClick={handleUpload}
+              className="w-full py-3.5 bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md cursor-pointer"
+            >
+              {t.preview.btn_upload_insta}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 🚨 1. 사진 추가 모달 (앨범 2-Depth 구조) */}
+      {/* 모달 1: 사진 추가 (앨범 2-Depth 구조) */}
       {isEditModalVisible && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[9999]">
           <div className="w-[600px] h-[600px] bg-background rounded-xl shadow-lg p-large flex flex-col">
-            
-            {/* 모달 헤더 (Depth에 따라 제목 및 뒤로가기 버튼 표시) */}
             <div className="flex justify-between items-center mb-large border-b pb-small">
               <div className="flex items-center gap-3">
-                {/* 사진 목록 뷰일 때만 뒤로가기(<) 버튼 노출 */}
                 {modalStep === 'PHOTO_LIST' && (
                   <button 
                     onClick={() => setModalStep('ALBUM_LIST')} 
@@ -500,10 +499,8 @@ export default function PreviewScreen() {
               </div>
             </div>
 
-            {/* 1 Depth: 앨범 리스트 뷰 */}
             {modalStep === 'ALBUM_LIST' ? (
               <div className="flex-1 overflow-y-auto grid grid-cols-3 gap-4 pr-2 scrollbar-hide content-start">
-                {/* 1. 고정 앨범: 전체 사진 */}
                 <button
                   onClick={() => {
                     setCurrentAlbumPhotos(allPhotos);
@@ -522,7 +519,6 @@ export default function PreviewScreen() {
                   <span className="font-bold text-text-primary text-[15px]">{t.preview.all_photos || '전체 사진'}</span>
                 </button>
 
-                {/* 2. 내 앨범들 (API 데이터) */}
                 {albums.map((album) => (
                   <button
                     key={album.id}
@@ -539,16 +535,13 @@ export default function PreviewScreen() {
                     className="flex flex-col items-center gap-2 group cursor-pointer"
                   >
                     <div className="w-full aspect-square bg-[#EAEAEA] rounded-xl border border-border overflow-hidden group-hover:border-accent transition-colors flex items-center justify-center relative">
-                       {/* 앨범 커버가 있다면 뿌려주고, 없다면 기본 폴더 아이콘 노출 */}
                        <span className="text-4xl text-gray-400">📁</span>
-                       {/* (추후 백엔드에서 album.cover_image 같은 속성을 주면 여기에 img 태그 추가) */}
                     </div>
                     <span className="font-bold text-text-primary text-[15px] truncate w-full px-2 text-center">{album.title}</span>
                   </button>
                 ))}
               </div>
             ) : (
-              /* 2 Depth: 특정 앨범의 사진 리스트 뷰 (기존 로직과 동일) */
               <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
                 {currentAlbumPhotos.length === 0 ? (
                   <div className="flex w-full h-full items-center justify-center text-text-secondary font-bold">
@@ -588,12 +581,11 @@ export default function PreviewScreen() {
                 )}
               </div>
             )}
-
           </div>
         </div>
       )}
 
-      {/* 2. 사진 순서 변경 모달 */}
+      {/* 모달 2: 사진 순서 변경 */}
       {isOrderModalVisible && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[9999]">
           <div className="w-[450px] max-h-[600px] bg-background rounded-xl shadow-lg p-large flex flex-col">
@@ -656,6 +648,30 @@ export default function PreviewScreen() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* 커스텀 알림창 UI */}
+      {alertMessage && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[10001] backdrop-blur-sm">
+          <div className="bg-background rounded-xl shadow-2xl p-8 w-[360px] flex flex-col items-center">
+            
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 shrink-0">
+              <span className="text-red-500 text-2xl font-bold">!</span>
+            </div>
+            
+            <p className="text-sm text-text-primary text-center mb-6 font-bold whitespace-pre-wrap leading-relaxed">
+              {alertMessage}
+            </p>
+            
+            <button 
+              onClick={() => setAlertMessage(null)}
+              className="w-full py-3 bg-accent text-white rounded-lg font-bold cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none"
+            >
+              {t.common?.confirm || '확인'}
+            </button>
+            
+          </div>
+        </div>
+      )}
+    </>
   );
 }
