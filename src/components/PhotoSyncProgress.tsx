@@ -34,40 +34,56 @@ export function PhotoSyncProgress() {
   // 동기화 이전 상태를 기억하여 '완료되는 순간'을 포착하기 위한 Ref
   const wasSyncingRef = useRef<boolean>(false);
 
+  // 🚨 [추가] 타이머(인터벌)를 제어하기 위한 Ref
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     const checkSyncStatus = async () => {
+      // 1. 로그인 체크 방어
+      const isLoggedIn = localStorage.getItem('isLoggedIn');
+      if (isLoggedIn !== 'true') return; 
+
       try {
         const response = await apiClient.get(`/photos/sync-status/${shopId}`);
         const data: SyncStatus = response.data;
         setStatus(data);
 
-        // 1. 동기화가 진행 중일 때 상태바 띄우기
+        // 동기화가 진행 중일 때 상태바 띄우기
         if (data.is_syncing) {
           setIsVisible(true);
           wasSyncingRef.current = true;
         } 
-        // 2. 방금 막 동기화가 끝났을 때 (true -> false 로 변하는 순간)
+        // 방금 막 동기화가 끝났을 때
         else if (wasSyncingRef.current && !data.is_syncing) {
           wasSyncingRef.current = false;
           
           if (data.is_first_sync) {
-            // 최초 동기화라면: 상태바를 숨기고 사진 선택 모달을 띄움
             setIsVisible(false);
-            fetchPhotosForSelection(); // 전체 사진 불러오기
+            fetchPhotosForSelection(); 
             setShowFavoriteModal(true);
           } else {
-            // 일반 동기화라면: 5초 뒤에 상태바 조용히 숨기기
             setTimeout(() => setIsVisible(false), 5000);
           }
         }
       } catch (error) {
-        // 에러 무시
+        // 🚨 [핵심 버그 수정] 에러(405 등)가 발생하면 무의미한 3초 찌르기를 즉시 중단합니다!
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          console.log("ℹ️ 원드라이브 미연동 상태 감지: 동기화 상태 체크를 중단합니다.");
+        }
       }
     };
 
+    // 최초 1회 실행
     checkSyncStatus();
-    const intervalId = setInterval(checkSyncStatus, 3000);
-    return () => clearInterval(intervalId);
+    
+    // 3초마다 실행하도록 타이머 설정 후 Ref에 저장
+    intervalRef.current = setInterval(checkSyncStatus, 3000);
+    
+    // 컴포넌트가 꺼질 때 안전하게 타이머 제거
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, []);
 
   const fetchPhotosForSelection = async () => {
