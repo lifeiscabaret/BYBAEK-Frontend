@@ -13,8 +13,15 @@ interface ChatMessage {
 }
 
 export default function PreviewScreen() {
-  const shopId = '3sesac18';
+  // const shopId = '3sesac18';
+  const [shopId, setShopId] = useState<string | null>(null);
+
   const postId = '';
+
+  useEffect(() => {
+    const storedShopId = localStorage.getItem('shop_id');
+    setShopId(storedShopId || 'guest_shop');
+  }, []);
 
   const { t } = useTranslation();
 
@@ -216,9 +223,7 @@ export default function PreviewScreen() {
         photo_ids: images.map((img) => img.id),        // (기존 백엔드 DB 저장용, 필요없어지면 나중에 빼셔도 됩니다)
       };
 
-      // 이제 '/save' 라는 통합 엔드포인트 하나만 호출합니다! 
-      // (엔드포인트 주소는 추후 백엔드 개발자분이 지정해주시는 주소로 맞추시면 됩니다)
-      const response = await apiClient.post('/save', payload);
+      const response = await apiClient.post('/api/agent/save', payload);
 
       if (response.data.status === 'success') {
         setAlertMessage("DB 업데이트 및 인스타그램 업로드가 성공적으로 완료되었습니다! 🎉");

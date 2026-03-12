@@ -16,8 +16,12 @@ interface SyncStatus {
 }
 
 export function PhotoSyncProgress() {
-  const shopId = '3sesac18'; 
-  
+  //const shopId = '3sesac18'; 
+  const [shopId, setShopId] = useState<string | null>(null);
+  useEffect(() => {
+    const storedId = localStorage.getItem('shop_id');
+    setShopId(storedId || '3sesac18');
+  }, []);
   // 🚨 [다국어 적용] 번역 객체 t 가져오기
   const { t } = useTranslation();
 
@@ -38,6 +42,7 @@ export function PhotoSyncProgress() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (!shopId) return;
     const checkSyncStatus = async () => {
       // 1. 로그인 체크 방어
       const isLoggedIn = localStorage.getItem('isLoggedIn');
