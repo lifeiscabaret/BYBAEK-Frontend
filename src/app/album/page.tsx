@@ -157,19 +157,29 @@ export default function MyAlbumScreen() {
     setIsDetailModalVisible(true);
   };
 
-  const handleSaveOverlay = async () => {
+const handleSaveOverlay = async () => {
     if (!selectedAlbum) return;
     try {
       const photoIds = albumPhotos.map(p => p.id);
-      await apiClient.post("/photos/albums", {
+      const response = await apiClient.post("/photos/albums", {
         shop_id: shopId,
-        album_id: selectedAlbum.id === 'new' ? null : selectedAlbum.id,
+        album_id: selectedAlbum.id, // 'new'가 넘어가면 서버가 UUID를 만듭니다.
         album_name: editTitle || t.album.default_new_name,
         description: editDesc,
         photo_ids: photoIds
       });
-      fetchAlbums();
-      setIsDetailModalVisible(false);
+
+      // 🚨 [추가] 서버가 생성해준 진짜 ID로 상태 업데이트
+      if (selectedAlbum.id === 'new' && response.data.album_id) {
+        setSelectedAlbum({
+          ...selectedAlbum,
+          id: response.data.album_id,
+          isNew: false
+        });
+      }
+
+      await fetchAlbums(); // 목록 새로고침
+      setIsDetailModalVisible(false); // 저장 후 닫기
     } catch (error) {
       console.error("저장 실패:", error);
     }
