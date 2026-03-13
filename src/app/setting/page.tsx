@@ -112,7 +112,7 @@ export default function SettingScreen() {
           setIsInstagramConnected(data.is_insta_connected || false);
           setIsMicrosoftConnected(data.is_ms_connected || false);
           setIsGmailConnected(data.is_gmail_connected || false);
-          setGmailAddress(data.gmail_address || '');
+          setGmailAddress(data.owner_email || '');
           
           if (data.insta_upload_time) {
              const [time, period] = data.insta_upload_time.split(' ');

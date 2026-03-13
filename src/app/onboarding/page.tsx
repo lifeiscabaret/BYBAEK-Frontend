@@ -56,7 +56,7 @@ export default function OnboardingScreen() {
         city: answers[9] || '',
         
         insta_auto_upload_yn: answers[11] === '예 (추천)' ? 'Y' : 'N',
-        gmail_address: answers[12] || '',
+        owner_email: answers[12] || '',
         insta_upload_time_slot: schedule.frequency || '매일',
         insta_upload_time: uploadTime,
         
