@@ -122,7 +122,7 @@ export const mapDBToSurveyAnswers = (data: any, lang: string): Record<number, an
     
     // DB의 'Y', 'N' 값을 현재 언어의 객관식 옵션 텍스트로 변환
     11: data.insta_auto_upload_yn === 'Y' ? (isEn ? 'Yes (Recommended)' : '예 (추천)') : (isEn ? 'No' : '아니오'),
-    12: data.gmail_address || '',
+    12: data.owner_email || '',
     13: {
       frequency: data.insta_upload_time_slot || '매일',
       amPm: data.insta_upload_time ? data.insta_upload_time.split(' ')[1] : 'AM',

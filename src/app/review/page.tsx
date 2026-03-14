@@ -103,15 +103,15 @@ function ReviewContent() {
       }
 
       try {
-        if (postId) {
+        if (postId) { // /api/agent/review
           // const postRes = await apiClient.get(`/post/detail`, { params: { shop_id: shopId, post_id: postId } });
           // setGeneratedCaption(postRes.data.caption);
           // setImages(postRes.data.images || []);
         }
-        const allRes = await apiClient.get(`/photos/all/${shopId}`);
+        const allRes = await apiClient.get(`/photos/all/${shopId}`); //전체사진조회
         setAllPhotos(allRes.data.photos || []);
 
-        const albumRes = await apiClient.get(`/album/${shopId}`);
+        const albumRes = await apiClient.get(`/album/${shopId}`); //앨범목록조회
         setAlbums(albumRes.data.albums || albumRes.data || []);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
@@ -215,7 +215,7 @@ function ReviewContent() {
         return;
       }
 
-      const response = await apiClient.post('/save', payload);
+      const response = await apiClient.post('/save', payload); //게시물 저장
       if (response.data.status === 'success') {
         setAlertMessage("게시물 수정 및 인스타그램 업로드가 완료되었습니다! 🎉");
         setIsUploadSuccess(true); 

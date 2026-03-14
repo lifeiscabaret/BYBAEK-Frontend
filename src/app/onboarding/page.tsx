@@ -10,13 +10,21 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const shopId = '3sesac18'; // 🚨 테스트용 하드코딩 아이디
+  // const shopId = '3sesac18'; // 🚨 테스트용 하드코딩 아이디
+
+  const getShopId = () => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem('shop_id') || 'guest_shop'; 
+    }
+    return 'guest_shop';
+  };
 
   // 🚨 [다국어 적용] 번역 객체 가져오기
   const { t } = useTranslation();
 
   // 온보딩 완료 시 실행되는 함수
   const handleFinishOnboarding = async (answers: Record<number, any>) => {
+    const shopId = getShopId(); // 동적 ID 할당
     try {
       // 1. 스케줄 데이터 파싱 (13번 문항)
       const schedule = answers[13] || {};
@@ -48,7 +56,7 @@ export default function OnboardingScreen() {
         city: answers[9] || '',
         
         insta_auto_upload_yn: answers[11] === '예 (추천)' ? 'Y' : 'N',
-        gmail_address: answers[12] || '',
+        owner_email: answers[12] || '',
         insta_upload_time_slot: schedule.frequency || '매일',
         insta_upload_time: uploadTime,
         

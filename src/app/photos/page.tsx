@@ -31,11 +31,20 @@ export default function AllPhotosScreen() {
   const [currentViewIndex, setCurrentViewIndex] = useState(0);
   const [loading, setLoading] = useState(true); 
 
+  const [shopId, setShopId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedShopId = localStorage.getItem('shop_id');
+    setShopId(storedShopId || '3sesac18'); // 기본값 유지하되 로컬스토리지 우선
+  }, []);
+
   const fetchPhotos = async () => {
+    if (!shopId) return;
+    setLoading(true);
     try {
-      const shopId = "3sesac18"; 
-      const response = await apiClient.get(`https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/photos/all/${shopId}`);
-      setPhotos(response.data.photos); 
+      // 🚨 API 경로를 백엔드 라우터 구조에 맞춰 최적화
+      const response = await apiClient.get(`/photos/all/${shopId}`);
+      setPhotos(response.data.photos || []);
     } catch (error) {
       console.error("사진 로딩 실패:", error);
     } finally {
@@ -43,9 +52,10 @@ export default function AllPhotosScreen() {
     }
   };
 
+  // 🚨 2. shopId가 설정된 후 사진 목록 로드
   useEffect(() => {
     fetchPhotos();
-  }, []);
+  }, [shopId]);
 
   const toggleSelect = (index: number) => {
     setSelectedIndexes((prev) =>
@@ -72,7 +82,7 @@ export default function AllPhotosScreen() {
       type: 'CONFIRM',
       onConfirm: async () => {
         try {
-          const shopId = "3sesac18";
+          //const shopId = "3sesac18";
           
           await Promise.all(
             selectedIndexes.map(async (idx) => {

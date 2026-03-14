@@ -21,8 +21,14 @@ interface CustomAlertState {
 }
 
 export default function SettingScreen() {
-  const [shopId] = useState('3sesac18');
+  //const [shopId] = useState('3sesac18');
+  const [shopId, setShopId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const storedShopId = localStorage.getItem('shop_id');
+    setShopId(storedShopId || '3sesac18');
+  }, []);
 
   // 🚨 [다국어 적용] 번역 객체 t 가져오기
   const { t } = useTranslation();
@@ -91,6 +97,7 @@ export default function SettingScreen() {
 
   useEffect(() => {
     const fetchOnboardingData = async () => {
+      if (!shopId) return;
       try {
         const response = await apiClient.get(`/onboarding/${shopId}`);
         const data = response.data.shop_info || response.data; 
@@ -105,7 +112,7 @@ export default function SettingScreen() {
           setIsInstagramConnected(data.is_insta_connected || false);
           setIsMicrosoftConnected(data.is_ms_connected || false);
           setIsGmailConnected(data.is_gmail_connected || false);
-          setGmailAddress(data.gmail_address || '');
+          setGmailAddress(data.owner_email || '');
           
           if (data.insta_upload_time) {
              const [time, period] = data.insta_upload_time.split(' ');
