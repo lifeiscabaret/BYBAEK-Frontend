@@ -7,7 +7,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 import apiClient from '@/api/index';
 import Image from 'next/image';
 
-type LoginStep = 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
+// 🚨 [수정] LANGUAGE_SELECT 단계 추가
+type LoginStep = 'LANGUAGE_SELECT' | 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
 export default function LoginScreen() {
@@ -19,15 +20,23 @@ export default function LoginScreen() {
   const searchParams = new URLSearchParams(window.location.search); 
   const isFromSidebar = searchParams.get('from') === 'sidebar';
 
-  const [step, setStep] = useState<LoginStep>('MS_LOGIN');
+  // 🚨 [수정] 초기 단계를 언어 선택으로 변경
+  const [step, setStep] = useState<LoginStep>('LANGUAGE_SELECT');
   const [msLoginStatus, setMsLoginStatus] = useState<LoginStatus>('IDLE');
   const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
 
-  // 🚨 [추가] 커스텀 알림창 상태 관리
   const [alertData, setAlertData] = useState<{isOpen: boolean; message: string; onConfirm?: () => void}>({
     isOpen: false,
     message: ''
   });
+
+  // 🚨 [추가] 페이지 로드 시 이미 언어가 설정되어 있다면 언어 선택 단계를 건너뛰고 MS_LOGIN으로 이동
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem('language');
+    if (savedLanguage) {
+      setStep('MS_LOGIN');
+    }
+  }, []);
 
   // 팝업 인증 메시지 수신
   useEffect(() => {
@@ -35,8 +44,6 @@ export default function LoginScreen() {
       if (event.data === 'MS_LOGIN_SUCCESS') {
         try {
           const response = await apiClient.get('/auth/me');
-          
-          // axios는 응답 데이터가 .data 안에 담깁니다.
           const { shop_id } = response.data;
 
           if (shop_id) {
@@ -73,6 +80,14 @@ export default function LoginScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instaLoginStatus]);
 
+  // 🚨 [추가] 언어 선택 처리 함수
+  const handleLanguageSelect = (lang: 'ko' | 'en') => {
+    localStorage.setItem('language', lang);
+    // 선택한 언어가 즉시 다국어 훅 전체에 적용되도록 페이지를 새로고침 합니다.
+    // 새로고침 되면 위쪽의 useEffect가 언어를 감지해서 자동으로 MS_LOGIN 단계로 넘겨줍니다!
+    window.location.reload(); 
+  };
+
   const handleMsLoginClick = () => {
     setMsLoginStatus('IN_PROGRESS');
     const currentOrigin = window.location.origin;
@@ -100,14 +115,13 @@ export default function LoginScreen() {
     }
   };
 
-  // 🚨 [수정] 하드코딩된 한국어 대신 다국어 번역(t.login.onedrive_alert) 적용!
   const handleOneDriveNextClick = () => {
     setAlertData({
       isOpen: true,
       message: t.login.onedrive_alert, 
       onConfirm: () => {
-        setAlertData({ isOpen: false, message: '' }); // 알림창 닫기
-        setStep('INSTA_LOGIN'); // 인스타 단계로 이동!
+        setAlertData({ isOpen: false, message: '' }); 
+        setStep('INSTA_LOGIN'); 
       }
     });
   };
@@ -129,6 +143,30 @@ export default function LoginScreen() {
     <>
       <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
         
+        {/* 🚨 [추가] 0. 언어 선택 단계 (최초 접속 시에만 보임) */}
+        {step === 'LANGUAGE_SELECT' && renderModalContainer(
+          "Language / 언어 설정",
+          <div className="flex flex-col items-center w-full px-4 gap-4">
+            <p className="text-body text-text-primary text-center mb-6">
+              사용할 언어를 선택해주세요.<br/>
+              <span className="text-sm text-gray-500">Please select your preferred language.</span>
+            </p>
+            
+            <button 
+              onClick={() => handleLanguageSelect('ko')} 
+              className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[16px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none"
+            >
+              🇰🇷 한국어 (Korean)
+            </button>
+            <button 
+              onClick={() => handleLanguageSelect('en')} 
+              className="w-full bg-white border border-border py-[14px] rounded-lg shadow-sm text-text-primary font-bold text-[16px] hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none"
+            >
+              🇺🇸 English (영어)
+            </button>
+          </div>
+        )}
+
         {/* 1. MS 로그인 단계 */}
         {step === 'MS_LOGIN' && renderModalContainer(
           t.login.ms_title,
@@ -186,17 +224,15 @@ export default function LoginScreen() {
             {t.login.onedrive_desc3_1}<br /> {t.login.onedrive_desc3_2}
           </p>
           
-          {/* 🚨 [수정] 회색 박스를 지우고 실제 QR 코드 이미지로 교체! */}
           <div className="relative w-[150px] h-[150px] mt-6 mb-8 border border-border rounded-lg overflow-hidden shadow-sm">
             <Image 
               src="/images/QRcode.png" 
               alt="OneDrive QR Code" 
               fill 
-              className="object-contain p-2" // 큐알 코드가 너무 꽉 차지 않게 여백(p-2)을 살짝 줬습니다.
+              className="object-contain p-2"
             />
           </div>
 
-          {/* 🚨 기존에 바로 넘어가던 onClick을 handleOneDriveNextClick으로 교체! */}
           <button 
             onClick={handleOneDriveNextClick}
             className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none"
