@@ -70,6 +70,10 @@ export function TutorialTour() {
       continuous={true} 
       showProgress={true} 
       showSkipButton={true} 
+      // 🚨 [핵심 수정 1] 바깥 어두운 배경을 눌러도 안 꺼지게 막음!
+      disableOverlayClose={true} 
+      // 🚨 [핵심 수정 2] 우측 상단의 불필요한 X 버튼 숨김!
+      hideCloseButton={true} 
       styles={{
         options: {
           primaryColor: '#8A0020',

@@ -49,16 +49,16 @@ export default function OnboardingScreen() {
         exclude_conditions: Array.isArray(answers[3]) ? answers[3] : (answers[3] ? [answers[3]] : []),
         hashtag_style: Array.isArray(answers[4]) ? answers[4] : (answers[4] ? [answers[4]] : []),
         
-        cta: answers[5] || '',
-        shop_intro: answers[6] || '',
+        cta: answers[5] || null,
+        shop_intro: answers[6] || null,
         forbidden_words: Array.isArray(answers[7]) ? answers[7] : (answers[7] ? [answers[7]] : []),
-        rag_reference: answers[8] || '',
-        city: answers[9] || '',
+        rag_reference: answers[8] || null,
+        city: answers[9] || null,
         
         insta_auto_upload_yn: answers[11] === '예 (추천)' ? 'Y' : 'N',
-        owner_email: answers[12] || '',
+        owner_email: answers[12] || null,
         insta_upload_time_slot: schedule.frequency || '매일',
-        insta_upload_time: uploadTime,
+        insta_upload_time: uploadTime || null,
         
         language: dbLanguageCode,
         
