@@ -1,7 +1,6 @@
 // 타겟 경로: src/app/review/page.tsx
 "use client";
 
-// 🚨 [추가] useRouter와 Image 컴포넌트 임포트
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation'; 
 import Image from 'next/image';
@@ -32,7 +31,6 @@ const MOCK_DATA = {
 
 function ReviewContent() {
   const searchParams = useSearchParams();
-  // 🚨 [추가] 라우터 사용을 위한 선언
   const router = useRouter();
   
   const shopId = searchParams.get('shop_id') || '3sesac18'; 
@@ -65,16 +63,28 @@ function ReviewContent() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [textRatio, setTextRatio] = useState(50); 
+  
+  // 🚨 [추가] 사용자가 휠을 건드렸는지 기억하는 상태값
+  const [hasManuallyResized, setHasManuallyResized] = useState(false);
 
+  // 🚨 [수정] 처음에만 자동 확장, 휠 조작 후엔 멈춤
   useEffect(() => {
+    // 사용자가 한 번이라도 휠을 건드렸으면 작동 안 함 (Lock)
+    if (hasManuallyResized) return;
+
     const el = textareaRef.current;
     if (!el) return;
-    if (el.scrollHeight > el.clientHeight && textRatio < 66.6) {
-      setTextRatio(prev => Math.min(66.6, prev + 2));
+    
+    // 텍스트가 삐져나갈 만큼 길면 한 방에 66.6%로 확장!
+    if (el.scrollHeight > el.clientHeight) {
+      setTextRatio(66.6);
     }
-  }, [generatedCaption, textRatio]);
+  }, [generatedCaption, hasManuallyResized]); // textRatio는 빼서 무한 루프 방지!
 
   const handleTextWheel = (e: React.WheelEvent<HTMLTextAreaElement>) => {
+    // 🚨 [추가] 휠을 움직이는 순간 자동 조절 기능 잠금!
+    if (!hasManuallyResized) setHasManuallyResized(true);
+
     const el = e.currentTarget;
     const { scrollTop, scrollHeight, clientHeight } = el;
     
@@ -274,10 +284,8 @@ function ReviewContent() {
   return (
     <div className="w-full max-w-md mx-auto h-screen bg-[#FAFAFA] flex flex-col shadow-2xl relative">
       
-      {/* 🚨 상단 헤더: 상대 위치(relative) 부여하여 로고와 타이틀 배치 */}
       <div className="relative flex flex-row justify-center items-center p-4 bg-white border-b border-border shrink-0">
         
-        {/* 좌측 상단 로고 버튼 (대시보드로 이동) */}
         <button
           onClick={() => router.push('/dashboard')}
           className="absolute left-4 flex items-center justify-center focus:outline-none hover:scale-110 transition-transform cursor-pointer"
@@ -293,7 +301,6 @@ function ReviewContent() {
           </div>
         </button>
 
-        {/* 중앙 타이틀 */}
         <h2 className="text-[18px] text-text-primary font-bold">
           게시글 검토 및 수정
         </h2>
