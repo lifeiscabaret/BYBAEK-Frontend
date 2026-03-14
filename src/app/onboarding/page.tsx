@@ -1,16 +1,19 @@
 // 타겟 경로: src/app/onboarding/page.tsx
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OnboardingSurvey } from '@/components/OnboardingSurvey';
 import apiClient from '@/api/index';
-// 🚨 [다국어 적용] 번역 훅 추가
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  // const shopId = '3sesac18'; // 🚨 테스트용 하드코딩 아이디
+  
+  // 🚨 [신규] 버튼 여러 번 클릭 방지용 상태
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // 🚨 [신규] window.alert 대체를 위한 커스텀 알림창 상태
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const getShopId = () => {
     if (typeof window !== "undefined") {
@@ -19,30 +22,27 @@ export default function OnboardingScreen() {
     return 'guest_shop';
   };
 
-  // 🚨 [다국어 적용] 번역 객체 가져오기
   const { t } = useTranslation();
 
-  // 온보딩 완료 시 실행되는 함수
   const handleFinishOnboarding = async (answers: Record<number, any>) => {
-    const shopId = getShopId(); // 동적 ID 할당
+    // 이미 전송 중이면 클릭 무시! (콘솔 도배 방지)
+    if (isSubmitting) return; 
+    
+    setIsSubmitting(true);
+    const shopId = getShopId(); 
+
     try {
-      // 1. 스케줄 데이터 파싱 (13번 문항)
       const schedule = answers[13] || {};
       const uploadTime = schedule.hour ? `${schedule.hour}:${schedule.minute} ${schedule.amPm}` : '';
 
-      // 🚨 2. 언어 선택 매핑 ('한국어' -> 'ko', 'English' -> 'en')
       const languageMap: Record<string, string> = {
         '한국어': 'ko',
         'English': 'en'
       };
-      // 14번 문항이 언어 선택이라고 가정 (매칭 안 되면 기본값 'ko')
       const dbLanguageCode = languageMap[answers[14]] || 'ko';
 
-      // 🚨 3. 프론트엔드 전역 언어 설정 업데이트 (로컬 스토리지에 저장!)
-      // 이렇게 해야 대시보드로 넘어갔을 때 번역 훅이 방금 선택한 언어를 읽어옵니다.
       localStorage.setItem('language', dbLanguageCode);
 
-      // 4. 백엔드 DB 스키마에 맞게 데이터 예쁘게 포장
       const payload = {
         brand_tone: Array.isArray(answers[1]) ? answers[1] : (answers[1] ? [answers[1]] : []),
         preferred_styles: Array.isArray(answers[2]) ? answers[2] : (answers[2] ? [answers[2]] : []),
@@ -60,7 +60,6 @@ export default function OnboardingScreen() {
         insta_upload_time_slot: schedule.frequency || '매일',
         insta_upload_time: uploadTime,
         
-        // 🚨 5. 백엔드에는 'ko' 또는 'en' 코드값으로 전송!
         language: dbLanguageCode,
         
         is_ms_connected: true,
@@ -69,27 +68,56 @@ export default function OnboardingScreen() {
 
       console.log("백엔드로 전송할 데이터:", payload);
 
-      // 6. 백엔드 API로 전송! (POST)
+      // 백엔드 API 전송
       await apiClient.post(`/onboarding/${shopId}`, payload);
 
-      // 🚨 7. 전송 완료 후 대시보드로 이동
-      // (언어 설정이 완전히 리프레시되도록 단순 router.push 대신 window.location.href 사용을 강력 추천합니다!)
+      // 성공 시 대시보드로 이동
       window.location.href = '/dashboard';
 
     } catch (error) {
       console.error("온보딩 데이터 저장 실패:", error);
-      // 🚨 [다국어 적용] 실패 알림창 번역
-      alert(t.onboarding.error_alert);
-      router.push('/dashboard');
+      // 🚨 window.alert 대신 예쁜 상태값으로 변경
+      setAlertMessage(t.onboarding.error_alert || "데이터 저장에 실패했습니다.");
+    } finally {
+      // 🚨 에러가 났을 때만 잠금을 풀어줌 (성공하면 페이지가 이동되므로 풀 필요 없음)
+      setIsSubmitting(false); 
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <OnboardingSurvey
-        onFinish={handleFinishOnboarding}
-        onSkip={() => router.push('/dashboard')}
-      />
-    </div>
+    <>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        {/* OnboardingSurvey 내부에 isSubmitting을 프롭스로 넘겨서 버튼 UI를 로딩으로 바꾸는 걸 추천하지만, 
+            지금은 최상단 클릭 방지만으로도 충분합니다. */}
+        <OnboardingSurvey
+          onFinish={handleFinishOnboarding}
+          onSkip={() => router.push('/dashboard')}
+        />
+      </div>
+
+      {/* 🚨 커스텀 알림창 UI (실패 시 뜸) */}
+      {alertMessage && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[10001] backdrop-blur-sm p-4">
+          <div className="bg-background rounded-xl shadow-2xl p-6 w-full max-w-[320px] flex flex-col items-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 shrink-0">
+              <span className="text-red-500 text-2xl font-bold">!</span>
+            </div>
+            <p className="text-[14px] text-text-primary text-center mb-6 font-bold whitespace-pre-wrap leading-relaxed">
+              {alertMessage}
+            </p>
+            <button 
+              onClick={() => {
+                setAlertMessage(null);
+                // 에러 확인 후 대시보드로 넘어가게 하려면 아래 주석 해제 (기존 로직 유지)
+                // router.push('/dashboard');
+              }} 
+              className="w-full py-3 bg-accent text-white rounded-lg font-bold text-[15px] cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none"
+            >
+              {t.common?.confirm || '확인'}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
