@@ -103,7 +103,7 @@ function ReviewContent() {
       }
 
       try {
-        if (postId) { // /api/agent/review
+        if (postId) { // /agent/review
           // const postRes = await apiClient.get(`/post/detail`, { params: { shop_id: shopId, post_id: postId } });
           // setGeneratedCaption(postRes.data.caption);
           // setImages(postRes.data.images || []);

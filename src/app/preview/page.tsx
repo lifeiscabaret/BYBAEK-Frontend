@@ -223,7 +223,7 @@ export default function PreviewScreen() {
         photo_ids: images.map((img) => img.id),        // (기존 백엔드 DB 저장용, 필요없어지면 나중에 빼셔도 됩니다)
       };
 
-      const response = await apiClient.post('/api/agent/save', payload);
+      const response = await apiClient.post('/agent/save', payload);
 
       if (response.data.status === 'success') {
         setAlertMessage("DB 업데이트 및 인스타그램 업로드가 성공적으로 완료되었습니다! 🎉");
