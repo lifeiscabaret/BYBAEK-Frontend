@@ -18,11 +18,10 @@ interface AlbumData {
 
 export default function MyAlbumScreen() {
   const [shopId, setShopId] = useState<string | null>(null);
-  // const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
 
   useEffect(() => {
     const storedShopId = localStorage.getItem('shop_id');
-    setShopId(storedShopId || '3sesac18'); // 실서버에서는 'guest_shop' 등으로 처리
+    setShopId(storedShopId || '3sesac18'); 
   }, []);
 
   const { t } = useTranslation();
@@ -37,10 +36,9 @@ export default function MyAlbumScreen() {
   const [editDesc, setEditDesc] = useState('');
   const [albumPhotos, setAlbumPhotos] = useState<any[]>([]);
 
-  // 🚨 [추가] 사진 선택 팝업을 위한 상태들
   const [isPhotoSelectModalVisible, setIsPhotoSelectModalVisible] = useState(false);
-  const [allPhotos, setAllPhotos] = useState<any[]>([]); // 전체 사진 목록
-  const [tempSelectedIds, setTempSelectedIds] = useState<string[]>([]); // 팝업 내 임시 선택
+  const [allPhotos, setAllPhotos] = useState<any[]>([]); 
+  const [tempSelectedIds, setTempSelectedIds] = useState<string[]>([]); 
 
   useEffect(() => {
     if (!shopId) return;
@@ -48,7 +46,6 @@ export default function MyAlbumScreen() {
     fetchAllPhotos();
   }, [shopId]);
   
-  // 1. 앨범 목록 조회
   const fetchAlbums = async () => {
     try {
       const response = await apiClient.get(`/photos/albums/${shopId}`);
@@ -66,7 +63,6 @@ export default function MyAlbumScreen() {
     }
   };
 
-  // 2. 전체 사진 목록 조회 (추가 팝업용)
   const fetchAllPhotos = async () => {
     try {
       const response = await apiClient.get(`/photos/all/${shopId}`);
@@ -76,12 +72,6 @@ export default function MyAlbumScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchAlbums();
-    fetchAllPhotos();
-  }, []);
-
-  // 앨범 내 사진 제거 (개별 ✕ 버튼)
   const handleRemovePhotoFromAlbum = async (photoId: string) => {
     if (!selectedAlbum) return;
     if (!window.confirm(t.album.confirm_remove)) return;
@@ -105,7 +95,6 @@ export default function MyAlbumScreen() {
     }
   };
 
-  // 🚨 [수정] 앨범에 사진 추가 확정 (저장 버튼 클릭 시)
   const handleSaveSelectedPhotos = async () => {
     if (!selectedAlbum || tempSelectedIds.length === 0) return;
 
@@ -126,8 +115,8 @@ export default function MyAlbumScreen() {
       setSelectedAlbum({ ...selectedAlbum, photoCount: response.data.photos.length });
       
       fetchAlbums();
-      setIsPhotoSelectModalVisible(false); // 팝업 닫기
-      setTempSelectedIds([]); // 선택 초기화
+      setIsPhotoSelectModalVisible(false); 
+      setTempSelectedIds([]); 
     } catch (error) {
       console.error("사진 추가 실패:", error);
     }
@@ -157,19 +146,18 @@ export default function MyAlbumScreen() {
     setIsDetailModalVisible(true);
   };
 
-const handleSaveOverlay = async () => {
+  const handleSaveOverlay = async () => {
     if (!selectedAlbum) return;
     try {
       const photoIds = albumPhotos.map(p => p.id);
       const response = await apiClient.post("/photos/albums", {
         shop_id: shopId,
-        album_id: selectedAlbum.id, // 'new'가 넘어가면 서버가 UUID를 만듭니다.
+        album_id: selectedAlbum.id, 
         album_name: editTitle || t.album.default_new_name,
         description: editDesc,
         photo_ids: photoIds
       });
 
-      // 🚨 [추가] 서버가 생성해준 진짜 ID로 상태 업데이트
       if (selectedAlbum.id === 'new' && response.data.album_id) {
         setSelectedAlbum({
           ...selectedAlbum,
@@ -178,8 +166,8 @@ const handleSaveOverlay = async () => {
         });
       }
 
-      await fetchAlbums(); // 목록 새로고침
-      setIsDetailModalVisible(false); // 저장 후 닫기
+      await fetchAlbums(); 
+      setIsDetailModalVisible(false); 
     } catch (error) {
       console.error("저장 실패:", error);
     }
@@ -187,7 +175,6 @@ const handleSaveOverlay = async () => {
 
   const handleDeleteAlbums = async () => {
     if (selectedIndexes.length === 0) return;
-    // 🚨 [다국어 적용] {count} 부분을 실제 숫자로 교체해서 텍스트 생성
     const confirmMessage = t.album.confirm_delete.replace('{count}', selectedIndexes.length.toString());
     
     if (window.confirm(confirmMessage)) {
@@ -212,10 +199,8 @@ const handleSaveOverlay = async () => {
 
       <div className="flex-1 p-large flex flex-col min-w-0 h-full">
         <div className="flex flex-row justify-between items-center mb-large shrink-0">
-          {/* 🚨 [다국어 적용] 타이틀 */}
           <h1 className="text-h1 font-bold text-text-primary">{t.album.title}</h1>
           <button onClick={handleDeleteAlbums} className="px-medium py-2 border border-accent rounded-md bg-white text-accent font-bold text-sm hover:bg-red-50 transition-colors">
-            {/* 🚨 [다국어 적용] 선택된 앨범 삭제 */}
             {t.album.delete_selected}
           </button>
         </div>
@@ -227,7 +212,6 @@ const handleSaveOverlay = async () => {
                 return (
                   <button key={item.id} onClick={() => openAlbumDetail(item)} className="w-full h-full min-h-[260px] bg-white rounded-xl border-2 border-dashed border-[#D0D0D0] flex flex-col justify-center items-center hover:bg-gray-50 group">
                     <span className="text-[40px] font-light text-[#A0A0A0] mb-2 group-hover:scale-110 transition-transform">+</span>
-                    {/* 🚨 [다국어 적용] 새 앨범 만들기 */}
                     <span className="text-[16px] font-bold text-[#1A1A1A]">{t.album.create_new}</span>
                   </button>
                 );
@@ -239,27 +223,46 @@ const handleSaveOverlay = async () => {
           </div>
         </div>
 
-      {/* 앨범 상세 오버레이 */}
+      {/* 🚨 [핵심 수정 구간] 앨범 상세 오버레이 */}
       {isDetailModalVisible && selectedAlbum && (
         <div className="absolute inset-0 z-[9999] bg-white flex flex-row">
           <Sidebar /> 
-          <div className="flex-1 p-[40px] flex flex-col h-screen overflow-hidden">
-            <div className="flex flex-row justify-between items-start mb-[30px] shrink-0">
-              <div className="flex-1 pr-5 flex flex-col">
-                {/* 🚨 [다국어 적용] 앨범 제목 Placeholder */}
-                <input type="text" className="text-[32px] font-bold text-[#1A1A1A] mb-2 focus:outline-none bg-transparent" placeholder={t.album.placeholder_title} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
-                {/* 🚨 [다국어 적용] 설명 입력 Placeholder */}
-                <input type="text" className="text-base text-[#666666] mb-4 focus:outline-none bg-transparent w-full" placeholder={t.album.placeholder_desc} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
-                {/* 🚨 [다국어 적용] 총 N장의 사진 */}
-                <span className="text-[15px] text-[#888] font-bold">
+          {/* 화면 크기에 따라 패딩을 조절 (모바일: p-5, PC: p-[40px]) */}
+          <div className="flex-1 p-5 md:p-[40px] flex flex-col h-screen overflow-hidden">
+            
+            {/* 🚨 flex-col md:flex-row 로 좁은 화면에선 위아래로 배치, 넓은 화면에선 좌우 배치 */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-start gap-4 mb-[30px] shrink-0 w-full">
+              
+              {/* 🚨 min-w-0을 추가해서 인풋 창이 화면을 넘어 밀어내는 현상 방지 */}
+              <div className="flex-1 min-w-0 w-full pr-0 md:pr-5 flex flex-col">
+                <input 
+                  type="text" 
+                  className="text-[24px] md:text-[32px] font-bold text-[#1A1A1A] mb-2 focus:outline-none bg-transparent w-full min-w-0" 
+                  placeholder={t.album.placeholder_title} 
+                  value={editTitle} 
+                  onChange={(e) => setEditTitle(e.target.value)} 
+                />
+                <input 
+                  type="text" 
+                  className="text-sm md:text-base text-[#666666] mb-4 focus:outline-none bg-transparent w-full min-w-0" 
+                  placeholder={t.album.placeholder_desc} 
+                  value={editDesc} 
+                  onChange={(e) => setEditDesc(e.target.value)} 
+                />
+                <span className="text-[14px] md:text-[15px] text-[#888] font-bold">
                   {t.album.total_photos.replace('{count}', (selectedAlbum.photoCount || 0).toString())}
                 </span>
               </div>
-              <div className="flex flex-col items-end gap-4">
-                <div className="flex flex-row items-center gap-3">
-                  {/* 🚨 [다국어 적용] 공통 저장 버튼 */}
-                  <button onClick={handleSaveOverlay} className="bg-[#1A1A1A] text-white px-5 py-2.5 rounded-lg font-bold text-sm">{t.common.save}</button>
-                  <button onClick={() => setIsDetailModalVisible(false)} className="bg-[#8A0020] text-white w-10 h-10 rounded-full flex justify-center items-center text-[20px] font-bold">✕</button>
+
+              {/* 🚨 shrink-0을 추가해서 버튼들이 절대 찌그러지거나 밀려나지 않게 보호 */}
+              <div className="flex flex-row md:flex-col items-center md:items-end gap-3 shrink-0">
+                <div className="flex flex-row items-center gap-2 md:gap-3">
+                  <button onClick={handleSaveOverlay} className="bg-[#1A1A1A] text-white px-4 md:px-5 py-2 md:py-2.5 rounded-lg font-bold text-sm">
+                    {t.common.save}
+                  </button>
+                  <button onClick={() => setIsDetailModalVisible(false)} className="bg-[#8A0020] text-white w-9 h-9 md:w-10 md:h-10 rounded-full flex justify-center items-center text-[18px] md:text-[20px] font-bold">
+                    ✕
+                  </button>
                 </div>
                 <div className="flex flex-row items-center gap-3">
                   <button 
@@ -267,29 +270,28 @@ const handleSaveOverlay = async () => {
                       setTempSelectedIds([]); 
                       setIsPhotoSelectModalVisible(true);
                     }}
-                    className="bg-[#8A0020] text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-red-900 transition-colors"
+                    className="bg-[#8A0020] text-white px-4 md:px-5 py-2 md:py-2.5 rounded-lg font-bold text-sm hover:bg-red-900 transition-colors"
                   >
-                    {/* 🚨 [다국어 적용] 사진 추가 */}
                     {t.album.add_photo}
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className={`flex-1 bg-[#F9F9F9] rounded-xl border border-[#E0E0E0] min-h-0 overflow-y-auto ${albumPhotos.length > 0 ? 'p-[30px] block' : 'flex justify-center items-center'}`}>
+            {/* 사진 그리드 영역 */}
+            <div className={`flex-1 bg-[#F9F9F9] rounded-xl border border-[#E0E0E0] min-h-0 overflow-y-auto ${albumPhotos.length > 0 ? 'p-4 md:p-[30px] block' : 'flex justify-center items-center'}`}>
               {albumPhotos.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {albumPhotos.map((photo: any) => (
                     <div key={photo.id} className="relative aspect-square bg-white rounded-lg overflow-hidden border border-[#EEE] group">
                       <img src={photo.blob_url} alt={photo.original_name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
                       <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity" />
-                      {/* 개별 사진 삭제 버튼 */}
                       <button onClick={(e) => { e.stopPropagation(); handleRemovePhotoFromAlbum(photo.id); }} className="absolute top-2 right-2 bg-white/80 text-red-600 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">✕</button>
                     </div>
                   ))}
                 </div>
               ) : (
-                <span className="text-[18px] text-[#A0A0A0]">{t.album.empty_album}</span>
+                <span className="text-[16px] md:text-[18px] text-[#A0A0A0]">{t.album.empty_album}</span>
               )}
             </div>
           </div>
@@ -298,22 +300,20 @@ const handleSaveOverlay = async () => {
 
       {/* 사진 선택 모달 */}
       {isPhotoSelectModalVisible && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl w-[800px] h-[600px] flex flex-col p-8 shadow-2xl">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-[800px] h-[80vh] md:h-[600px] flex flex-col p-5 md:p-8 shadow-2xl">
             <div className="flex justify-between items-center mb-6 shrink-0">
-              {/* 🚨 [다국어 적용] 모달 타이틀 */}
-              <h2 className="text-2xl font-bold text-text-primary">{t.album.modal_photo_title}</h2>
-              <div className="flex gap-3">
+              <h2 className="text-xl md:text-2xl font-bold text-text-primary">{t.album.modal_photo_title}</h2>
+              <div className="flex gap-2 md:gap-3">
                 <button 
                   onClick={handleSaveSelectedPhotos}
-                  className="bg-accent text-white px-6 py-2 rounded-lg font-bold hover:bg-accent-dark transition-colors"
+                  className="bg-accent text-white px-4 md:px-6 py-2 rounded-lg font-bold hover:bg-accent-dark transition-colors text-sm md:text-base"
                 >
-                  {/* 🚨 [다국어 적용] 공통 저장 버튼 */}
                   {t.common.save}
                 </button>
                 <button 
                   onClick={() => setIsPhotoSelectModalVisible(false)}
-                  className="text-text-secondary hover:text-text-primary text-xl"
+                  className="text-text-secondary hover:text-text-primary text-xl px-2"
                 >
                   ✕
                 </button>
@@ -321,7 +321,7 @@ const handleSaveOverlay = async () => {
             </div>
 
             <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
-              <div className="grid grid-cols-4 gap-4 pb-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-4">
                 {allPhotos.map((photo) => {
                   const isTempSelected = tempSelectedIds.includes(photo.id);
                   return (
