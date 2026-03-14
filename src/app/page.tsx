@@ -4,14 +4,9 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-// 🚨 [다국어 적용] 번역 훅 불러오기
-import { useTranslation } from '@/hooks/useTranslation';
 
 export default function LandingScreen() {
   const router = useRouter();
-  
-  // 🚨 [다국어 적용] 번역 객체 t 가져오기
-  const { t } = useTranslation();
 
   // 화면(로고) 클릭 시 실행되는 분기 로직
   const handleStartClick = () => {
@@ -44,9 +39,11 @@ export default function LandingScreen() {
           </div>
           <span className="text-[64px] font-bold text-text-primary group-hover:text-accent transition-colors">BYBAEK</span>
         </div>
-        <p className="text-body text-text-secondary mt-4 animate-pulse">
-          {/* 🚨 [다국어 적용] */}
-          {t.landing.click_to_start}
+        
+        {/* 🚨 [수정] 다국어 번역 훅 대신, 모든 사용자가 알아볼 수 있도록 두 언어를 나란히 표시합니다. */}
+        <p className="text-body text-text-secondary mt-4 animate-pulse flex flex-col items-center gap-1">
+          <span className="font-bold">로고를 클릭하여 시작하세요.</span>
+          <span className="text-sm opacity-80">Click the logo to start.</span>
         </p>
       </button>
     </div>
