@@ -9,16 +9,6 @@ import apiClient from '@/api/index';
 // 🚨 [다국어 적용] 번역 훅 불러오기
 import { useTranslation } from '@/hooks/useTranslation';
 
-// 임시 Mock Data (이 데이터는 렌더링에 직접 쓰이지 않으므로 그대로 둡니다)
-// const MOCK_DATA = [
-//   { id: 'new', isNew: true },
-//   { id: '1', title: '깔끔한 페이드컷 스타일' },
-//   { id: '2', title: '가을 트렌드 바버 스타일링' },
-//   { id: '3', title: '포마드 스타일링 팁' },
-//   { id: '4', title: '고객 리뷰 사진' },
-//   { id: '5', title: '바버샵 내부 전경' },
-// ];
-
 export default function DashboardScreen() {
   const router = useRouter();
   
@@ -28,7 +18,6 @@ export default function DashboardScreen() {
   const [posts, setPosts] = useState<any[]>([]);
   const [isGuest, setIsGuest] = useState(false);
   
-  //const shopId = "3sesac18";
   const [shopId, setShopId] = useState<string | null>(null);
   
   // 1. 페이지 로드 시 localStorage에서 정보를 먼저 가져옴
@@ -49,7 +38,6 @@ export default function DashboardScreen() {
 
   // 2. shopId가 제대로 설정되었을 때만 API 호출
   useEffect(() => {
-    // shopId가 null이거나 초기 상태일 때는 실행하지 않음
     if (!shopId) return;
 
     const fetchPosts = async () => {
@@ -63,6 +51,20 @@ export default function DashboardScreen() {
   
     fetchPosts();
   }, [shopId]);
+
+  // 🚨 [추가] 날짜를 예쁘게 변환해주는 헬퍼 함수 (예: "2024. 10. 25")
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return t.common?.no_date || "날짜 없음";
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "날짜 오류"; // 유효하지 않은 날짜 방어
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}. ${month}. ${day}`;
+  };
 
   return (
     <div className="flex flex-row h-screen w-full bg-background overflow-hidden">
@@ -117,7 +119,8 @@ export default function DashboardScreen() {
               <PostCard 
                 key={post.id}
                 id={post.id} 
-                title={post.caption?.substring(0, 15) + "..."} 
+                // 🚨 [핵심 수정] updated_at이 있으면 우선 사용하고, 없으면 created_at 사용!
+                title={formatDate(post.updated_at || post.created_at)} 
                 imageUrl={post.thumbnail_url}
                 onPress={() => router.push(`/post/${post.id}?shop_id=${shopId}`)} 
               />
