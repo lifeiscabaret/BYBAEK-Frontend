@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation'; 
 import { useTranslation } from '@/hooks/useTranslation';
 import apiClient from '@/api/index';
+import Image from 'next/image';
 
 type LoginStep = 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
@@ -174,30 +175,36 @@ export default function LoginScreen() {
         )}
 
         {/* 2. OneDrive QR 단계 */}
-        {step === 'ONEDRIVE_QR' && renderModalContainer(
-          t.login.onedrive_title,
-          <div className="flex flex-col items-center w-full px-4">
-            <p className="text-body text-text-primary text-center mb-small">{t.login.onedrive_desc1}</p>
-            <p className="text-body text-text-primary text-center mb-small">
-              {t.login.onedrive_desc2_1}<br /> {t.login.onedrive_desc2_2}
-            </p>
-            <p className="text-body text-text-primary text-center mb-small">
-              {t.login.onedrive_desc3_1}<br /> {t.login.onedrive_desc3_2}
-            </p>
-            
-            <div className="w-[150px] h-[150px] bg-[#EAEAEA] flex justify-center items-center mt-6 mb-8">
-              <span className="text-h2 text-text-secondary font-bold mb-small">{t.login.qr_code}</span>
-            </div>
-
-            {/* 🚨 기존에 바로 넘어가던 onClick을 handleOneDriveNextClick으로 교체! */}
-            <button 
-              onClick={handleOneDriveNextClick}
-              className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none"
-            >
-              {t.login.btn_next}
-            </button>
+      {step === 'ONEDRIVE_QR' && renderModalContainer(
+        t.login.onedrive_title,
+        <div className="flex flex-col items-center w-full px-4">
+          <p className="text-body text-text-primary text-center mb-small">{t.login.onedrive_desc1}</p>
+          <p className="text-body text-text-primary text-center mb-small">
+            {t.login.onedrive_desc2_1}<br /> {t.login.onedrive_desc2_2}
+          </p>
+          <p className="text-body text-text-primary text-center mb-small">
+            {t.login.onedrive_desc3_1}<br /> {t.login.onedrive_desc3_2}
+          </p>
+          
+          {/* 🚨 [수정] 회색 박스를 지우고 실제 QR 코드 이미지로 교체! */}
+          <div className="relative w-[150px] h-[150px] mt-6 mb-8 border border-border rounded-lg overflow-hidden shadow-sm">
+            <Image 
+              src="/images/QRcode.png" 
+              alt="OneDrive QR Code" 
+              fill 
+              className="object-contain p-2" // 큐알 코드가 너무 꽉 차지 않게 여백(p-2)을 살짝 줬습니다.
+            />
           </div>
-        )}
+
+          {/* 🚨 기존에 바로 넘어가던 onClick을 handleOneDriveNextClick으로 교체! */}
+          <button 
+            onClick={handleOneDriveNextClick}
+            className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none"
+          >
+            {t.login.btn_next}
+          </button>
+        </div>
+      )}
 
         {/* 3. 인스타그램 로그인 단계 */}
         {step === 'INSTA_LOGIN' && renderModalContainer(
