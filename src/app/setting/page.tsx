@@ -21,7 +21,6 @@ interface CustomAlertState {
 }
 
 export default function SettingScreen() {
-  //const [shopId] = useState('3sesac18');
   const [shopId, setShopId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -30,13 +29,18 @@ export default function SettingScreen() {
     setShopId(storedShopId || '3sesac18');
   }, []);
 
-  // 🚨 [다국어 적용] 번역 객체 t 가져오기
   const { t } = useTranslation();
 
   // 1. 환경 설정 State
   const [isAutoUploadEnabled, setIsAutoUploadEnabled] = useState(false);
-  // 🚨 [언어 연동 수정] 기본값을 'ko'로 설정
+  
+  // 🚨 [수정 1] 컴포넌트 마운트 시, 무조건 로컬 스토리지의 글로벌 언어를 최우선으로 가져옵니다!
   const [language, setLanguage] = useState('ko');
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setLanguage(localStorage.getItem('language') || 'ko');
+    }
+  }, []);
   
   // 2. 계정 연동 State
   const [isMicrosoftConnected, setIsMicrosoftConnected] = useState(false);
@@ -89,7 +93,7 @@ export default function SettingScreen() {
       console.error("설정 업데이트 실패:", error);
       setCustomAlert({
         isOpen: true,
-        message: t.setting.alert_save_error, // 🚨 [다국어 적용]
+        message: t.setting.alert_save_error, 
         type: 'ALERT'
       });
     }
@@ -103,12 +107,16 @@ export default function SettingScreen() {
         const data = response.data.shop_info || response.data; 
 
         if (data) {
-          const mappedAnswers = mapDBToSurveyAnswers(data, data.language || 'ko');
+          // 🚨 [수정 2] DB 데이터가 아니라, 현재 화면의 글로벌 언어를 기준으로 맵핑합니다.
+          const currentLang = localStorage.getItem('language') || 'ko';
+          const mappedAnswers = mapDBToSurveyAnswers(data, currentLang);
           setSurveyAnswers(mappedAnswers);
 
           setIsAutoUploadEnabled(data.insta_auto_upload_yn === 'Y');
-          // 🚨 [언어 연동 수정] DB에서 받아온 값(ko/en)으로 세팅
-          setLanguage(data.language || 'ko');
+          
+          // 🚨 [핵심 수정 3] setLanguage(data.language || 'ko'); 삭제!
+          // 백엔드 DB에 과거에 저장된 언어값으로 현재 UI의 언어를 덮어씌우는 하극상(?)을 방지합니다.
+
           setIsInstagramConnected(data.is_insta_connected || false);
           setIsMicrosoftConnected(data.is_ms_connected || false);
           setIsGmailConnected(data.is_gmail_connected || false);
@@ -157,18 +165,12 @@ export default function SettingScreen() {
     updateSetting({ insta_auto_upload_yn: val ? 'Y' : 'N' });
   };
 
-  // 🚨 [핵심 변경] 언어 토글 로직 최적화 (새로고침 적용)
   const handleToggleLanguage = () => {
     const nextLang = language === 'ko' ? 'en' : 'ko';
     
-    // 1. 상태 및 DB 업데이트
     setLanguage(nextLang);
     updateSetting({ language: nextLang });
-    
-    // 2. 로컬스토리지 업데이트
     localStorage.setItem('language', nextLang);
-    
-    // 3. 앱 전체에 언어를 즉시 적용하기 위해 브라우저 새로고침
     window.location.reload();
   };
 
@@ -192,7 +194,7 @@ export default function SettingScreen() {
       if (!popup) {
         setCustomAlert({
           isOpen: true,
-          message: t.setting.popup_blocked, // 🚨 [다국어 적용]
+          message: t.setting.popup_blocked, 
           type: 'ALERT'
         });
         setAuthStatus('IDLE');
@@ -209,7 +211,6 @@ export default function SettingScreen() {
     </button>
   );
 
-  // 🚨 [다국어 적용]
   if (isLoading) return <div className="flex h-screen w-full items-center justify-center font-bold text-text-secondary">{t.setting.loading}</div>;
 
   const renderCustomAlert = () => {
@@ -221,7 +222,6 @@ export default function SettingScreen() {
             <span className={`text-2xl font-bold leading-none ${customAlert.type === 'CONFIRM' ? 'text-[#E02424]' : 'text-accent'}`}>!</span>
           </div>
           <h3 className="text-lg font-bold text-text-primary mb-2">
-            {/* 🚨 [다국어 적용] */}
             {customAlert.type === 'CONFIRM' ? t.setting.alert_disconnect_title : t.setting.alert_notice}
           </h3>
           <p className="text-sm text-text-secondary text-center mb-6 whitespace-pre-wrap leading-relaxed">{customAlert.message}</p>
@@ -238,7 +238,6 @@ export default function SettingScreen() {
               }}
               className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors focus:outline-none ${customAlert.type === 'CONFIRM' ? 'bg-[#E02424] hover:bg-red-800' : 'bg-accent hover:bg-accent-dark'}`}
             >
-              {/* 🚨 [다국어 적용] */}
               {customAlert.type === 'CONFIRM' ? t.setting.btn_disconnect : t.common.confirm}
             </button>
           </div>
@@ -251,7 +250,6 @@ export default function SettingScreen() {
     if (activeAuthModal === 'NONE') return null;
     let title = '', desc = '', btnText = '';
 
-    // 🚨 [다국어 적용] 이전에 만들어둔 login 사전을 재활용합니다.
     if (activeAuthModal === 'Microsoft') {
       title = t.login.ms_title; desc = t.login.ms_desc; btnText = t.login.ms_btn;
     } else if (activeAuthModal === 'Instagram') {
@@ -314,7 +312,6 @@ export default function SettingScreen() {
       <Sidebar />
       <div className="flex-1 p-large flex flex-col min-w-0 h-full">
         <div className="mb-large border-b border-border pb-small shrink-0">
-          {/* 🚨 [다국어 적용] */}
           <h1 className="text-[28px] text-text-primary font-bold">{t.setting.title}</h1>
         </div>
 
@@ -334,7 +331,6 @@ export default function SettingScreen() {
                   const displayAnswer = rawAnswer ? (Array.isArray(rawAnswer) ? rawAnswer.join(', ') : rawAnswer) : t.setting.unentered;
                   return (
                     <div key={q.id} className="flex flex-row items-center justify-between gap-4">
-                      {/* 🚨 질문 자체는 DB나 상수에 고정된 언어를 사용 (번역 제외) */}
                       <p className="flex-[2] text-[14px] text-text-primary leading-snug">{index + 1}. {q.question}</p>
                       <p className="flex-[1] text-[14px] text-text-secondary font-bold text-right truncate">{displayAnswer}</p>
                       <button className="px-4 py-1.5 bg-background border border-[#D0D0D0] rounded-full text-[13px] font-semibold text-text-primary hover:bg-gray-50 transition-colors focus:outline-none shrink-0" onClick={() => { setTargetQuestionId(q.id); setIsOnboardingModalOpen(true); }}>
@@ -455,7 +451,6 @@ export default function SettingScreen() {
             <div className="flex flex-row justify-between items-center mb-4">
               <span className="text-[15px] text-text-primary">{t.setting.language_setting}</span>
               <div className="flex flex-row items-center">
-                {/* 🚨 화면 표시용 매핑: ko -> 한국어, en -> English */}
                 <span className="bg-background border border-border px-3 py-1.5 rounded-md text-sm mr-2">{language === 'ko' ? '한국어' : 'English'}</span>
                 <button className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none" onClick={handleToggleLanguage}>
                   {t.setting.btn_change}
@@ -474,7 +469,6 @@ export default function SettingScreen() {
               <span className="text-[15px] text-text-primary shrink-0">{t.setting.upload_time}</span>
               <div className="flex flex-row items-center flex-1 justify-end gap-3">
                 <span className="bg-background border border-border px-5 py-2 rounded-md text-sm whitespace-nowrap text-text-primary">
-                  {/* 🚨 [다국어 적용] 영어일 경우 매일 -> Everyday 등 번역 맵핑 */}
                   {(t.setting.freq_map as any)[frequency] || frequency} {amPm} {hour}:{minute}
                 </span>
                 <button 
@@ -535,7 +529,6 @@ export default function SettingScreen() {
         <div className="flex flex-row flex-wrap gap-2">
           {frequencies.map(f => (
             <button key={f} className={`px-4 py-2 rounded-full border text-sm transition-colors focus:outline-none ${tempFrequency === f ? 'bg-accent border-accent text-white font-bold' : 'bg-[#F0F0F0] border-border text-text-primary'}`} onClick={() => setTempFrequency(f)}>
-              {/* 🚨 화면에는 번역된 값을 보여주고, 실제 State에는 한글값 유지 */}
               {(t.setting.freq_map as any)[f] || f}
             </button>
           ))}

@@ -13,7 +13,6 @@ export interface SurveyQuestion {
   placeholder?: string;
 }
 
-// 🚨 [다국어 적용] 고정 배열을 '언어'를 파라미터로 받는 함수로 변경!
 export const getOnboardingQuestions = (lang: string): SurveyQuestion[] => {
   const isEn = lang === 'en';
 
@@ -95,16 +94,11 @@ export const getOnboardingQuestions = (lang: string): SurveyQuestion[] => {
       id: 12, category: 'APP', type: 'TEXT',
       question: isEn ? 'Please enter the email address to receive notifications' : '알람을 받을 메일 주소를 입력해주세요',
       placeholder: isEn ? 'Ex: example@gmail.com' : '예: example@gmail.com'
-    },
-    {
-      id: 14, category: 'APP', type: 'SELECT',
-      question: isEn ? 'Select the language to use' : '사용하는 언어를 고르세요',
-      options: ['한국어', 'English']
     }
+    // 🚨 [삭제됨] id: 14 언어 선택 문항 제거
   ];
 };
 
-// 🚨 [다국어 적용] DB 맵핑 함수도 현재 언어(lang)를 파라미터로 받아서 번역된 옵션과 매칭시킵니다.
 export const mapDBToSurveyAnswers = (data: any, lang: string): Record<number, any> => {
   if (!data) return {};
   const isEn = lang === 'en';
@@ -120,7 +114,6 @@ export const mapDBToSurveyAnswers = (data: any, lang: string): Record<number, an
     8: data.rag_reference || '',
     9: data.city || '',
     
-    // DB의 'Y', 'N' 값을 현재 언어의 객관식 옵션 텍스트로 변환
     11: data.insta_auto_upload_yn === 'Y' ? (isEn ? 'Yes (Recommended)' : '예 (추천)') : (isEn ? 'No' : '아니오'),
     12: data.owner_email || '',
     13: {
@@ -128,8 +121,7 @@ export const mapDBToSurveyAnswers = (data: any, lang: string): Record<number, an
       amPm: data.insta_upload_time ? data.insta_upload_time.split(' ')[1] : 'AM',
       hour: data.insta_upload_time ? data.insta_upload_time.split(' ')[0].split(':')[0] : '10',
       minute: data.insta_upload_time ? data.insta_upload_time.split(' ')[0].split(':')[1] : '30'
-    },
-    // 언어 설정 초기값
-    14: data.language === 'en' ? 'English' : '한국어'
+    }
+    // 🚨 [삭제됨] 14번 맵핑 로직 제거
   };
 };
