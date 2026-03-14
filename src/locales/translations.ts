@@ -6,7 +6,9 @@ export const translations = {
       save: "저장",
       cancel: "취소",
       close: "닫기",
-      confirm: "확인"
+      confirm: "확인",
+      select: "선택",
+      no_date: "날짜 없음",
     },
     album: {
       title: "내 앨범",
@@ -68,6 +70,7 @@ export const translations = {
       btn_later: "나중에",
       btn_complete: "완료",
       not_authenticated: "아직 인증되지 않았습니다.",
+      onedrive_alert: "BYBAEK은 OneDrive에 업로드 된 사진만 처리가능합니다.\nOneDrive 모바일 앱에서 백업 설정을 하지 않으시면 사용할 사진을 수동으로 OneDrive에 업로드 해주세요.",
     },
     onboarding_intro: {
       title_line1: "나만의 마케터를",
@@ -235,7 +238,9 @@ export const translations = {
       save: "Save",
       cancel: "Cancel",
       close: "Close",
-      confirm: "OK"
+      confirm: "OK",
+      select: "Select",
+      no_date: "No Date",
     },
     album: {
       title: "My Album",
@@ -297,6 +302,7 @@ export const translations = {
       btn_later: "Later",
       btn_complete: "Complete",
       not_authenticated: "Not authenticated yet.",
+      onedrive_alert: "BYBAEK can only process photos uploaded to OneDrive.\nIf you do not turn on camera backup in the OneDrive mobile app, you must manually upload the photos you want to use."
     },
     onboarding_intro: {
       title_line1: "Let's create your",
