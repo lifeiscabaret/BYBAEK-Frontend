@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react'; 
 import { Sidebar } from '@/components/Sidebar';
 import apiClient from '@/api/index'; 
-// 🚨 [다국어 적용] 번역 훅 불러오기
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface CustomAlertState {
@@ -15,11 +14,13 @@ interface CustomAlertState {
 }
 
 export default function AllPhotosScreen() {
-  // 🚨 [다국어 적용] 번역 객체 t 장착
   const { t } = useTranslation();
 
   const [photos, setPhotos] = useState<any[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
+
+  // 🚨 [신규] '선택 모드' 상태 관리
+  const [isSelectMode, setIsSelectMode] = useState(false);
 
   const [customAlert, setCustomAlert] = useState<CustomAlertState>({
     isOpen: false,
@@ -31,11 +32,19 @@ export default function AllPhotosScreen() {
   const [currentViewIndex, setCurrentViewIndex] = useState(0);
   const [loading, setLoading] = useState(true); 
 
+  const [shopId, setShopId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedShopId = localStorage.getItem('shop_id');
+    setShopId(storedShopId || '3sesac18');
+  }, []);
+
   const fetchPhotos = async () => {
+    if (!shopId) return;
+    setLoading(true);
     try {
-      const shopId = "3sesac18"; 
-      const response = await apiClient.get(`https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/photos/all/${shopId}`);
-      setPhotos(response.data.photos); 
+      const response = await apiClient.get(`/photos/all/${shopId}`);
+      setPhotos(response.data.photos || []);
     } catch (error) {
       console.error("사진 로딩 실패:", error);
     } finally {
@@ -45,7 +54,13 @@ export default function AllPhotosScreen() {
 
   useEffect(() => {
     fetchPhotos();
-  }, []);
+  }, [shopId]);
+
+  // 🚨 [신규] 선택 모드 토글 함수 (취소를 누르면 선택된 사진들도 싹 비워줍니다)
+  const toggleSelectMode = () => {
+    setIsSelectMode(!isSelectMode);
+    setSelectedIndexes([]); 
+  };
 
   const toggleSelect = (index: number) => {
     setSelectedIndexes((prev) =>
@@ -53,7 +68,6 @@ export default function AllPhotosScreen() {
     );
   };
 
-  // 🚨 [핵심 수정] 톤앤매너에 맞게 window.alert, confirm을 모두 customAlert로 교체!
   const handleDelete = async () => {
     if (selectedIndexes.length === 0) {
       setCustomAlert({
@@ -64,7 +78,8 @@ export default function AllPhotosScreen() {
       return;
     }
     
-    const confirmMessage = t.photos.confirm_delete_msg.replace('{count}', selectedIndexes.length.toString());
+    // 🚨 요청하신 영구 삭제 경고 문구로 변경
+    const confirmMessage = "정말로 사진을 지우시겠습니까?\n영구적으로 삭제됩니다.";
 
     setCustomAlert({
       isOpen: true,
@@ -72,16 +87,14 @@ export default function AllPhotosScreen() {
       type: 'CONFIRM',
       onConfirm: async () => {
         try {
-          const shopId = "3sesac18";
-          
           await Promise.all(
             selectedIndexes.map(async (idx) => {
               const photoId = photos[idx].id;
+              // 백엔드 API 호출 (실제 DB 삭제 로직 트리거)
               return apiClient.delete(`/photos/${shopId}/${photoId}`);
             })
           );
 
-          // 삭제 성공 알림창 띄우기
           setCustomAlert({
             isOpen: true,
             message: t.photos.delete_success_msg,
@@ -90,9 +103,9 @@ export default function AllPhotosScreen() {
           
           fetchPhotos();
           setSelectedIndexes([]); 
+          setIsSelectMode(false); // 🚨 삭제 완료 후 자동으로 선택 모드 해제
         } catch (error) {
           console.error("사진 삭제 실패:", error);
-          // 삭제 실패 알림창 띄우기
           setCustomAlert({
             isOpen: true,
             message: t.photos.delete_error_msg,
@@ -109,15 +122,11 @@ export default function AllPhotosScreen() {
   };
 
   const handlePrevImage = () => {
-    if (currentViewIndex > 0) {
-      setCurrentViewIndex(currentViewIndex - 1);
-    }
+    if (currentViewIndex > 0) setCurrentViewIndex(currentViewIndex - 1);
   };
 
   const handleNextImage = () => {
-    if (currentViewIndex < photos.length - 1) {
-      setCurrentViewIndex(currentViewIndex + 1);
-    }
+    if (currentViewIndex < photos.length - 1) setCurrentViewIndex(currentViewIndex + 1);
   };
 
   const renderCustomAlert = () => {
@@ -134,7 +143,6 @@ export default function AllPhotosScreen() {
             }`}>!</span>
           </div>
           <h3 className="text-lg font-bold text-text-primary mb-2">
-            {/* 🚨 [다국어 적용] 타이틀 */}
             {customAlert.type === 'CONFIRM' ? t.photos.delete_photo_title : t.photos.alert_title}
           </h3>
           <p className="text-sm text-text-secondary text-center mb-6 whitespace-pre-wrap leading-relaxed">
@@ -144,23 +152,20 @@ export default function AllPhotosScreen() {
             {customAlert.type === 'CONFIRM' && (
               <button
                 onClick={() => setCustomAlert({ ...customAlert, isOpen: false })}
-                className="flex-1 py-3 bg-[#E0E0E0] text-text-primary rounded-lg font-bold hover:bg-gray-300 transition-colors focus:outline-none"
+                className="flex-1 py-3 bg-[#E0E0E0] text-text-primary rounded-lg font-bold hover:bg-gray-300 transition-colors focus:outline-none cursor-pointer"
               >
-                {/* 🚨 [다국어 적용] 취소 */}
                 {t.common.cancel}
               </button>
             )}
             <button
               onClick={() => {
-                // 🚨 onConfirm이 있으면 모달을 닫은 뒤 바로 실행하도록 최적화
                 setCustomAlert({ ...customAlert, isOpen: false });
                 if (customAlert.onConfirm) customAlert.onConfirm();
               }}
-              className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors focus:outline-none ${
+              className={`flex-1 py-3 rounded-lg font-bold text-white transition-colors focus:outline-none cursor-pointer ${
                 customAlert.type === 'CONFIRM' ? 'bg-[#E02424] hover:bg-red-800' : 'bg-accent hover:bg-accent-dark'
               }`}
             >
-              {/* 🚨 [다국어 적용] 확인 / 삭제하기 분기 */}
               {customAlert.type === 'CONFIRM' ? t.photos.btn_delete : t.common.confirm}
             </button>
           </div>
@@ -175,15 +180,35 @@ export default function AllPhotosScreen() {
       
       <div className="flex-1 p-large bg-[#FAFAFA] flex flex-col min-w-0 h-full">
         <div className="flex flex-row justify-between items-center mb-large pb-small border-b border-border shrink-0">
-          {/* 🚨 [다국어 적용] 타이틀 */}
           <h1 className="text-h1 text-text-primary font-bold">{t.photos.title}</h1>
-          <button 
-            onClick={handleDelete}
-            className="px-medium py-2 border border-accent rounded-md bg-white text-accent font-bold text-sm hover:bg-red-50 transition-colors focus:outline-none"
-          >
-            {/* 🚨 [다국어 적용] 선택된 사진 삭제 */}
-            {t.photos.delete_selected}
-          </button>
+          
+          {/* 🚨 우측 상단 컨트롤 버튼 영역 */}
+          <div className="flex items-center gap-3">
+            {/* 선택 모드일 때만 나타나는 휴지통 아이콘 버튼 */}
+            {isSelectMode && (
+              <button 
+                onClick={handleDelete}
+                className="p-2 border border-red-500 rounded-md bg-white text-red-500 hover:bg-red-50 transition-colors focus:outline-none cursor-pointer flex items-center justify-center shadow-sm"
+                title="선택된 사진 삭제"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
+            
+            {/* 선택 / 취소 토글 버튼 */}
+            <button 
+              onClick={toggleSelectMode}
+              className={`px-5 py-2 border rounded-md font-bold text-sm transition-colors focus:outline-none cursor-pointer shadow-sm ${
+                isSelectMode 
+                  ? 'border-gray-300 text-text-primary bg-gray-100 hover:bg-gray-200' 
+                  : 'border-accent bg-white text-accent hover:bg-red-50'
+              }`}
+            >
+              {isSelectMode ? (t.common?.cancel || '취소') : (t.common?.select || '선택')}
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-hide">
@@ -191,7 +216,6 @@ export default function AllPhotosScreen() {
             
               {loading ? (
                 <div className="flex justify-center items-center w-full h-40">
-                  {/* 🚨 [다국어 적용] 로딩 텍스트 */}
                   <p className="text-text-secondary">{t.photos.loading_photos}</p>
                 </div>
               ) : (
@@ -202,12 +226,13 @@ export default function AllPhotosScreen() {
                     <div 
                       key={photo.id || `photo-${index}`}
                       className={`relative w-[180px] h-[180px] bg-[#EAEAEA] rounded-lg border overflow-hidden transition-all shrink-0 group ${
-                        isSelected ? 'border-accent border-[3px]' : 'border-border hover:border-gray-400'
+                        isSelected && isSelectMode ? 'border-accent border-[3px]' : 'border-border hover:border-gray-400'
                       }`}
                     >
+                      {/* 🚨 [핵심] 선택 모드일 땐 toggleSelect, 아닐 땐 openViewer 실행 */}
                       <button 
-                        onClick={() => openViewer(index)}
-                        className="w-full h-full focus:outline-none"
+                        onClick={() => isSelectMode ? toggleSelect(index) : openViewer(index)}
+                        className="w-full h-full focus:outline-none cursor-pointer"
                       >
                         <img 
                           src={photo.blob_url} 
@@ -216,19 +241,16 @@ export default function AllPhotosScreen() {
                         />
                       </button>
 
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleSelect(index);
-                        }}
-                        className="absolute top-[8px] left-[8px] p-1 z-10 focus:outline-none"
-                      >
-                        <div className={`w-[22px] h-[22px] rounded border-2 flex justify-center items-center transition-colors shadow-sm ${
-                          isSelected ? 'bg-accent border-accent' : 'bg-white border-text-secondary hover:border-gray-500'
-                        }`}>
-                          {isSelected && <span className="text-white text-sm font-bold leading-none">✓</span>}
+                      {/* 🚨 선택 모드(isSelectMode)일 때만 체크박스 UI 표시 */}
+                      {isSelectMode && (
+                        <div className="absolute top-[8px] left-[8px] p-1 z-10 pointer-events-none">
+                          <div className={`w-[22px] h-[22px] rounded border-2 flex justify-center items-center transition-colors shadow-sm ${
+                            isSelected ? 'bg-accent border-accent' : 'bg-white/80 border-gray-400'
+                          }`}>
+                            {isSelected && <span className="text-white text-sm font-bold leading-none">✓</span>}
+                          </div>
                         </div>
-                      </button>
+                      )}
                     </div>
                   );
                 })
@@ -246,11 +268,10 @@ export default function AllPhotosScreen() {
           <div className="w-[800px] h-[650px] bg-background rounded-xl shadow-lg p-large flex flex-col justify-between">
             
             <div className="flex justify-between items-center mb-large shrink-0">
-              {/* 🚨 [다국어 적용] 뷰어 타이틀 */}
               <h2 className="text-h2 font-bold text-text-primary">{t.photos.viewer_title}</h2>
               <button 
                 onClick={() => setIsViewerOpen(false)} 
-                className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none"
+                className="text-[20px] text-text-secondary hover:text-text-primary transition-colors focus:outline-none cursor-pointer"
               >
                 ✕
               </button>
@@ -260,7 +281,7 @@ export default function AllPhotosScreen() {
               <button 
                 onClick={handlePrevImage}
                 disabled={currentViewIndex === 0}
-                className={`p-2 text-4xl font-light transition-colors focus:outline-none ${
+                className={`p-2 text-4xl font-light transition-colors focus:outline-none cursor-pointer ${
                   currentViewIndex === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-text-secondary hover:text-accent'
                 }`}
               >
@@ -284,7 +305,7 @@ export default function AllPhotosScreen() {
               <button 
                 onClick={handleNextImage}
                 disabled={currentViewIndex === photos.length - 1}
-                className={`p-2 text-4xl font-light transition-colors focus:outline-none ${
+                className={`p-2 text-4xl font-light transition-colors focus:outline-none cursor-pointer ${
                   currentViewIndex === photos.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-text-secondary hover:text-accent'
                 }`}
               >
@@ -295,9 +316,8 @@ export default function AllPhotosScreen() {
             <div className="flex flex-row justify-center mt-large shrink-0">
               <button 
                 onClick={() => setIsViewerOpen(false)} 
-                className="w-full bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none"
+                className="w-full bg-[#E0E0E0] py-3 rounded-lg flex items-center justify-center text-text-primary font-bold hover:bg-gray-300 transition-colors focus:outline-none cursor-pointer"
               >
-                {/* 🚨 [다국어 적용] 공통 닫기 버튼 */}
                 {t.common.close}
               </button>
             </div>
@@ -305,7 +325,6 @@ export default function AllPhotosScreen() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -1,8 +1,10 @@
 // 타겟 경로: src/app/review/page.tsx
 "use client";
 
+// 🚨 [추가] useRouter와 Image 컴포넌트 임포트
 import React, { useState, useEffect, Suspense, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation'; 
+import Image from 'next/image';
 import apiClient from '@/api/index';
 import { useTranslation } from '@/hooks/useTranslation';
 
@@ -30,6 +32,9 @@ const MOCK_DATA = {
 
 function ReviewContent() {
   const searchParams = useSearchParams();
+  // 🚨 [추가] 라우터 사용을 위한 선언
+  const router = useRouter();
+  
   const shopId = searchParams.get('shop_id') || '3sesac18'; 
   const postId = searchParams.get('post_id') || '';
 
@@ -40,7 +45,6 @@ function ReviewContent() {
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [isUploadSuccess, setIsUploadSuccess] = useState(false);
   
-  // 🚨 [추가] 브라우저 창 닫기가 안 먹힐 때 띄워줄 최종 완료 화면 상태
   const [isClosedFallback, setIsClosedFallback] = useState(false);
 
   const [allPhotos, setAllPhotos] = useState<any[]>([]);
@@ -108,10 +112,10 @@ function ReviewContent() {
           // setGeneratedCaption(postRes.data.caption);
           // setImages(postRes.data.images || []);
         }
-        const allRes = await apiClient.get(`/photos/all/${shopId}`);
+        const allRes = await apiClient.get(`/photos/all/${shopId}`); 
         setAllPhotos(allRes.data.photos || []);
 
-        const albumRes = await apiClient.get(`/album/${shopId}`);
+        const albumRes = await apiClient.get(`/album/${shopId}`); 
         setAlbums(albumRes.data.albums || albumRes.data || []);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
@@ -215,7 +219,7 @@ function ReviewContent() {
         return;
       }
 
-      const response = await apiClient.post('/save', payload);
+      const response = await apiClient.post('/save', payload); 
       if (response.data.status === 'success') {
         setAlertMessage("게시물 수정 및 인스타그램 업로드가 완료되었습니다! 🎉");
         setIsUploadSuccess(true); 
@@ -228,23 +232,16 @@ function ReviewContent() {
     }
   };
 
-  // 🚨 [수정] 빈 창(about:blank) 대신 커스텀 완료 화면을 띄워주는 로직
   const handleAlertConfirm = () => {
     setAlertMessage(null);
     if (isUploadSuccess) {
-      // 1. 모바일 앱 환경을 위한 브라우저 창 닫기 시도
       window.close();
-      
-      // 2. PC 등 창 닫기가 막힌 브라우저를 위해 예쁜 '완료 화면' 상태로 변경
       setTimeout(() => {
         setIsClosedFallback(true);
       }, 100);
     }
   };
 
-  // ==========================================
-  // 🚨 [렌더링 1] 최종 완료 후 보여줄 쾌적한 안내 화면
-  // ==========================================
   if (isClosedFallback) {
     return (
       <div className="w-full max-w-md mx-auto h-screen bg-[#FAFAFA] flex flex-col items-center justify-center shadow-2xl p-6 text-center">
@@ -256,8 +253,6 @@ function ReviewContent() {
           성공적으로 인스타그램에 업로드 되었습니다.<br/>
           이제 이 창을 닫으셔도 됩니다.
         </p>
-        
-        {/* 모바일의 경우 뒤로가기 버튼이 없으므로 직접 창을 닫으라는 직관적인 가이드 제공 */}
         <p className="text-[13px] text-gray-400 bg-gray-100 px-4 py-2 rounded-full">
           브라우저 또는 탭을 닫아주세요.
         </p>
@@ -265,9 +260,6 @@ function ReviewContent() {
     );
   }
 
-  // ==========================================
-  // 🚨 [렌더링 2] 초기 로딩 스피너 화면
-  // ==========================================
   if (isPageLoading) {
     return (
       <div className="flex h-screen w-full max-w-md mx-auto items-center justify-center bg-[#FAFAFA] shadow-2xl">
@@ -279,13 +271,29 @@ function ReviewContent() {
     );
   }
 
-  // ==========================================
-  // 🚨 [렌더링 3] 본 화면 (수정 에디터)
-  // ==========================================
   return (
     <div className="w-full max-w-md mx-auto h-screen bg-[#FAFAFA] flex flex-col shadow-2xl relative">
       
-      <div className="flex flex-row justify-center items-center p-4 bg-white border-b border-border shrink-0">
+      {/* 🚨 상단 헤더: 상대 위치(relative) 부여하여 로고와 타이틀 배치 */}
+      <div className="relative flex flex-row justify-center items-center p-4 bg-white border-b border-border shrink-0">
+        
+        {/* 좌측 상단 로고 버튼 (대시보드로 이동) */}
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="absolute left-4 flex items-center justify-center focus:outline-none hover:scale-110 transition-transform cursor-pointer"
+          title="대시보드로 이동"
+        >
+          <div className="relative w-8 h-8">
+            <Image 
+              src="/images/logo.png" 
+              alt="BYBAEK Logo" 
+              fill 
+              className="object-contain"
+            />
+          </div>
+        </button>
+
+        {/* 중앙 타이틀 */}
         <h2 className="text-[18px] text-text-primary font-bold">
           게시글 검토 및 수정
         </h2>

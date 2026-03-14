@@ -17,7 +17,13 @@ interface AlbumData {
 }
 
 export default function MyAlbumScreen() {
-  const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
+  const [shopId, setShopId] = useState<string | null>(null);
+  // const shopId = "3sesac18"; // 실제 연동 시에는 로그인 유저 ID 사용
+
+  useEffect(() => {
+    const storedShopId = localStorage.getItem('shop_id');
+    setShopId(storedShopId || '3sesac18'); // 실서버에서는 'guest_shop' 등으로 처리
+  }, []);
 
   const { t } = useTranslation();
 
@@ -36,6 +42,12 @@ export default function MyAlbumScreen() {
   const [allPhotos, setAllPhotos] = useState<any[]>([]); // 전체 사진 목록
   const [tempSelectedIds, setTempSelectedIds] = useState<string[]>([]); // 팝업 내 임시 선택
 
+  useEffect(() => {
+    if (!shopId) return;
+    fetchAlbums();
+    fetchAllPhotos();
+  }, [shopId]);
+  
   // 1. 앨범 목록 조회
   const fetchAlbums = async () => {
     try {
@@ -145,19 +157,29 @@ export default function MyAlbumScreen() {
     setIsDetailModalVisible(true);
   };
 
-  const handleSaveOverlay = async () => {
+const handleSaveOverlay = async () => {
     if (!selectedAlbum) return;
     try {
       const photoIds = albumPhotos.map(p => p.id);
-      await apiClient.post("/photos/albums", {
+      const response = await apiClient.post("/photos/albums", {
         shop_id: shopId,
-        album_id: selectedAlbum.id === 'new' ? null : selectedAlbum.id,
+        album_id: selectedAlbum.id, // 'new'가 넘어가면 서버가 UUID를 만듭니다.
         album_name: editTitle || t.album.default_new_name,
         description: editDesc,
         photo_ids: photoIds
       });
-      fetchAlbums();
-      setIsDetailModalVisible(false);
+
+      // 🚨 [추가] 서버가 생성해준 진짜 ID로 상태 업데이트
+      if (selectedAlbum.id === 'new' && response.data.album_id) {
+        setSelectedAlbum({
+          ...selectedAlbum,
+          id: response.data.album_id,
+          isNew: false
+        });
+      }
+
+      await fetchAlbums(); // 목록 새로고침
+      setIsDetailModalVisible(false); // 저장 후 닫기
     } catch (error) {
       console.error("저장 실패:", error);
     }
