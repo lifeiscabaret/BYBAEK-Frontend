@@ -13,7 +13,6 @@ interface ChatMessage {
 }
 
 export default function PreviewScreen() {
-  // const shopId = '3sesac18';
   const [shopId, setShopId] = useState<string | null>(null);
 
   const postId = '';
@@ -196,7 +195,6 @@ export default function PreviewScreen() {
     }
   };
 
-  // 🚨 [핵심 수정] 백엔드와 약속한 데이터만 담아서 딱 한 번만 쏘는 로직으로 롤백
   const handleUpload = async () => {
     if (images.length === 0) {
       setAlertMessage(t.preview.alert_no_photo);
@@ -214,13 +212,12 @@ export default function PreviewScreen() {
     setIsLoading(true);
 
     try {
-      // 🚨 프론트엔드는 이제 딱 필요한 정보만 깔끔하게 보냅니다.
       const payload = {
         shop_id: shopId,
         post_id: postId,
         caption: generatedCaption,
-        image_urls: images.map((img) => img.blob_url), // 팀원과 합의한 '사진 URL 배열' 추가!
-        photo_ids: images.map((img) => img.id),        // (기존 백엔드 DB 저장용, 필요없어지면 나중에 빼셔도 됩니다)
+        image_urls: images.map((img) => img.blob_url),
+        photo_ids: images.map((img) => img.id),        
       };
 
       const response = await apiClient.post('/api/agent/save', payload);
@@ -458,14 +455,29 @@ export default function PreviewScreen() {
             />
           </div>
 
-          <div className="shrink-0">
+          {/* 🚨 [수정] 업로드 버튼 2:1 비율 분할 & 인스타그램 아이콘 추가 */}
+          <div className="shrink-0 flex flex-row gap-3 h-[52px]">
             <button
               onClick={handleUpload}
-              className="w-full py-3.5 bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md cursor-pointer"
+              className="flex-[2] h-full bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md cursor-pointer"
             >
               {t.preview.btn_upload_insta}
             </button>
+            
+            <a 
+              href="https://instagram.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex-[1] h-full bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm cursor-pointer transform hover:scale-[1.02]"
+              title="인스타그램 바로가기"
+            >
+              {/* 인스타그램 브랜드 컬러(#E1306C) 적용 */}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="#E1306C">
+                <path d="M7.75 2C4.574 2 2 4.574 2 7.75v8.5C2 19.426 4.574 22 7.75 22h8.5C19.426 22 22 19.426 22 16.25v-8.5C22 4.574 19.426 2 16.25 2h-8.5zm0 2h8.5C18.321 4 20 5.679 20 7.75v8.5C20 18.321 18.321 20 16.25 20h-8.5C5.679 20 4 18.321 4 16.25v-8.5C4 5.679 5.679 4 7.75 4zm9.25 1.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM12 7a5 5 0 100 10 5 5 0 000-10zm0 2a3 3 0 110 6 3 3 0 010-6z"/>
+              </svg>
+            </a>
           </div>
+
         </div>
       </div>
 
