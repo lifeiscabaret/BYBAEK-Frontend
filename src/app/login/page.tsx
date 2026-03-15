@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import apiClient from '@/api/index';
 import Image from 'next/image';
@@ -13,35 +13,36 @@ type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 const BACKEND_URL = 'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net';
 
 export default function LoginScreen() {
-  if (typeof window === "undefined") return null;
-
   const router = useRouter();
   const { t } = useTranslation();
 
-  const searchParams = new URLSearchParams(window.location.search); 
-  const isFromSidebar = searchParams.get('from') === 'sidebar';
+  // hydration 에러 방지 - typeof window 체크 대신 isMounted 패턴
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => { setIsMounted(true); }, []);
 
+  const [isFromSidebar, setIsFromSidebar] = useState(false);
   const [step, setStep] = useState<LoginStep>('LANGUAGE_SELECT');
   const [msLoginStatus, setMsLoginStatus] = useState<LoginStatus>('IDLE');
   const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
-
-  const [alertData, setAlertData] = useState<{isOpen: boolean; message: string; onConfirm?: () => void}>({
-    isOpen: false,
-    message: ''
+  const [alertData, setAlertData] = useState<{ isOpen: boolean; message: string; onConfirm?: () => void }>({
+    isOpen: false, message: ''
   });
 
   useEffect(() => {
+    if (!isMounted) return;
+    const searchParams = new URLSearchParams(window.location.search);
+    setIsFromSidebar(searchParams.get('from') === 'sidebar');
+
     const savedLanguage = localStorage.getItem('language');
-    if (savedLanguage) {
-      setStep('MS_LOGIN');
-    }
-  }, []);
+    if (savedLanguage) setStep('MS_LOGIN');
+  }, [isMounted]);
 
   useEffect(() => {
+    if (!isMounted) return;
+
     const handleAuthMessage = async (event: MessageEvent) => {
       if (event.data === 'MS_LOGIN_SUCCESS') {
         try {
-          // 1. shop_id 저장
           const response = await apiClient.get('/auth/me');
           const { shop_id } = response.data;
 
@@ -50,34 +51,15 @@ export default function LoginScreen() {
             setMsLoginStatus('COMPLETED');
             console.log("Shop ID 동기화 성공:", shop_id);
 
-            // 2. Easy Auth에서 AAD 토큰 가져오기
+            // withCredentials: true 덕분에 Azure가 헤더 자동 주입
+            // 수동으로 토큰 꺼낼 필요 없음
             try {
-              const authMeRes = await fetch(
-                `${BACKEND_URL}/.auth/me`,
-                { credentials: 'include' }
-              );
-              const authMeData = await authMeRes.json();
-              // access_token 또는 id_token 둘 다 시도
-              const aadToken =
-                authMeData?.[0]?.access_token ||
-                authMeData?.[0]?.id_token ||
-                null;
-
-              if (aadToken) {
-                localStorage.setItem('aad_token', aadToken);
-
-                // 3. OneDrive 자동 동기화 트리거
-                await apiClient.post(
-                  '/onedrive/sync-photos',
-                  { root_folder_item_id: 'root', overwrite: false },
-                  { headers: { 'x-ms-token-aad-access-token': aadToken } }
-                );
-                console.log("OneDrive 동기화 시작");
-              } else {
-                console.warn("AAD 토큰 없음 → OneDrive 동기화 스킵");
-              }
+              await apiClient.post('/onedrive/sync-photos', {
+                root_folder_item_id: 'root',
+                overwrite: false
+              });
+              console.log("OneDrive 동기화 시작");
             } catch (syncError) {
-              // 동기화 실패해도 로그인 플로우는 계속 진행
               console.warn("OneDrive 동기화 실패 (무시):", syncError);
             }
           }
@@ -86,12 +68,12 @@ export default function LoginScreen() {
         }
       }
       if (event.data === 'INSTA_LOGIN_SUCCESS') {
-        setInstaLoginStatus('COMPLETED'); 
+        setInstaLoginStatus('COMPLETED');
       }
     };
     window.addEventListener('message', handleAuthMessage);
     return () => window.removeEventListener('message', handleAuthMessage);
-  }, []);
+  }, [isMounted]);
 
   useEffect(() => {
     if (msLoginStatus === 'COMPLETED') {
@@ -105,26 +87,23 @@ export default function LoginScreen() {
       const timer = setTimeout(() => handleFinishLogin(), 1500);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instaLoginStatus]);
 
   const handleLanguageSelect = (lang: 'ko' | 'en') => {
     localStorage.setItem('language', lang);
-    window.location.reload(); 
+    window.location.reload();
   };
 
   const handleMsLoginClick = () => {
     setMsLoginStatus('IN_PROGRESS');
-    const currentOrigin = window.location.origin;
-    const frontendCallbackUrl = encodeURIComponent(`${currentOrigin}/auth/callback`);
+    const frontendCallbackUrl = encodeURIComponent(`${window.location.origin}/auth/callback`);
     const loginUrl = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
     window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
   };
 
   const handleInstaLoginClick = () => {
-    setInstaLoginStatus('IN_PROGRESS'); 
-    const currentOrigin = window.location.origin;
-    const redirectUri = encodeURIComponent(`${currentOrigin}/auth/callback`);
+    setInstaLoginStatus('IN_PROGRESS');
+    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`);
     const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1219138883682659&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     window.open(instaUrl, 'Insta_Login_Popup', 'width=500,height=600');
   };
@@ -132,20 +111,16 @@ export default function LoginScreen() {
   const handleFinishLogin = () => {
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.removeItem('isGuest');
-    if (isFromSidebar) {
-      router.push('/dashboard');
-    } else {
-      router.push('/onboarding/intro'); 
-    }
+    router.push(isFromSidebar ? '/dashboard' : '/onboarding/intro');
   };
 
   const handleOneDriveNextClick = () => {
     setAlertData({
       isOpen: true,
-      message: t.login.onedrive_alert, 
+      message: t.login.onedrive_alert,
       onConfirm: () => {
-        setAlertData({ isOpen: false, message: '' }); 
-        setStep('INSTA_LOGIN'); 
+        setAlertData({ isOpen: false, message: '' });
+        setStep('INSTA_LOGIN');
       }
     });
   };
@@ -163,16 +138,17 @@ export default function LoginScreen() {
     </div>
   );
 
+  if (!isMounted) return null;
+
   return (
     <>
       <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
 
-        {/* 0. 언어 선택 */}
         {step === 'LANGUAGE_SELECT' && renderModalContainer(
           "Language / 언어 설정",
           <div className="flex flex-col items-center w-full px-4 gap-4">
             <p className="text-body text-text-primary text-center mb-6">
-              사용할 언어를 선택해주세요.<br/>
+              사용할 언어를 선택해주세요.<br />
               <span className="text-sm text-gray-500">Please select your preferred language.</span>
             </p>
             <button onClick={() => handleLanguageSelect('ko')} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[16px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
@@ -184,7 +160,6 @@ export default function LoginScreen() {
           </div>
         )}
 
-        {/* 1. MS 로그인 */}
         {step === 'MS_LOGIN' && renderModalContainer(
           t.login.ms_title,
           <div className="flex flex-col items-center w-full px-4">
@@ -220,16 +195,15 @@ export default function LoginScreen() {
           </div>
         )}
 
-        {/* 2. OneDrive QR */}
         {step === 'ONEDRIVE_QR' && renderModalContainer(
           t.login.onedrive_title,
           <div className="flex flex-col items-center w-full px-4">
             <p className="text-body text-text-primary text-center mb-small">{t.login.onedrive_desc1}</p>
             <p className="text-body text-text-primary text-center mb-small">
-              {t.login.onedrive_desc2_1}<br /> {t.login.onedrive_desc2_2}
+              {t.login.onedrive_desc2_1}<br />{t.login.onedrive_desc2_2}
             </p>
             <p className="text-body text-text-primary text-center mb-small">
-              {t.login.onedrive_desc3_1}<br /> {t.login.onedrive_desc3_2}
+              {t.login.onedrive_desc3_1}<br />{t.login.onedrive_desc3_2}
             </p>
             <div className="relative w-[150px] h-[150px] mt-6 mb-8 border border-border rounded-lg overflow-hidden shadow-sm">
               <Image src="/images/QRcode.png" alt="OneDrive QR Code" fill className="object-contain p-2" />
@@ -240,7 +214,6 @@ export default function LoginScreen() {
           </div>
         )}
 
-        {/* 3. 인스타그램 로그인 */}
         {step === 'INSTA_LOGIN' && renderModalContainer(
           t.login.insta_title,
           <div className="flex flex-col items-center w-full px-4">
