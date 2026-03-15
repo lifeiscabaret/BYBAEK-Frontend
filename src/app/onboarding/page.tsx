@@ -49,14 +49,16 @@ export default function OnboardingScreen() {
         exclude_conditions: Array.isArray(answers[3]) ? answers[3] : (answers[3] ? [answers[3]] : []),
         hashtag_style: Array.isArray(answers[4]) ? answers[4] : (answers[4] ? [answers[4]] : []),
         
-        cta: answers[5] || null,
-        shop_intro: answers[6] || null,
+        // 🚨 [수정] .trim()을 추가해서 스페이스바만 입력된 것도 완벽하게 null로 바꿔버립니다!
+        cta: answers[5]?.trim() || null,
+        shop_intro: answers[6]?.trim() || null,
         forbidden_words: Array.isArray(answers[7]) ? answers[7] : (answers[7] ? [answers[7]] : []),
-        rag_reference: answers[8] || null,
-        city: answers[9] || null,
+        rag_reference: answers[8]?.trim() || null,
+        city: answers[9]?.trim() || null,
         
         insta_auto_upload_yn: answers[11] === '예 (추천)' ? 'Y' : 'N',
-        owner_email: answers[12] || null,
+        owner_email: answers[12]?.trim() || null, // 👈 철벽 방어 완료!
+        
         insta_upload_time_slot: schedule.frequency || '매일',
         insta_upload_time: uploadTime || null,
         

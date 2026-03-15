@@ -21,7 +21,7 @@ export default function MyAlbumScreen() {
 
   useEffect(() => {
     const storedShopId = localStorage.getItem('shop_id');
-    setShopId(storedShopId || '3sesac18'); 
+    setShopId(storedShopId); 
   }, []);
 
   const { t } = useTranslation();

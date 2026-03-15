@@ -17,7 +17,6 @@ export default function PostDetailScreen({ params }: PostDetailProps) {
   const router = useRouter();
   const searchParams = useSearchParams(); 
   const { id } = React.use(params);
-  // const shopId = searchParams.get('shop_id') || "3sesac18"; 
   const [shopId, setShopId] = useState<string | null>(null);  
 
   useEffect(() => {

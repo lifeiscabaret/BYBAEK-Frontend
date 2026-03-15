@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import apiClient from '@/api/index'; 
 import { useTranslation } from '@/hooks/useTranslation';
+import { useRouter } from 'next/navigation';
 
 interface CustomAlertState {
   isOpen: boolean;
@@ -36,7 +37,7 @@ export default function AllPhotosScreen() {
 
   useEffect(() => {
     const storedShopId = localStorage.getItem('shop_id');
-    setShopId(storedShopId || '3sesac18');
+    setShopId(storedShopId);
   }, []);
 
   const fetchPhotos = async () => {
