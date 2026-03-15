@@ -24,13 +24,12 @@ interface AlbumDetailModalProps {
 
 export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, album, onClose, onSave }) => {
   const { t } = useTranslation();
-  //const shopId = '3sesac18'; // 🚨 하드코딩된 샵 ID (필요시 전역 상태로 변경)
 
   const [shopId, setShopId] = useState<string | null>(null);
 
   useEffect(() => {
     const storedId = localStorage.getItem('shop_id');
-    setShopId(storedId || '3sesac18');
+    setShopId(storedId);
   }, []);
   
   const [tempTitle, setTempTitle] = useState('');

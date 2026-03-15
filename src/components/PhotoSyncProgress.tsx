@@ -16,11 +16,10 @@ interface SyncStatus {
 }
 
 export function PhotoSyncProgress() {
-  //const shopId = '3sesac18'; 
   const [shopId, setShopId] = useState<string | null>(null);
   useEffect(() => {
     const storedId = localStorage.getItem('shop_id');
-    setShopId(storedId || '3sesac18');
+    setShopId(storedId);
   }, []);
   // 🚨 [다국어 적용] 번역 객체 t 가져오기
   const { t } = useTranslation();
