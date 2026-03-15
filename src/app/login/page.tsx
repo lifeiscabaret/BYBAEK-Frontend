@@ -7,9 +7,10 @@ import { useTranslation } from '@/hooks/useTranslation';
 import apiClient from '@/api/index';
 import Image from 'next/image';
 
-// 🚨 [수정] LANGUAGE_SELECT 단계 추가
 type LoginStep = 'LANGUAGE_SELECT' | 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
+
+const BACKEND_URL = 'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net';
 
 export default function LoginScreen() {
   if (typeof window === "undefined") return null;
@@ -20,7 +21,6 @@ export default function LoginScreen() {
   const searchParams = new URLSearchParams(window.location.search); 
   const isFromSidebar = searchParams.get('from') === 'sidebar';
 
-  // 🚨 [수정] 초기 단계를 언어 선택으로 변경
   const [step, setStep] = useState<LoginStep>('LANGUAGE_SELECT');
   const [msLoginStatus, setMsLoginStatus] = useState<LoginStatus>('IDLE');
   const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
@@ -30,7 +30,6 @@ export default function LoginScreen() {
     message: ''
   });
 
-  // 🚨 [추가] 페이지 로드 시 이미 언어가 설정되어 있다면 언어 선택 단계를 건너뛰고 MS_LOGIN으로 이동
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language');
     if (savedLanguage) {
@@ -38,11 +37,11 @@ export default function LoginScreen() {
     }
   }, []);
 
-  // 팝업 인증 메시지 수신
   useEffect(() => {
     const handleAuthMessage = async (event: MessageEvent) => {
       if (event.data === 'MS_LOGIN_SUCCESS') {
         try {
+          // 1. shop_id 저장
           const response = await apiClient.get('/auth/me');
           const { shop_id } = response.data;
 
@@ -50,6 +49,37 @@ export default function LoginScreen() {
             localStorage.setItem('shop_id', shop_id);
             setMsLoginStatus('COMPLETED');
             console.log("Shop ID 동기화 성공:", shop_id);
+
+            // 2. Easy Auth에서 AAD 토큰 가져오기
+            try {
+              const authMeRes = await fetch(
+                `${BACKEND_URL}/.auth/me`,
+                { credentials: 'include' }
+              );
+              const authMeData = await authMeRes.json();
+              // access_token 또는 id_token 둘 다 시도
+              const aadToken =
+                authMeData?.[0]?.access_token ||
+                authMeData?.[0]?.id_token ||
+                null;
+
+              if (aadToken) {
+                localStorage.setItem('aad_token', aadToken);
+
+                // 3. OneDrive 자동 동기화 트리거
+                await apiClient.post(
+                  '/onedrive/sync-photos',
+                  { root_folder_item_id: 'root', overwrite: false },
+                  { headers: { 'x-ms-token-aad-access-token': aadToken } }
+                );
+                console.log("OneDrive 동기화 시작");
+              } else {
+                console.warn("AAD 토큰 없음 → OneDrive 동기화 스킵");
+              }
+            } catch (syncError) {
+              // 동기화 실패해도 로그인 플로우는 계속 진행
+              console.warn("OneDrive 동기화 실패 (무시):", syncError);
+            }
           }
         } catch (error) {
           console.error("MS 유저 동기화 실패:", error);
@@ -63,7 +93,6 @@ export default function LoginScreen() {
     return () => window.removeEventListener('message', handleAuthMessage);
   }, []);
 
-  // MS 인증 성공 시 자동으로 다음 단계(QR)로 넘어가게 하는 타이머
   useEffect(() => {
     if (msLoginStatus === 'COMPLETED') {
       const timer = setTimeout(() => setStep('ONEDRIVE_QR'), 1500);
@@ -71,7 +100,6 @@ export default function LoginScreen() {
     }
   }, [msLoginStatus]);
 
-  // 인스타 인증 성공 시 자동으로 최종 완료 처리하는 타이머
   useEffect(() => {
     if (instaLoginStatus === 'COMPLETED') {
       const timer = setTimeout(() => handleFinishLogin(), 1500);
@@ -80,11 +108,8 @@ export default function LoginScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instaLoginStatus]);
 
-  // 🚨 [추가] 언어 선택 처리 함수
   const handleLanguageSelect = (lang: 'ko' | 'en') => {
     localStorage.setItem('language', lang);
-    // 선택한 언어가 즉시 다국어 훅 전체에 적용되도록 페이지를 새로고침 합니다.
-    // 새로고침 되면 위쪽의 useEffect가 언어를 감지해서 자동으로 MS_LOGIN 단계로 넘겨줍니다!
     window.location.reload(); 
   };
 
@@ -92,7 +117,7 @@ export default function LoginScreen() {
     setMsLoginStatus('IN_PROGRESS');
     const currentOrigin = window.location.origin;
     const frontendCallbackUrl = encodeURIComponent(`${currentOrigin}/auth/callback`);
-    const loginUrl = `https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
+    const loginUrl = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
     window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
   };
 
@@ -107,7 +132,6 @@ export default function LoginScreen() {
   const handleFinishLogin = () => {
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.removeItem('isGuest');
-    
     if (isFromSidebar) {
       router.push('/dashboard');
     } else {
@@ -142,8 +166,8 @@ export default function LoginScreen() {
   return (
     <>
       <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
-        
-        {/* 🚨 [추가] 0. 언어 선택 단계 (최초 접속 시에만 보임) */}
+
+        {/* 0. 언어 선택 */}
         {step === 'LANGUAGE_SELECT' && renderModalContainer(
           "Language / 언어 설정",
           <div className="flex flex-col items-center w-full px-4 gap-4">
@@ -151,23 +175,16 @@ export default function LoginScreen() {
               사용할 언어를 선택해주세요.<br/>
               <span className="text-sm text-gray-500">Please select your preferred language.</span>
             </p>
-            
-            <button 
-              onClick={() => handleLanguageSelect('ko')} 
-              className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[16px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none"
-            >
+            <button onClick={() => handleLanguageSelect('ko')} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[16px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
               🇰🇷 한국어 (Korean)
             </button>
-            <button 
-              onClick={() => handleLanguageSelect('en')} 
-              className="w-full bg-white border border-border py-[14px] rounded-lg shadow-sm text-text-primary font-bold text-[16px] hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none"
-            >
+            <button onClick={() => handleLanguageSelect('en')} className="w-full bg-white border border-border py-[14px] rounded-lg shadow-sm text-text-primary font-bold text-[16px] hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none">
               🇺🇸 English (영어)
             </button>
           </div>
         )}
 
-        {/* 1. MS 로그인 단계 */}
+        {/* 1. MS 로그인 */}
         {step === 'MS_LOGIN' && renderModalContainer(
           t.login.ms_title,
           <div className="flex flex-col items-center w-full px-4">
@@ -177,7 +194,6 @@ export default function LoginScreen() {
                   <span className="text-red-500 text-3xl font-bold">!</span>
                 </div>
                 <p className="text-[18px] font-bold text-accent mb-4">{t.login.not_authenticated}</p>
-                
                 <p className="text-body text-text-primary text-center mb-8">{t.login.ms_desc}</p>
                 <button onClick={handleMsLoginClick} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
                   {t.login.ms_btn}
@@ -188,17 +204,9 @@ export default function LoginScreen() {
               <div className="flex flex-col items-center animate-pulse">
                 <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
                 <p className="text-body text-text-primary text-center font-bold">{t.login.in_progress}</p>
-                
-                <button 
-                  onClick={() => {
-                    localStorage.setItem('shop_id', '3sesac18');
-                    setMsLoginStatus('COMPLETED');
-                  }} 
-                  className="mt-8 text-xs text-gray-400 underline cursor-pointer"
-                >
+                <button onClick={() => { localStorage.setItem('shop_id', '3sesac18'); setMsLoginStatus('COMPLETED'); }} className="mt-8 text-xs text-gray-400 underline cursor-pointer">
                   {t.login.test_trigger}
                 </button>
-                
               </div>
             )}
             {msLoginStatus === 'COMPLETED' && (
@@ -212,37 +220,27 @@ export default function LoginScreen() {
           </div>
         )}
 
-        {/* 2. OneDrive QR 단계 */}
-      {step === 'ONEDRIVE_QR' && renderModalContainer(
-        t.login.onedrive_title,
-        <div className="flex flex-col items-center w-full px-4">
-          <p className="text-body text-text-primary text-center mb-small">{t.login.onedrive_desc1}</p>
-          <p className="text-body text-text-primary text-center mb-small">
-            {t.login.onedrive_desc2_1}<br /> {t.login.onedrive_desc2_2}
-          </p>
-          <p className="text-body text-text-primary text-center mb-small">
-            {t.login.onedrive_desc3_1}<br /> {t.login.onedrive_desc3_2}
-          </p>
-          
-          <div className="relative w-[150px] h-[150px] mt-6 mb-8 border border-border rounded-lg overflow-hidden shadow-sm">
-            <Image 
-              src="/images/QRcode.png" 
-              alt="OneDrive QR Code" 
-              fill 
-              className="object-contain p-2"
-            />
+        {/* 2. OneDrive QR */}
+        {step === 'ONEDRIVE_QR' && renderModalContainer(
+          t.login.onedrive_title,
+          <div className="flex flex-col items-center w-full px-4">
+            <p className="text-body text-text-primary text-center mb-small">{t.login.onedrive_desc1}</p>
+            <p className="text-body text-text-primary text-center mb-small">
+              {t.login.onedrive_desc2_1}<br /> {t.login.onedrive_desc2_2}
+            </p>
+            <p className="text-body text-text-primary text-center mb-small">
+              {t.login.onedrive_desc3_1}<br /> {t.login.onedrive_desc3_2}
+            </p>
+            <div className="relative w-[150px] h-[150px] mt-6 mb-8 border border-border rounded-lg overflow-hidden shadow-sm">
+              <Image src="/images/QRcode.png" alt="OneDrive QR Code" fill className="object-contain p-2" />
+            </div>
+            <button onClick={handleOneDriveNextClick} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
+              {t.login.btn_next}
+            </button>
           </div>
+        )}
 
-          <button 
-            onClick={handleOneDriveNextClick}
-            className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none"
-          >
-            {t.login.btn_next}
-          </button>
-        </div>
-      )}
-
-        {/* 3. 인스타그램 로그인 단계 */}
+        {/* 3. 인스타그램 로그인 */}
         {step === 'INSTA_LOGIN' && renderModalContainer(
           t.login.insta_title,
           <div className="flex flex-col items-center w-full px-4">
@@ -252,7 +250,6 @@ export default function LoginScreen() {
                   <span className="text-red-500 text-3xl font-bold">!</span>
                 </div>
                 <p className="text-[18px] font-bold text-accent mb-4">{t.login.not_authenticated}</p>
-                
                 <p className="text-body text-text-primary text-center mb-small">{t.login.insta_desc}</p>
                 <button onClick={handleInstaLoginClick} className="w-full bg-accent py-[14px] px-6 rounded-lg mt-5 flex items-center justify-center shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
                   {t.login.insta_btn}
@@ -279,7 +276,6 @@ export default function LoginScreen() {
 
       </div>
 
-      {/* 🚨 커스텀 알림창 UI (OneDrive 중요 안내용) */}
       {alertData.isOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[10001] backdrop-blur-sm p-4">
           <div className="bg-background rounded-xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center">
@@ -289,10 +285,7 @@ export default function LoginScreen() {
             <p className="text-[15px] text-text-primary text-center mb-6 font-bold whitespace-pre-wrap leading-relaxed">
               {alertData.message}
             </p>
-            <button 
-              onClick={alertData.onConfirm}
-              className="w-full py-3 bg-accent text-white rounded-lg font-bold text-[15px] cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none"
-            >
+            <button onClick={alertData.onConfirm} className="w-full py-3 bg-accent text-white rounded-lg font-bold text-[15px] cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none">
               {t.common?.confirm || '확인'}
             </button>
           </div>
