@@ -39,7 +39,8 @@ export const translations = {
       insta_success: "인스타그램 연동 성공!",
       insta_fail: "인스타그램 연동 실패 (백엔드 오류)",
       network_error: "네트워크 오류가 발생했습니다.",
-      auth_processing_title: "인증 처리 중"
+      auth_processing_title: "인증 처리 중",
+      ms_success: "Microsoft 인증 완료!",
     },
     dashboard: {
       title: "내 대시보드",
@@ -271,7 +272,8 @@ export const translations = {
       insta_success: "Instagram connection successful!",
       insta_fail: "Instagram connection failed (Backend Error)",
       network_error: "A network error occurred.",
-      auth_processing_title: "Processing Authentication"
+      auth_processing_title: "Processing Authentication",
+      ms_success: "Microsoft Authentication Complete!",
     },
     dashboard: {
       title: "My Dashboard",

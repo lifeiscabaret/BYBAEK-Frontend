@@ -2,21 +2,23 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'; 
 import { useTranslation } from '@/hooks/useTranslation';
 import apiClient from '@/api/index';
 import Image from 'next/image';
 
+// 🚨 [유지] LANGUAGE_SELECT 단계 포함 완벽한 타입 정의
 type LoginStep = 'LANGUAGE_SELECT' | 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
+// 🚨 [복구] 사장님이 깔끔하게 빼두셨던 백엔드 주소 상수!
 const BACKEND_URL = 'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { t } = useTranslation();
 
-  // hydration 에러 방지 - typeof window 체크 대신 isMounted 패턴
+  // hydration 에러 방지 - isMounted 패턴
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -24,6 +26,7 @@ export default function LoginScreen() {
   const [step, setStep] = useState<LoginStep>('LANGUAGE_SELECT');
   const [msLoginStatus, setMsLoginStatus] = useState<LoginStatus>('IDLE');
   const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
+  
   const [alertData, setAlertData] = useState<{ isOpen: boolean; message: string; onConfirm?: () => void }>({
     isOpen: false, message: ''
   });
@@ -33,10 +36,12 @@ export default function LoginScreen() {
     const searchParams = new URLSearchParams(window.location.search);
     setIsFromSidebar(searchParams.get('from') === 'sidebar');
 
+    // 페이지 로드 시 이미 언어가 설정되어 있다면 언어 선택 단계를 건너뛰고 MS_LOGIN으로 이동
     const savedLanguage = localStorage.getItem('language');
     if (savedLanguage) setStep('MS_LOGIN');
   }, [isMounted]);
 
+  // 팝업 인증 메시지 수신
   useEffect(() => {
     if (!isMounted) return;
 
@@ -51,8 +56,7 @@ export default function LoginScreen() {
             setMsLoginStatus('COMPLETED');
             console.log("Shop ID 동기화 성공:", shop_id);
 
-            // withCredentials: true 덕분에 Azure가 헤더 자동 주입
-            // 수동으로 토큰 꺼낼 필요 없음
+            // 🚨 [완벽 복구] Git이 날려먹었던 OneDrive 자동 동기화 핵심 코드 부활!!
             try {
               await apiClient.post('/onedrive/sync-photos', {
                 root_folder_item_id: 'root',
@@ -71,10 +75,12 @@ export default function LoginScreen() {
         setInstaLoginStatus('COMPLETED');
       }
     };
+    
     window.addEventListener('message', handleAuthMessage);
     return () => window.removeEventListener('message', handleAuthMessage);
   }, [isMounted]);
 
+  // MS 인증 성공 시 자동으로 다음 단계(QR)로 넘어가게 하는 타이머
   useEffect(() => {
     if (msLoginStatus === 'COMPLETED') {
       const timer = setTimeout(() => setStep('ONEDRIVE_QR'), 1500);
@@ -82,6 +88,7 @@ export default function LoginScreen() {
     }
   }, [msLoginStatus]);
 
+  // 인스타 인증 성공 시 자동으로 최종 완료 처리하는 타이머
   useEffect(() => {
     if (instaLoginStatus === 'COMPLETED') {
       const timer = setTimeout(() => handleFinishLogin(), 1500);
@@ -91,12 +98,13 @@ export default function LoginScreen() {
 
   const handleLanguageSelect = (lang: 'ko' | 'en') => {
     localStorage.setItem('language', lang);
-    window.location.reload();
+    window.location.reload(); 
   };
 
   const handleMsLoginClick = () => {
     setMsLoginStatus('IN_PROGRESS');
     const frontendCallbackUrl = encodeURIComponent(`${window.location.origin}/auth/callback`);
+    // 🚨 [복구] 깔끔한 변수 사용
     const loginUrl = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
     window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
   };
@@ -144,6 +152,7 @@ export default function LoginScreen() {
     <>
       <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
 
+        {/* 0. 언어 선택 단계 */}
         {step === 'LANGUAGE_SELECT' && renderModalContainer(
           "Language / 언어 설정",
           <div className="flex flex-col items-center w-full px-4 gap-4">
@@ -160,6 +169,7 @@ export default function LoginScreen() {
           </div>
         )}
 
+        {/* 1. MS 로그인 단계 */}
         {step === 'MS_LOGIN' && renderModalContainer(
           t.login.ms_title,
           <div className="flex flex-col items-center w-full px-4">
@@ -195,6 +205,7 @@ export default function LoginScreen() {
           </div>
         )}
 
+        {/* 2. OneDrive QR 단계 */}
         {step === 'ONEDRIVE_QR' && renderModalContainer(
           t.login.onedrive_title,
           <div className="flex flex-col items-center w-full px-4">
@@ -214,6 +225,7 @@ export default function LoginScreen() {
           </div>
         )}
 
+        {/* 3. 인스타그램 로그인 단계 */}
         {step === 'INSTA_LOGIN' && renderModalContainer(
           t.login.insta_title,
           <div className="flex flex-col items-center w-full px-4">
@@ -249,6 +261,7 @@ export default function LoginScreen() {
 
       </div>
 
+      {/* 🚨 커스텀 알림창 UI */}
       {alertData.isOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[10001] backdrop-blur-sm p-4">
           <div className="bg-background rounded-xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center">
