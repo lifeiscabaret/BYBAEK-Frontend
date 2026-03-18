@@ -58,6 +58,7 @@ export default function LoginScreen() {
 
             // 🚨 [완벽 복구] Git이 날려먹었던 OneDrive 자동 동기화 핵심 코드 부활!!
             try {
+              await new Promise(resolve => setTimeout(resolve, 1000));
               await apiClient.post('/onedrive/sync-photos', {
                 root_folder_item_id: 'root',
                 overwrite: false
