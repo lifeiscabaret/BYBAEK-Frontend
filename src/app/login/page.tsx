@@ -54,6 +54,7 @@ export default function LoginScreen() {
             // withCredentials: true 덕분에 Azure가 헤더 자동 주입
             // 수동으로 토큰 꺼낼 필요 없음
             try {
+              await new Promise(resolve => setTimeout(resolve, 1000));
               await apiClient.post('/onedrive/sync-photos', {
                 root_folder_item_id: 'root',
                 overwrite: false
