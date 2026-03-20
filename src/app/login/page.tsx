@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
 import apiClient from '@/api/index';
 import Image from 'next/image';
@@ -26,7 +26,7 @@ export default function LoginScreen() {
   const [step, setStep] = useState<LoginStep>('LANGUAGE_SELECT');
   const [msLoginStatus, setMsLoginStatus] = useState<LoginStatus>('IDLE');
   const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
-  
+
   const [alertData, setAlertData] = useState<{ isOpen: boolean; message: string; onConfirm?: () => void }>({
     isOpen: false, message: ''
   });
@@ -58,6 +58,7 @@ export default function LoginScreen() {
 
             // 🚨 [완벽 복구] Git이 날려먹었던 OneDrive 자동 동기화 핵심 코드 부활!!
             try {
+              await new Promise(resolve => setTimeout(resolve, 1000));
               await apiClient.post('/onedrive/sync-photos', {
                 root_folder_item_id: 'root',
                 overwrite: false
@@ -75,7 +76,7 @@ export default function LoginScreen() {
         setInstaLoginStatus('COMPLETED');
       }
     };
-    
+
     window.addEventListener('message', handleAuthMessage);
     return () => window.removeEventListener('message', handleAuthMessage);
   }, [isMounted]);
@@ -98,7 +99,7 @@ export default function LoginScreen() {
 
   const handleLanguageSelect = (lang: 'ko' | 'en') => {
     localStorage.setItem('language', lang);
-    window.location.reload(); 
+    window.location.reload();
   };
 
   const handleMsLoginClick = () => {
@@ -112,7 +113,7 @@ export default function LoginScreen() {
   const handleInstaLoginClick = () => {
     setInstaLoginStatus('IN_PROGRESS');
     const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`);
-    const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1219138883682659&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+    const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     window.open(instaUrl, 'Insta_Login_Popup', 'width=500,height=600');
   };
 
