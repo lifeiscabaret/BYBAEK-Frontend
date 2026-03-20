@@ -207,24 +207,28 @@ export default function PreviewScreen() {
     }
 
     setIsLoading(true);
-
     try {
-      const payload = {
+      // 1단계: 초안 저장
+      const saveRes = await apiClient.post('/agent/save', {
         shop_id: shopId,
-        post_id: postId,
         caption: generatedCaption,
-        image_urls: images.map((img) => img.blob_url),
+        hashtags: [],
         photo_ids: images.map((img) => img.id),
-      };
+        cta: "",
+      });
 
-      const response = await apiClient.post('/agent/save', payload);
+      // 2단계: 인스타 업로드
+      const reviewRes = await apiClient.post('/agent/review', {
+        shop_id: shopId,
+        post_id: saveRes.data.post_id,  // save에서 받은 post_id
+        action: "ok"
+      });
 
-      if (response.data.status === 'success') {
-        setAlertMessage("DB 업데이트 및 인스타그램 업로드가 성공적으로 완료되었습니다! 🎉");
+      if (reviewRes.data.status === 'uploaded') {
+        setAlertMessage("인스타그램 업로드 성공! 🎉");
       }
     } catch (error: any) {
-      console.error('업로드 실패:', error);
-      setAlertMessage(error.response?.data?.detail || "작업 중 서버 오류가 발생했습니다.");
+      setAlertMessage(error.response?.data?.detail || "업로드 실패");
     } finally {
       setIsLoading(false);
     }
