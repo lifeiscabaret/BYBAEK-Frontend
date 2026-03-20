@@ -284,7 +284,15 @@ export default function PreviewScreen() {
         );
       }
 
-      setGeneratedCaption(fullResponse);
+      try {
+        const parsed = JSON.parse(fullResponse);
+        const display = parsed.caption + "\n\n"
+          + parsed.hashtags.join(" ") + "\n"
+          + (parsed.cta || "");
+        setGeneratedCaption(display);
+      } catch {
+        setGeneratedCaption(fullResponse); // 파싱 실패시 원본
+      }
     } catch (error) {
       console.error(error);
     } finally {
