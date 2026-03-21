@@ -78,7 +78,7 @@ export default function PreviewScreen() {
         const allRes = await apiClient.get(`/photos/all/${shopId}`);
         setAllPhotos(allRes.data.photos || []);
 
-        const albumRes = await apiClient.get(`/album/${shopId}`);
+        const albumRes = await apiClient.get(`/photos/albums/${shopId}`);
         setAlbums(albumRes.data.albums || albumRes.data || []);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
@@ -549,7 +549,7 @@ export default function PreviewScreen() {
                     key={album.id}
                     onClick={async () => {
                       try {
-                        const res = await apiClient.get(`/album/${shopId}/${album.id}/photos`);
+                        const res = await apiClient.get(`/photos/albums/${shopId}/${album.id}/${album.id}/photos`);
                         setCurrentAlbumPhotos(res.data.photos || []);
                         setCurrentAlbumTitle(album.title);
                         setModalStep('PHOTO_LIST');
