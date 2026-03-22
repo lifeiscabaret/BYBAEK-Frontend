@@ -549,9 +549,9 @@ export default function PreviewScreen() {
                     key={album.id}
                     onClick={async () => {
                       try {
-                        const res = await apiClient.get(`/photos/albums/${shopId}/${album.id}/${album.id}/photos`);
+                        const res = await apiClient.get(`/photos/albums/${shopId}/${album.id}`);
                         setCurrentAlbumPhotos(res.data.photos || []);
-                        setCurrentAlbumTitle(album.title);
+                        setCurrentAlbumTitle(album.album_name);
                         setModalStep('PHOTO_LIST');
                       } catch (error) {
                         console.error('앨범 사진 로딩 실패', error);
@@ -562,7 +562,7 @@ export default function PreviewScreen() {
                     <div className="w-full aspect-square bg-[#EAEAEA] rounded-xl border border-border overflow-hidden group-hover:border-accent transition-colors flex items-center justify-center relative">
                       <span className="text-4xl text-gray-400">📁</span>
                     </div>
-                    <span className="font-bold text-text-primary text-[15px] truncate w-full px-2 text-center">{album.title}</span>
+                    <span className="font-bold text-text-primary text-[15px] truncate w-full px-2 text-center">{album.album_name}</span>
                   </button>
                 ))}
               </div>
