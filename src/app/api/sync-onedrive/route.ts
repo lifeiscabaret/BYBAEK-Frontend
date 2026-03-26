@@ -9,73 +9,30 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL ||
 
 export async function POST(request: NextRequest) {
     try {
-        // 1. 전체 쿠키를 그대로 전달
+        // 쿠키 전체를 백엔드로 그대로 전달
         const allCookies = request.headers.get('cookie') || '';
+        const shopId = request.cookies.get('shop_id')?.value ||
+            request.cookies.get('user_id')?.value || '';
 
-        if (!allCookies) {
-            return NextResponse.json(
-                { success: false, message: 'MS 로그인이 필요해요.' },
-                { status: 401 }
-            );
-        }
-
-        // 2. 프론트엔드 자신의 /.auth/me로 토큰 조회
-        const FRONTEND_URL = process.env.NEXT_PUBLIC_FRONTEND_URL ||
-            'https://bybaek-frontend-dcctbxfhdnhge4ap.koreacentral-01.azurewebsites.net';
-
-        const authMeRes = await fetch(`${FRONTEND_URL}/.auth/me`, {
-            headers: { Cookie: allCookies },
-        });
-
-        let token: string | null = null;
-        let principalId: string | null = null;
-
-        if (authMeRes.ok) {
-            const authData = await authMeRes.json();
-            token = authData[0]?.access_token || null;
-            principalId = authData[0]?.user_id || null;
-
-            // user_claims에서 access_token 찾기
-            if (!token) {
-                const claims = authData[0]?.user_claims || [];
-                for (const claim of claims) {
-                    if (claim.typ === 'access_token') {
-                        token = claim.val;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (!token) {
-            return NextResponse.json(
-                { success: false, message: 'MS 토큰을 가져올 수 없어요. 다시 로그인해주세요.' },
-                { status: 401 }
-            );
-        }
-
-        // 3. shop_id 가져오기
         const body = await request.json().catch(() => ({}));
-        const shopId = body.shop_id || request.cookies.get('shop_id')?.value;
-        if (!principalId) principalId = request.cookies.get('user_id')?.value || shopId || null;
 
-        // 4. 백엔드 sync-photos 호출
+        // 백엔드 sync-photos 호출 (쿠키 통째로 전달)
         const syncRes = await fetch(`${BACKEND_URL}/api/onedrive/sync-photos`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-ms-token-aad-access-token': token,
-                ...(principalId ? { 'X-MS-CLIENT-PRINCIPAL-ID': principalId } : {}),
+                ...(allCookies ? { Cookie: allCookies } : {}),
+                ...(shopId ? { 'X-MS-CLIENT-PRINCIPAL-ID': shopId } : {}),
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({ ...body, shop_id: shopId }),
         });
 
-        const syncData = await syncRes.json().catch(() => ({
-            success: false,
-            message: '서버 오류'
-        }));
-
-        return NextResponse.json(syncData, { status: syncRes.status });
+        const text = await syncRes.text();
+        try {
+            return NextResponse.json(JSON.parse(text), { status: syncRes.status });
+        } catch {
+            return NextResponse.json({ success: true, message: text }, { status: syncRes.status });
+        }
 
     } catch (error) {
         console.error('[sync-onedrive] 오류:', error);
