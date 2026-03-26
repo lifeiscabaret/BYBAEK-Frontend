@@ -45,7 +45,12 @@ export function PhotoSyncProgress() {
       if (!syncStartedRef.current) {
         syncStartedRef.current = true;
         try {
-          await apiClient.post('/onedrive/sync-photos', {});
+          // Next.js API route를 통해 프록시 호출 (쿠키 자동 포함)
+          await fetch('/api/sync-onedrive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shop_id: shopId }),
+          });
           console.log('[onedrive] sync 시작 요청 완료');
         } catch (error) {
           console.log('[onedrive] sync 시작 실패 (이미 실행 중이거나 연동 안 됨)');
@@ -55,8 +60,8 @@ export function PhotoSyncProgress() {
       // 상태 폴링
       const poll = async () => {
         try {
-          const response = await apiClient.get(`/onedrive/sync-status/${shopId}`);
-          const data: SyncStatus = response.data;
+          const response = await fetch(`/api/sync-onedrive?shop_id=${shopId}`);
+          const data: SyncStatus = await response.json();
           setStatus(data);
 
           if (data.status === 'running') {
