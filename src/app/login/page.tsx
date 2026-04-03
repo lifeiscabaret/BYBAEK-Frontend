@@ -214,8 +214,19 @@ export default function LoginScreen() {
             <p className="text-body text-text-primary text-center mb-small">
               {t.login.onedrive_desc3_1}<br />{t.login.onedrive_desc3_2}
             </p>
-            <div className="relative w-[150px] h-[150px] mt-6 mb-8 border border-border rounded-lg overflow-hidden shadow-sm">
-              <Image src="/images/QRcode.png" alt="OneDrive QR Code" fill className="object-contain p-2" />
+            <div className="flex flex-row gap-8 mt-6 mb-8">
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative w-[130px] h-[130px] border border-border rounded-lg overflow-hidden shadow-sm">
+                  <Image src="/images/QRcode_android.png" alt="Android QR Code" fill className="object-contain p-2" />
+                </div>
+                <span className="text-[13px] font-bold text-text-secondary">Android</span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="relative w-[130px] h-[130px] border border-border rounded-lg overflow-hidden shadow-sm">
+                  <Image src="/images/QRcode_ios.png" alt="iOS QR Code" fill className="object-contain p-2" />
+                </div>
+                <span className="text-[13px] font-bold text-text-secondary">iOS</span>
+              </div>
             </div>
             <button onClick={handleOneDriveNextClick} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
               {t.login.btn_next}

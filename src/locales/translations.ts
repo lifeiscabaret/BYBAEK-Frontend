@@ -165,7 +165,9 @@ export const translations = {
       // 🚨 서버로 보내는 값(예: '매일')과 화면 표시를 매핑
       freq_map: {
         "매일": "매일", "2일마다": "2일마다", "3일마다": "3일마다", "4일마다": "4일마다", "5일마다": "5일마다", "6일마다": "6일마다", "일주일마다": "일주일마다"
-      }
+      },
+      terms_of_service: "이용약관",
+      privacy_policy: "개인정보처리방침"
     },
     review: {
       title: "게시글 검토 및 수정",
@@ -419,7 +421,9 @@ export const translations = {
       popup_blocked: "Popup blocker detected.\nPlease allow popups in your browser settings.",
       freq_map: {
         "매일": "Everyday", "2일마다": "Every 2 days", "3일마다": "Every 3 days", "4일마다": "Every 4 days", "5일마다": "Every 5 days", "6일마다": "Every 6 days", "일주일마다": "Every week"
-      }
+      },
+      terms_of_service: "Terms of Service",
+      privacy_policy: "Privacy Policy"
     },
     review: {
       title: "Post Review & Edit",

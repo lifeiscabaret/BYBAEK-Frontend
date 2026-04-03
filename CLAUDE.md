@@ -120,3 +120,7 @@ npm run build        # standalone 빌드 → Azure 배포
 
 - `trd.md`: 기술 상세 설명서 (API 엔드포인트, 온보딩 데이터 형식, 컴포넌트 상세 등)
 - `task.md`: 기능별 작업 현황 추적
+
+## 작업 규칙
+
+**BEFORE every git push:** If any feature was added, modified, or removed, you MUST update `task.md` to reflect the change before staging the commit. Never push without updating `task.md` when functional changes exist.
