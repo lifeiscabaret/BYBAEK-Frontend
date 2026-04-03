@@ -54,22 +54,19 @@ export default function LoginScreen() {
           if (shop_id) {
             localStorage.setItem('shop_id', shop_id);
             setMsLoginStatus('COMPLETED');
-            console.log("Shop ID 동기화 성공:", shop_id);
 
-            // 🚨 [완벽 복구] Git이 날려먹었던 OneDrive 자동 동기화 핵심 코드 부활!!
             try {
               await new Promise(resolve => setTimeout(resolve, 1000));
               await apiClient.post('/onedrive/sync-photos', {
                 root_folder_item_id: 'root',
                 overwrite: false
               });
-              console.log("OneDrive 동기화 시작");
-            } catch (syncError) {
-              console.warn("OneDrive 동기화 실패 (무시):", syncError);
+            } catch {
+              // OneDrive 동기화 실패 시 무시 (이미 실행 중이거나 연동 안 됨)
             }
           }
-        } catch (error) {
-          console.error("MS 유저 동기화 실패:", error);
+        } catch {
+          // MS 유저 동기화 실패
         }
       }
       if (event.data === 'INSTA_LOGIN_SUCCESS') {

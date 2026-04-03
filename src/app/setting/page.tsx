@@ -88,7 +88,6 @@ export default function SettingScreen() {
   const updateSetting = async (payload: Record<string, any>) => {
     try {
       await apiClient.post(`/onboarding/${shopId}`, payload);
-      console.log('설정 업데이트 성공:', payload);
     } catch (error) {
       console.error("설정 업데이트 실패:", error);
       setCustomAlert({

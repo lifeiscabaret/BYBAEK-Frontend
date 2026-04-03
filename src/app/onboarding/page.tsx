@@ -68,8 +68,6 @@ export default function OnboardingScreen() {
         is_insta_connected: true
       };
 
-      console.log("백엔드로 전송할 데이터:", payload);
-
       // 백엔드 API 전송
       await apiClient.post(`/onboarding/${shopId}`, payload);
 

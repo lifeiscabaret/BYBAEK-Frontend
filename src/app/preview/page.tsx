@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect, FormEvent } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import apiClient from '@/api/index';
 import { useTranslation } from '@/hooks/useTranslation';
+import type { Photo, Album } from '@/types';
 
 interface ChatMessage {
   id: string;
@@ -14,8 +15,6 @@ interface ChatMessage {
 
 export default function PreviewScreen() {
   const [shopId, setShopId] = useState<string | null>(null);
-
-  const postId = '';
 
   useEffect(() => {
     const storedShopId = localStorage.getItem('shop_id');
@@ -36,18 +35,18 @@ export default function PreviewScreen() {
   const rightTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [textRatio, setTextRatio] = useState(50);
 
-  const [allPhotos, setAllPhotos] = useState<any[]>([]);
-  const [albums, setAlbums] = useState<any[]>([]);
+  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
 
-  const [images, setImages] = useState<any[]>([]);
-  const [tempSelectedPhotos, setTempSelectedPhotos] = useState<any[]>([]);
+  const [images, setImages] = useState<Photo[]>([]);
+  const [tempSelectedPhotos, setTempSelectedPhotos] = useState<Photo[]>([]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
 
   const [modalStep, setModalStep] = useState<'ALBUM_LIST' | 'PHOTO_LIST'>('ALBUM_LIST');
-  const [currentAlbumPhotos, setCurrentAlbumPhotos] = useState<any[]>([]);
+  const [currentAlbumPhotos, setCurrentAlbumPhotos] = useState<Photo[]>([]);
   const [currentAlbumTitle, setCurrentAlbumTitle] = useState('');
 
   const [generatedCaption, setGeneratedCaption] = useState(
@@ -138,7 +137,7 @@ export default function PreviewScreen() {
     setIsOrderModalVisible(false);
   };
 
-  const toggleTempSelect = (photo: any) => {
+  const toggleTempSelect = (photo: Photo) => {
     setTempSelectedPhotos((prev) =>
       prev.some((p) => p.id === photo.id)
         ? prev.filter((p) => p.id !== photo.id)
@@ -225,10 +224,10 @@ export default function PreviewScreen() {
       });
 
       if (reviewRes.data.status === 'uploaded') {
-        setAlertMessage("인스타그램 업로드 성공! 🎉");
+        setAlertMessage(t.preview.alert_upload_success);
       }
     } catch (error: any) {
-      setAlertMessage(error.response?.data?.detail || "업로드 실패");
+      setAlertMessage(error.response?.data?.detail || t.preview.alert_upload_fail);
     } finally {
       setIsLoading(false);
     }
@@ -258,7 +257,7 @@ export default function PreviewScreen() {
 
     try {
       const response = await fetch(
-        'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/custom_chat/manual_chat',
+        `${apiClient.defaults.baseURL}/custom_chat/manual_chat`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -297,8 +296,8 @@ export default function PreviewScreen() {
       } catch {
         setGeneratedCaption(fullResponse); // 파싱 실패시 원본
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
+      // 스트리밍 에러 발생 시 무시
     } finally {
       setIsLoading(false);
     }
@@ -570,7 +569,7 @@ export default function PreviewScreen() {
               <div className="flex-1 overflow-y-auto pr-2 scrollbar-hide">
                 {currentAlbumPhotos.length === 0 ? (
                   <div className="flex w-full h-full items-center justify-center text-text-secondary font-bold">
-                    앨범에 사진이 없습니다.
+                    {t.preview.empty_album}
                   </div>
                 ) : (
                   <div className="grid grid-cols-3 gap-4 content-start">

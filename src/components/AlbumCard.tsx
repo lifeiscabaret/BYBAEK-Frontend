@@ -39,8 +39,8 @@ export const AlbumCard: React.FC<AlbumCardProps> = ({
   // 1. 새 앨범 만들기 카드
   if (item.isNew) {
     return (
-      <button 
-        onClick={() => console.log('새 앨범 만들기 모달 오픈')}
+      <button
+        onClick={() => onOpenDetail(item)}
         className="flex flex-col items-center justify-center w-full h-[280px] border-2 border-dashed border-gray-300 rounded-lg bg-[#FFFFFF] hover:bg-gray-50 transition-colors focus:outline-none"
       >
         <span className="text-4xl text-gray-400 mb-2">+</span>

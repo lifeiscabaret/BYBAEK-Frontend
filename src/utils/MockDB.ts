@@ -38,14 +38,7 @@ export const MockDB = {
     const question = questions.find(q => q.id === id)?.question || '';
     
     mockStorage[id] = { id, question, answer };
-    saveToStorage(mockStorage); 
-    
-    // 🚨 [다국어 적용] 콘솔 로그 분기
-    if (lang === 'en') {
-      console.log(`[DB Save] Question ${id} completed:`, answer);
-    } else {
-      console.log(`[DB 저장] ${id}번 질문 완료:`, answer);
-    }
+    saveToStorage(mockStorage);
   },
 
   // 특정 ID의 답변 가져오기

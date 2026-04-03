@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/Sidebar';
 import apiClient from '@/api/index'; 
 import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'next/navigation';
+import type { Photo } from '@/types';
 
 interface CustomAlertState {
   isOpen: boolean;
@@ -17,7 +18,7 @@ interface CustomAlertState {
 export default function AllPhotosScreen() {
   const { t } = useTranslation();
 
-  const [photos, setPhotos] = useState<any[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
 
   // 🚨 [신규] '선택 모드' 상태 관리
@@ -79,8 +80,7 @@ export default function AllPhotosScreen() {
       return;
     }
     
-    // 🚨 요청하신 영구 삭제 경고 문구로 변경
-    const confirmMessage = "정말로 사진을 지우시겠습니까?\n영구적으로 삭제됩니다.";
+    const confirmMessage = t.photos.confirm_delete_msg;
 
     setCustomAlert({
       isOpen: true,

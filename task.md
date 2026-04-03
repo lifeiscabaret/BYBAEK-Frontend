@@ -222,6 +222,32 @@
 | 튜토리얼 | 4 | 0 | 100% |
 | UI/UX 공통 | 4 | 0 | 100% |
 | API 클라이언트 | 3 | 0 | 100% |
-| **전체** | **86** | **0** | **100%** |
+| 코드 리팩토링 | 18 | 0 | 100% |
+| **전체** | **104** | **0** | **100%** |
 
 > 현재까지 커밋된 모든 기능이 완료 상태입니다. 향후 새로운 작업이 추가되면 이 문서에 기록합니다.
+
+---
+
+## 17. 코드 리팩토링 (2026-04-03)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| 미사용 변수 `postId` 제거 | ✅ 완료 | `preview/page.tsx` |
+| 주석 처리된 API 코드 제거 | ✅ 완료 | `review/page.tsx` |
+| console.log만 하는 onClick → 실제 핸들러 연결 | ✅ 완료 | `AlbumCard.tsx` |
+| 디버깅용 console.log 제거 (login) | ✅ 완료 | `login/page.tsx` |
+| 디버깅용 console.log 제거 (onboarding) | ✅ 완료 | `onboarding/page.tsx` |
+| 디버깅용 console.log 제거 (setting) | ✅ 완료 | `setting/page.tsx` |
+| 디버깅용 console.log 제거 (PhotoSyncProgress) | ✅ 완료 | `PhotoSyncProgress.tsx` |
+| 디버깅용 console.log 제거 (MockDB) | ✅ 완료 | `MockDB.ts` |
+| `any[]` → Photo/Album/Post 타입 정의 및 적용 | ✅ 완료 | `types/index.ts`, 6개 페이지 |
+| `alert()` → 커스텀 모달 (PhotoSyncProgress) | ✅ 완료 | `PhotoSyncProgress.tsx` |
+| `window.alert()` → 불필요 알림 제거 (AlbumDetailModal) | ✅ 완료 | `AlbumDetailModal.tsx` |
+| 삭제 확인 메시지 i18n 전환 | ✅ 완료 | `photos/page.tsx` |
+| 업로드 성공/실패 메시지 i18n 전환 | ✅ 완료 | `preview/page.tsx` |
+| 전체 하드코딩 문자열 i18n 전환 | ✅ 완료 | `review/page.tsx` |
+| "날짜 오류" i18n 전환 | ✅ 완료 | `dashboard/page.tsx` |
+| 로딩/빈 상태 메시지 i18n 전환 | ✅ 완료 | `AlbumDetailModal.tsx` |
+| 깨진 테스트 메뉴 항목 제거 + router.push 통일 | ✅ 완료 | `Sidebar.tsx` |
+| 하드코딩 URL → apiClient.defaults.baseURL | ✅ 완료 | `preview/page.tsx` |
