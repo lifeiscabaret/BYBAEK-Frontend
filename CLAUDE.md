@@ -123,4 +123,16 @@ npm run build        # standalone 빌드 → Azure 배포
 
 ## 작업 규칙
 
-**BEFORE every git push:** If any feature was added, modified, or removed, you MUST update `task.md` to reflect the change before staging the commit. Never push without updating `task.md` when functional changes exist.
+**BEFORE every git push:** If any feature was added, modified, or removed, you MUST update `task.md` before staging the commit. Never push without updating `task.md` when functional changes exist.
+
+**After every work session:** Append a dated summary section to `task.md` using the format below. Always use the actual date (YYYY-MM-DD). Include every task completed in that session, even minor ones.
+
+```
+## [섹션번호]. [작업명] (YYYY-MM-DD)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| 작업 내용 | ✅ 완료 | `파일명` |
+```
+
+Then update the summary table totals at the top of `task.md` to match.
