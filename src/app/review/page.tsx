@@ -33,7 +33,7 @@ function ReviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  const shopId = searchParams.get('shop_id') || '3sesac18'; 
+  const shopId = searchParams.get('shop_id'); 
   const postId = searchParams.get('post_id') || '';
 
   const { t } = useTranslation();

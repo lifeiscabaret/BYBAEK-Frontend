@@ -34,11 +34,11 @@ export default function PreviewScreen() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const rightTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const [textRatio, setTextRatio] = useState(50); 
+  const [textRatio, setTextRatio] = useState(50);
 
   const [allPhotos, setAllPhotos] = useState<any[]>([]);
-  const [albums, setAlbums] = useState<any[]>([]); 
-  
+  const [albums, setAlbums] = useState<any[]>([]);
+
   const [images, setImages] = useState<any[]>([]);
   const [tempSelectedPhotos, setTempSelectedPhotos] = useState<any[]>([]);
 
@@ -59,7 +59,7 @@ export default function PreviewScreen() {
     setMessages([
       { id: '1', sender: 'ai', text: t.preview.greeting }
     ]);
-    
+
     // 우측 캡션 기본값도 번역된 텍스트로 초기화
     setGeneratedCaption(t.preview.default_caption);
   }, [t]);
@@ -78,7 +78,7 @@ export default function PreviewScreen() {
         const allRes = await apiClient.get(`/photos/all/${shopId}`);
         setAllPhotos(allRes.data.photos || []);
 
-        const albumRes = await apiClient.get(`/album/${shopId}`);
+        const albumRes = await apiClient.get(`/photos/albums/${shopId}`);
         setAlbums(albumRes.data.albums || albumRes.data || []);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
@@ -107,13 +107,13 @@ export default function PreviewScreen() {
   const handleRightWheel = (e: React.WheelEvent<HTMLTextAreaElement>) => {
     const el = e.currentTarget;
     const { scrollTop, scrollHeight, clientHeight } = el;
-    
+
     const isAtTop = scrollTop === 0;
     const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) <= 1;
 
     if (e.deltaY < 0 && isAtTop) {
       setTextRatio(prev => Math.max(33.3, prev - 4));
-    } 
+    }
     else if (e.deltaY > 0 && isAtBottom) {
       setTextRatio(prev => Math.min(66.6, prev + 4));
     }
@@ -121,7 +121,7 @@ export default function PreviewScreen() {
 
   const openPhotoModal = () => {
     setTempSelectedPhotos(images);
-    setModalStep('ALBUM_LIST'); 
+    setModalStep('ALBUM_LIST');
     setIsEditModalVisible(true);
   };
 
@@ -184,7 +184,7 @@ export default function PreviewScreen() {
     const updatedImages = [...images];
     updatedImages.splice(currentImageIndex, 1);
     setImages(updatedImages);
-    
+
     if (currentImageIndex >= updatedImages.length && updatedImages.length > 0) {
       setCurrentImageIndex(updatedImages.length - 1);
     } else if (updatedImages.length === 0) {
@@ -207,24 +207,28 @@ export default function PreviewScreen() {
     }
 
     setIsLoading(true);
-
     try {
-      const payload = {
+      // 1단계: 초안 저장
+      const saveRes = await apiClient.post('/agent/save', {
         shop_id: shopId,
-        post_id: postId,
         caption: generatedCaption,
-        image_urls: images.map((img) => img.blob_url),
-        photo_ids: images.map((img) => img.id),        
-      };
+        hashtags: [],
+        photo_ids: images.map((img) => img.id),
+        cta: "",
+      });
 
-      const response = await apiClient.post('/api/agent/save', payload);
+      // 2단계: 인스타 업로드
+      const reviewRes = await apiClient.post('/agent/review', {
+        shop_id: shopId,
+        post_id: saveRes.data.post_id,  // save에서 받은 post_id
+        action: "ok"
+      });
 
-      if (response.data.status === 'success') {
-        setAlertMessage("DB 업데이트 및 인스타그램 업로드가 성공적으로 완료되었습니다! 🎉");
+      if (reviewRes.data.status === 'uploaded') {
+        setAlertMessage("인스타그램 업로드 성공! 🎉");
       }
     } catch (error: any) {
-      console.error('업로드 실패:', error);
-      setAlertMessage(error.response?.data?.detail || "작업 중 서버 오류가 발생했습니다.");
+      setAlertMessage(error.response?.data?.detail || "업로드 실패");
     } finally {
       setIsLoading(false);
     }
@@ -254,7 +258,7 @@ export default function PreviewScreen() {
 
     try {
       const response = await fetch(
-        'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/agent/manual_chat',
+        'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api/custom_chat/manual_chat',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -284,7 +288,15 @@ export default function PreviewScreen() {
         );
       }
 
-      setGeneratedCaption(fullResponse);
+      try {
+        const parsed = JSON.parse(fullResponse);
+        const display = parsed.caption + "\n\n"
+          + parsed.hashtags.join(" ") + "\n"
+          + (parsed.cta || "");
+        setGeneratedCaption(display);
+      } catch {
+        setGeneratedCaption(fullResponse); // 파싱 실패시 원본
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -318,11 +330,10 @@ export default function PreviewScreen() {
             {messages.map((item) => (
               <div
                 key={item.id}
-                className={`max-w-[80%] p-medium rounded-xl break-words shrink-0 ${
-                  item.sender === 'user'
-                    ? 'self-end bg-sidebar text-text-inverse'
-                    : 'self-start bg-[#F5F5F5] text-text-primary'
-                }`}
+                className={`max-w-[80%] p-medium rounded-xl break-words shrink-0 ${item.sender === 'user'
+                  ? 'self-end bg-sidebar text-text-inverse'
+                  : 'self-start bg-[#F5F5F5] text-text-primary'
+                  }`}
               >
                 <p className="text-body whitespace-pre-wrap">{item.text}</p>
               </div>
@@ -366,14 +377,14 @@ export default function PreviewScreen() {
 
         {/* 우측 프리뷰 영역 */}
         <div className="flex-1 p-large bg-[#FAFAFA] flex flex-col min-w-0 h-full overflow-hidden">
-          
+
           <div className="flex flex-row justify-between items-center mb-medium shrink-0">
             <h2 className="text-h2 text-text-primary font-bold">
               {t.preview.title_result}
             </h2>
           </div>
 
-          <div 
+          <div
             className="relative min-h-0 bg-[#EAEAEA] rounded-lg mb-small overflow-hidden flex items-center justify-center transition-all duration-300 ease-out group/viewer"
             style={{ flex: 100 - textRatio }}
           >
@@ -394,7 +405,7 @@ export default function PreviewScreen() {
                     alt="preview"
                     className="w-full h-full object-contain"
                   />
-                  
+
                   <button
                     onClick={handleRemoveCurrentImage}
                     className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full border-2 border-text-primary bg-[#E0E0E0]/80 flex justify-center items-center hover:bg-gray-300 transition-colors shadow-sm focus:outline-none cursor-pointer"
@@ -439,13 +450,13 @@ export default function PreviewScreen() {
             {t.preview.btn_reorder_photo}
           </button>
 
-          <div 
+          <div
             className="min-h-0 bg-background border border-border rounded-lg p-medium mb-large flex flex-col transition-all duration-300 ease-out"
             style={{ flex: textRatio }}
           >
             <textarea
               ref={rightTextareaRef}
-              onWheel={handleRightWheel} 
+              onWheel={handleRightWheel}
               className="flex-1 w-full h-full resize-none text-body bg-transparent focus:outline-none scrollbar-hide"
               value={generatedCaption}
               onChange={(e) => setGeneratedCaption(e.target.value)}
@@ -460,17 +471,17 @@ export default function PreviewScreen() {
             >
               {t.preview.btn_upload_insta}
             </button>
-            
-            <a 
-              href="https://instagram.com" 
-              target="_blank" 
+
+            <a
+              href="https://instagram.com"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex-[1] h-full bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm cursor-pointer transform hover:scale-[1.02]"
               title="인스타그램 바로가기"
             >
               {/* 인스타그램 브랜드 컬러(#E1306C) 적용 */}
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="#E1306C">
-                <path d="M7.75 2C4.574 2 2 4.574 2 7.75v8.5C2 19.426 4.574 22 7.75 22h8.5C19.426 22 22 19.426 22 16.25v-8.5C22 4.574 19.426 2 16.25 2h-8.5zm0 2h8.5C18.321 4 20 5.679 20 7.75v8.5C20 18.321 18.321 20 16.25 20h-8.5C5.679 20 4 18.321 4 16.25v-8.5C4 5.679 5.679 4 7.75 4zm9.25 1.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM12 7a5 5 0 100 10 5 5 0 000-10zm0 2a3 3 0 110 6 3 3 0 010-6z"/>
+                <path d="M7.75 2C4.574 2 2 4.574 2 7.75v8.5C2 19.426 4.574 22 7.75 22h8.5C19.426 22 22 19.426 22 16.25v-8.5C22 4.574 19.426 2 16.25 2h-8.5zm0 2h8.5C18.321 4 20 5.679 20 7.75v8.5C20 18.321 18.321 20 16.25 20h-8.5C5.679 20 4 18.321 4 16.25v-8.5C4 5.679 5.679 4 7.75 4zm9.25 1.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM12 7a5 5 0 100 10 5 5 0 000-10zm0 2a3 3 0 110 6 3 3 0 010-6z" />
               </svg>
             </a>
           </div>
@@ -485,8 +496,8 @@ export default function PreviewScreen() {
             <div className="flex justify-between items-center mb-large border-b pb-small">
               <div className="flex items-center gap-3">
                 {modalStep === 'PHOTO_LIST' && (
-                  <button 
-                    onClick={() => setModalStep('ALBUM_LIST')} 
+                  <button
+                    onClick={() => setModalStep('ALBUM_LIST')}
                     className="text-text-secondary hover:text-accent font-bold text-2xl pb-1 cursor-pointer transition-colors"
                   >
                     {'<'}
@@ -538,9 +549,9 @@ export default function PreviewScreen() {
                     key={album.id}
                     onClick={async () => {
                       try {
-                        const res = await apiClient.get(`/album/${shopId}/${album.id}/photos`);
+                        const res = await apiClient.get(`/photos/albums/${shopId}/${album.id}`);
                         setCurrentAlbumPhotos(res.data.photos || []);
-                        setCurrentAlbumTitle(album.title);
+                        setCurrentAlbumTitle(album.album_name);
                         setModalStep('PHOTO_LIST');
                       } catch (error) {
                         console.error('앨범 사진 로딩 실패', error);
@@ -549,9 +560,9 @@ export default function PreviewScreen() {
                     className="flex flex-col items-center gap-2 group cursor-pointer"
                   >
                     <div className="w-full aspect-square bg-[#EAEAEA] rounded-xl border border-border overflow-hidden group-hover:border-accent transition-colors flex items-center justify-center relative">
-                       <span className="text-4xl text-gray-400">📁</span>
+                      <span className="text-4xl text-gray-400">📁</span>
                     </div>
-                    <span className="font-bold text-text-primary text-[15px] truncate w-full px-2 text-center">{album.title}</span>
+                    <span className="font-bold text-text-primary text-[15px] truncate w-full px-2 text-center">{album.album_name}</span>
                   </button>
                 ))}
               </div>
@@ -570,14 +581,12 @@ export default function PreviewScreen() {
                         <button
                           key={photo.id}
                           onClick={() => toggleTempSelect(photo)}
-                          className={`relative aspect-square rounded-lg border overflow-hidden cursor-pointer ${
-                            isSelected ? 'border-accent border-[3px]' : 'border-border'
-                          }`}
+                          className={`relative aspect-square rounded-lg border overflow-hidden cursor-pointer ${isSelected ? 'border-accent border-[3px]' : 'border-border'
+                            }`}
                         >
                           <div
-                            className={`absolute top-2 left-2 w-[22px] h-[22px] rounded border-2 flex justify-center items-center ${
-                              isSelected ? 'bg-accent border-accent' : 'bg-white border-text-secondary'
-                            }`}
+                            className={`absolute top-2 left-2 w-[22px] h-[22px] rounded border-2 flex justify-center items-center ${isSelected ? 'bg-accent border-accent' : 'bg-white border-text-secondary'
+                              }`}
                           >
                             {isSelected && (
                               <span className="text-white text-sm font-bold">✓</span>
@@ -667,22 +676,22 @@ export default function PreviewScreen() {
       {alertMessage && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[10001] backdrop-blur-sm">
           <div className="bg-background rounded-xl shadow-2xl p-8 w-[360px] flex flex-col items-center">
-            
+
             <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 shrink-0">
               <span className="text-red-500 text-2xl font-bold">!</span>
             </div>
-            
+
             <p className="text-sm text-text-primary text-center mb-6 font-bold whitespace-pre-wrap leading-relaxed">
               {alertMessage}
             </p>
-            
-            <button 
+
+            <button
               onClick={() => setAlertMessage(null)}
               className="w-full py-3 bg-accent text-white rounded-lg font-bold cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none"
             >
               {t.common?.confirm || '확인'}
             </button>
-            
+
           </div>
         </div>
       )}
