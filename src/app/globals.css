@@ -32,4 +32,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+  button, 
+  [role="button"],
+  a {
+    cursor: pointer;
+  }
+  
+  /* 만약 버튼이 비활성화(disabled) 상태일 때는 손가락 모양을 끄고 싶다면 아래 코드도 추가! */
+  button:disabled,
+  [role="button"]:disabled {
+    cursor: not-allowed;
+  }
 }

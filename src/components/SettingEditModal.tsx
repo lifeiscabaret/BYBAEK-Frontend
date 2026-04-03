@@ -2,6 +2,8 @@
 "use client";
 
 import React from 'react';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface SettingEditModalProps {
   isVisible: boolean;
@@ -18,12 +20,15 @@ export const SettingEditModal: React.FC<SettingEditModalProps> = ({
   onSave,
   children,
 }) => {
+  // 🚨 [다국어 적용] 번역 객체 t 가져오기 (반드시 early return 이전에 선언!)
+  const { t } = useTranslation();
+
   // 모달이 닫혀있을 때는 DOM 자체를 렌더링하지 않음
   if (!isVisible) return null;
 
   return (
     // 1. 모달 오버레이 (배경 딤 처리 및 최상단 배치)
-    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-9999">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[9999]">
       
       {/* 2. 모달 컨테이너 (고정 너비 500px, 둥근 모서리, 그림자 효과) */}
       <div className="w-[500px] bg-background rounded-[16px] p-large border border-border shadow-[0_10px_20px_rgba(0,0,0,0.25)] flex flex-col">
@@ -50,13 +55,15 @@ export const SettingEditModal: React.FC<SettingEditModalProps> = ({
             onClick={onClose}
             className="px-medium py-[10px] rounded-md border border-border bg-background text-text-secondary font-semibold hover:bg-gray-50 transition-colors focus:outline-none"
           >
-            취소
+            {/* 🚨 [다국어 적용] */}
+            {t.common.cancel}
           </button>
           <button 
             onClick={onSave}
             className="px-medium py-[10px] rounded-md bg-accent text-text-inverse font-semibold hover:bg-accent-dark transition-colors focus:outline-none"
           >
-            저장
+            {/* 🚨 [다국어 적용] */}
+            {t.common.save}
           </button>
         </div>
         

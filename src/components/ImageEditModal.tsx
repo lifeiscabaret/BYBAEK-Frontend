@@ -2,6 +2,8 @@
 "use client";
 
 import React, { useState } from 'react';
+// 🚨 [다국어 적용] 번역 훅 불러오기
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ImageEditModalProps {
   isVisible: boolean;
@@ -18,6 +20,9 @@ export const ImageEditModal: React.FC<ImageEditModalProps> = ({
   onRemove,
   onAdd,
 }) => {
+  // 🚨 [다국어 적용] 번역 훅(t) 가져오기. (훅은 반드시 return null 보다 위에 있어야 합니다!)
+  const { t } = useTranslation();
+
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>([]);
 
   // [핵심] 안 보일 때는 아무것도 렌더링하지 않음
@@ -43,7 +48,8 @@ export const ImageEditModal: React.FC<ImageEditModalProps> = ({
         
         {/* 3. header (mb-xlarge, 하단 테두리) */}
         <div className="flex flex-row justify-between items-center mb-xlarge pb-medium border-b border-border shrink-0">
-          <h2 className="text-[22px] font-bold text-text-primary">선택된 이미지</h2>
+          {/* 🚨 [다국어 적용] 모달 타이틀 */}
+          <h2 className="text-[22px] font-bold text-text-primary">{t.image_edit.title}</h2>
           
           <div className="flex flex-row items-center gap-small">
             {/* 추가 버튼 */}
@@ -51,7 +57,8 @@ export const ImageEditModal: React.FC<ImageEditModalProps> = ({
               onClick={onAdd}
               className="p-2 border border-border rounded-md bg-background hover:bg-gray-50 transition-colors focus:outline-none"
             >
-              <span className="text-[13px] text-text-primary">추가</span>
+              {/* 🚨 [다국어 적용] 추가 */}
+              <span className="text-[13px] text-text-primary">{t.image_edit.btn_add}</span>
             </button>
             
             {/* 제거 버튼 */}
@@ -59,7 +66,8 @@ export const ImageEditModal: React.FC<ImageEditModalProps> = ({
               onClick={handleRemove}
               className="p-2 border border-accent rounded-md bg-background hover:bg-red-50 transition-colors focus:outline-none"
             >
-              <span className="text-[13px] text-accent">제거</span>
+              {/* 🚨 [다국어 적용] 제거 */}
+              <span className="text-[13px] text-accent">{t.image_edit.btn_remove}</span>
             </button>
             
             {/* 닫기 버튼 */}
