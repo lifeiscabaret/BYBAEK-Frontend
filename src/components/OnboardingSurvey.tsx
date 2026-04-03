@@ -310,11 +310,11 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
             </p>
             
             {/* 확인 버튼 */}
-            <button 
+            <button
               onClick={() => setAlertMessage(null)}
               className="w-full py-3 bg-accent text-white rounded-lg font-bold cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none"
             >
-              확인
+              {t.common?.confirm || '확인'}
             </button>
             
           </div>

@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar'; 
 import { PostCard } from '@/components/PostCard'; 
 import apiClient from '@/api/index';
-// 🚨 [다국어 적용] 번역 훅 불러오기
 import { useTranslation } from '@/hooks/useTranslation';
+import type { Post } from '@/types';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function DashboardScreen() {
   // 🚨 [다국어 적용] 번역 객체 t 가져오기
   const { t } = useTranslation();
 
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [isGuest, setIsGuest] = useState(false);
   
   const [shopId, setShopId] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export default function DashboardScreen() {
     if (!dateString) return t.common?.no_date || "날짜 없음";
     
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "날짜 오류"; // 유효하지 않은 날짜 방어
+    if (isNaN(date.getTime())) return t.post_detail?.date_error || "날짜 오류";
 
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');

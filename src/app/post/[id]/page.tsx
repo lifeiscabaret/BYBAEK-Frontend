@@ -5,8 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import apiClient from '@/api/index';
-// 🚨 [다국어 적용] 번역 훅 불러오기
 import { useTranslation } from '@/hooks/useTranslation';
+import type { PostDetail } from '@/types';
 
 // Next.js App Router의 동적 라우팅 파라미터 타입 정의
 interface PostDetailProps {
@@ -29,7 +29,7 @@ export default function PostDetailScreen({ params }: PostDetailProps) {
   // 🚨 [다국어 적용] 번역 객체 t 가져오기
   const { t } = useTranslation();
 
-  const [postData, setPostData] = useState<any>(null);
+  const [postData, setPostData] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

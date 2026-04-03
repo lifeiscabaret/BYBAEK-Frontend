@@ -3,8 +3,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
-import apiClient from '@/api/index'; // 🚨 [DB 연동]
+import apiClient from '@/api/index';
 import { useTranslation } from '@/hooks/useTranslation';
+import type { Photo } from '@/types';
 
 interface AlbumData {
   id: string;
@@ -35,9 +36,8 @@ export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, a
   const [tempTitle, setTempTitle] = useState('');
   const [tempDesc, setTempDesc] = useState('');
   
-  // 🚨 [DB 연동] 실제 사진 데이터를 담을 State
-  const [albumPhotos, setAlbumPhotos] = useState<any[]>([]); // 현재 앨범에 들어있는 사진들
-  const [allPhotos, setAllPhotos] = useState<any[]>([]);     // 샵의 전체 사진들
+  const [albumPhotos, setAlbumPhotos] = useState<Photo[]>([]);
+  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // 선택 상태 관리
@@ -112,7 +112,7 @@ export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, a
     setAlbumPhotos(newAlbumPhotos);
     setSelectedAllPhotoIds([]);
     setIsAddPhotoModalVisible(false);
-    window.alert(t.album.alert_add_success.replace('{count}', String(selectedAllPhotoIds.length)));
+    // 사진 추가 완료 (알림 생략 - UI에서 즉시 반영됨)
   };
 
   const togglePhotoSelect = (id: string) => 
@@ -188,11 +188,11 @@ export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, a
         <div className="flex-1 bg-[#F9F9F9] rounded-xl p-5 border border-border overflow-y-auto min-h-0 relative">
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center text-text-secondary font-bold">
-              데이터를 불러오는 중입니다...
+              {t.album_detail?.loading || '데이터를 불러오는 중입니다...'}
             </div>
           ) : albumPhotos.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center text-text-secondary">
-              앨범에 사진이 없습니다. 사진을 추가해 보세요!
+              {t.album_detail?.empty || '앨범에 사진이 없습니다. 사진을 추가해 보세요!'}
             </div>
           ) : (
             <div className="flex flex-row flex-wrap gap-4 pb-4">
@@ -250,7 +250,7 @@ export const AlbumDetailModal: React.FC<AlbumDetailModalProps> = ({ isVisible, a
             <div className="flex-1 overflow-y-auto min-h-0 pr-2 pb-2 border-t border-gray-100 pt-4">
               {allPhotos.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-gray-400 font-bold">
-                  선택할 수 있는 사진이 없습니다.
+                  {t.album_detail?.no_photos_available || '선택할 수 있는 사진이 없습니다.'}
                 </div>
               ) : (
                 <div className="flex flex-row flex-wrap gap-4">

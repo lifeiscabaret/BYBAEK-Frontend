@@ -23,6 +23,7 @@ export function PhotoSyncProgress() {
   const [showFavoriteModal, setShowFavoriteModal] = useState(false);
   const [allPhotos, setAllPhotos] = useState<any[]>([]);
   const [selectedFavorites, setSelectedFavorites] = useState<string[]>([]);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const wasRunningRef = useRef<boolean>(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -51,9 +52,8 @@ export function PhotoSyncProgress() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ shop_id: shopId }),
           });
-          console.log('[onedrive] sync 시작 요청 완료');
-        } catch (error) {
-          console.log('[onedrive] sync 시작 실패 (이미 실행 중이거나 연동 안 됨)');
+        } catch {
+          // sync 시작 실패 (이미 실행 중이거나 연동 안 됨)
         }
       }
 
@@ -86,7 +86,6 @@ export function PhotoSyncProgress() {
         } catch (error) {
           // 에러 시 폴링 중단
           if (intervalRef.current) clearInterval(intervalRef.current);
-          console.log('[onedrive] 상태 체크 중단');
         }
       };
 
@@ -116,7 +115,7 @@ export function PhotoSyncProgress() {
         return prev.filter((id) => id !== photoId);
       } else {
         if (prev.length >= 3) {
-          alert(t.photo_sync.alert_max_3);
+          setAlertMessage(t.photo_sync.alert_max_3);
           return prev;
         }
         return [...prev, photoId];
@@ -126,18 +125,17 @@ export function PhotoSyncProgress() {
 
   const handleSaveFavorites = async () => {
     if (selectedFavorites.length < 3) {
-      alert(t.photo_sync.alert_min_3);
+      setAlertMessage(t.photo_sync.alert_min_3);
       return;
     }
     try {
       await apiClient.post(`/onboarding/favorites/${shopId}`, {
         favorite_photos: selectedFavorites,
       });
-      alert(t.photo_sync.alert_setup_complete);
+      setAlertMessage(t.photo_sync.alert_setup_complete);
       setShowFavoriteModal(false);
-    } catch (error) {
-      console.error('즐겨찾기 저장 실패:', error);
-      alert(t.photo_sync.alert_save_error);
+    } catch {
+      setAlertMessage(t.photo_sync.alert_save_error);
     }
   };
 
@@ -268,6 +266,26 @@ export function PhotoSyncProgress() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 커스텀 알림창 UI */}
+      {alertMessage && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[10001] backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl p-8 w-[360px] flex flex-col items-center">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 shrink-0">
+              <span className="text-red-500 text-2xl font-bold">!</span>
+            </div>
+            <p className="text-sm text-text-primary text-center mb-6 font-bold whitespace-pre-wrap leading-relaxed">
+              {alertMessage}
+            </p>
+            <button
+              onClick={() => setAlertMessage(null)}
+              className="w-full py-3 bg-accent text-white rounded-lg font-bold cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none"
+            >
+              {t.common?.confirm || '확인'}
+            </button>
           </div>
         </div>
       )}

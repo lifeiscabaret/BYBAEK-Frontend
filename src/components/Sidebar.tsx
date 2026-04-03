@@ -39,12 +39,6 @@ export const Sidebar: React.FC = () => {
     { name: t.sidebar.my_album, path: '/album' },
     { name: t.sidebar.setting, path: '/setting' },
     
-    // ==========================================
-    // 🚨 [TODO: 배포 전 삭제] 이메일 리뷰 링크 테스트용 메뉴 
-    // 실제 이메일에서 누른 것처럼 파라미터(?shop_id=...)를 붙여서 이동시킵니다.
-    { name: '리뷰 (테스트)', path: '/review?shop_id=${currentShopId}' },
-    // ==========================================
-
     { name: t.sidebar.test, path: '/' },
     ...(isLoggedIn 
       ? [{ name: t.sidebar.logout, action: 'LOGOUT' }] 
@@ -66,7 +60,7 @@ export const Sidebar: React.FC = () => {
     localStorage.clear(); 
     setIsLoggedIn(false);
     setIsLogoutModalOpen(false);
-    window.location.href = '/'; 
+    router.push('/');
   };
 
   return (

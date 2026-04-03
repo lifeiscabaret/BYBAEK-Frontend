@@ -12,6 +12,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 type AuthModalType = 'NONE' | 'Microsoft' | 'Instagram' | 'Gmail';
 type AuthStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
+type LegalModalType = 'NONE' | 'terms' | 'privacy';
 
 interface CustomAlertState {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface CustomAlertState {
 export default function SettingScreen() {
   const [shopId, setShopId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [legalModal, setLegalModal] = useState<LegalModalType>('NONE');
 
   useEffect(() => {
     const storedShopId = localStorage.getItem('shop_id');
@@ -88,7 +90,6 @@ export default function SettingScreen() {
   const updateSetting = async (payload: Record<string, any>) => {
     try {
       await apiClient.post(`/onboarding/${shopId}`, payload);
-      console.log('설정 업데이트 성공:', payload);
     } catch (error) {
       console.error("설정 업데이트 실패:", error);
       setCustomAlert({
@@ -471,8 +472,8 @@ export default function SettingScreen() {
                 <span className="bg-background border border-border px-5 py-2 rounded-md text-sm whitespace-nowrap text-text-primary">
                   {(t.setting.freq_map as any)[frequency] || frequency} {amPm} {hour}:{minute}
                 </span>
-                <button 
-                  className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none shrink-0" 
+                <button
+                  className="bg-background border border-[#D0D0D0] px-4 py-1.5 rounded-full text-[13px] text-text-primary font-semibold hover:bg-gray-50 transition-colors focus:outline-none shrink-0"
                   onClick={() => { setTempFrequency(frequency); setTempAmPm(amPm); setTempHour(hour); setTempMinute(minute); setTimeModalVisible(true); }}
                 >
                   {t.setting.btn_edit}
@@ -480,8 +481,49 @@ export default function SettingScreen() {
               </div>
             </div>
           </div>
+
+          <div className="flex flex-row justify-center gap-6 py-4 mt-2">
+            <button
+              onClick={() => setLegalModal('terms')}
+              className="text-[13px] text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors focus:outline-none"
+            >
+              {t.setting.terms_of_service || '이용약관'}
+            </button>
+            <span className="text-[13px] text-[#D0D0D0]">|</span>
+            <button
+              onClick={() => setLegalModal('privacy')}
+              className="text-[13px] text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors focus:outline-none"
+            >
+              {t.setting.privacy_policy || '개인정보처리방침'}
+            </button>
+          </div>
         </div>
       </div>
+
+      {legalModal !== 'NONE' && (
+        <div className="fixed inset-0 bg-black/60 z-[10000] flex items-center justify-center p-6">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-[800px] h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex flex-row justify-between items-center px-6 py-4 border-b border-gray-200 shrink-0">
+              <h2 className="text-[18px] font-bold text-text-primary">
+                {legalModal === 'terms'
+                  ? (t.setting.terms_of_service || '이용약관')
+                  : (t.setting.privacy_policy || '개인정보처리방침')}
+              </h2>
+              <button
+                onClick={() => setLegalModal('NONE')}
+                className="w-9 h-9 rounded-full bg-[#F0F0F0] flex items-center justify-center text-text-primary font-bold text-lg hover:bg-gray-300 transition-colors focus:outline-none"
+              >
+                ✕
+              </button>
+            </div>
+            <iframe
+              src={legalModal === 'terms' ? '/terms.html' : '/privacy.html'}
+              className="flex-1 w-full border-none"
+              title={legalModal === 'terms' ? '이용약관' : '개인정보처리방침'}
+            />
+          </div>
+        </div>
+      )}
 
       {renderAuthModal()}
       {renderCustomAlert()}

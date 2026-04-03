@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import apiClient from '@/api/index';
 import { useTranslation } from '@/hooks/useTranslation';
+import type { Photo, Album } from '@/types';
 
 // ==========================================
 // 🚨 [TODO: 배포 전 삭제] UI 테스트용 목업 데이터
@@ -23,8 +24,8 @@ const MOCK_DATA = {
     { id: 'mock_4', original_name: '스타일4.jpg', blob_url: 'https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&h=500&fit=crop' },
   ],
   albums: [
-    { id: 'album_1', title: '포마드 컷 모음' },
-    { id: 'album_2', title: '아이비리그 컷' },
+    { id: 'album_1', album_name: '포마드 컷 모음' },
+    { id: 'album_2', album_name: '아이비리그 컷' },
   ]
 };
 // ==========================================
@@ -45,18 +46,18 @@ function ReviewContent() {
   
   const [isClosedFallback, setIsClosedFallback] = useState(false);
 
-  const [allPhotos, setAllPhotos] = useState<any[]>([]);
-  const [albums, setAlbums] = useState<any[]>([]); 
-  
-  const [images, setImages] = useState<any[]>([]);
-  const [tempSelectedPhotos, setTempSelectedPhotos] = useState<any[]>([]);
+  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
+
+  const [images, setImages] = useState<Photo[]>([]);
+  const [tempSelectedPhotos, setTempSelectedPhotos] = useState<Photo[]>([]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isOrderModalVisible, setIsOrderModalVisible] = useState(false);
 
   const [modalStep, setModalStep] = useState<'ALBUM_LIST' | 'PHOTO_LIST'>('ALBUM_LIST');
-  const [currentAlbumPhotos, setCurrentAlbumPhotos] = useState<any[]>([]);
+  const [currentAlbumPhotos, setCurrentAlbumPhotos] = useState<Photo[]>([]);
   const [currentAlbumTitle, setCurrentAlbumTitle] = useState('');
 
   const [generatedCaption, setGeneratedCaption] = useState('');
@@ -117,11 +118,6 @@ function ReviewContent() {
       }
 
       try {
-        if (postId) {
-          // const postRes = await apiClient.get(`/post/detail`, { params: { shop_id: shopId, post_id: postId } });
-          // setGeneratedCaption(postRes.data.caption);
-          // setImages(postRes.data.images || []);
-        }
         const allRes = await apiClient.get(`/photos/all/${shopId}`); 
         setAllPhotos(allRes.data.photos || []);
 
@@ -129,7 +125,7 @@ function ReviewContent() {
         setAlbums(albumRes.data.albums || albumRes.data || []);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
-        setAlertMessage("게시물 정보를 불러오는데 실패했습니다.");
+        setAlertMessage(t.review.load_error);
       } finally {
         setIsPageLoading(false);
       }
@@ -151,7 +147,7 @@ function ReviewContent() {
   };
   const closeOrderModal = () => setIsOrderModalVisible(false);
 
-  const toggleTempSelect = (photo: any) => {
+  const toggleTempSelect = (photo: Photo) => {
     setTempSelectedPhotos((prev) =>
       prev.some((p) => p.id === photo.id) ? prev.filter((p) => p.id !== photo.id) : [...prev, photo]
     );
@@ -223,20 +219,20 @@ function ReviewContent() {
       const USE_MOCK = true;
       if (USE_MOCK) {
         await new Promise(resolve => setTimeout(resolve, 1500)); 
-        setAlertMessage("게시물 수정 및 인스타그램 업로드가 완료되었습니다! 🎉");
-        setIsUploadSuccess(true); 
+        setAlertMessage(t.review.upload_success);
+        setIsUploadSuccess(true);
         setIsLoading(false);
         return;
       }
 
-      const response = await apiClient.post('/save', payload); 
+      const response = await apiClient.post('/save', payload);
       if (response.data.status === 'success') {
-        setAlertMessage("게시물 수정 및 인스타그램 업로드가 완료되었습니다! 🎉");
+        setAlertMessage(t.review.upload_success);
         setIsUploadSuccess(true); 
       }
     } catch (error: any) {
       console.error('업로드 실패:', error);
-      setAlertMessage(error.response?.data?.detail || "작업 중 오류가 발생했습니다.");
+      setAlertMessage(error.response?.data?.detail || t.review.upload_error);
     } finally {
       setIsLoading(false);
     }
@@ -258,13 +254,12 @@ function ReviewContent() {
         <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
           <span className="text-green-500 text-4xl font-bold">✓</span>
         </div>
-        <h2 className="text-[22px] font-bold text-text-primary mb-3">업로드가 완료되었습니다!</h2>
-        <p className="text-[15px] text-text-secondary leading-relaxed mb-8">
-          성공적으로 인스타그램에 업로드 되었습니다.<br/>
-          이제 이 창을 닫으셔도 됩니다.
+        <h2 className="text-[22px] font-bold text-text-primary mb-3">{t.review.upload_complete_title}</h2>
+        <p className="text-[15px] text-text-secondary leading-relaxed mb-8 whitespace-pre-wrap">
+          {t.review.upload_complete_desc}
         </p>
         <p className="text-[13px] text-gray-400 bg-gray-100 px-4 py-2 rounded-full">
-          브라우저 또는 탭을 닫아주세요.
+          {t.review.upload_complete_close}
         </p>
       </div>
     );
@@ -275,7 +270,7 @@ function ReviewContent() {
       <div className="flex h-screen w-full max-w-md mx-auto items-center justify-center bg-[#FAFAFA] shadow-2xl">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-bold text-text-secondary animate-pulse">게시물 데이터를 불러오는 중...</p>
+          <p className="text-sm font-bold text-text-secondary animate-pulse">{t.review.loading_data}</p>
         </div>
       </div>
     );
@@ -302,7 +297,7 @@ function ReviewContent() {
         </button>
 
         <h2 className="text-[18px] text-text-primary font-bold">
-          게시글 검토 및 수정
+          {t.review.title}
         </h2>
       </div>
 
@@ -380,7 +375,7 @@ function ReviewContent() {
             className="flex-1 w-full h-full resize-none text-body bg-transparent focus:outline-none scrollbar-hide leading-relaxed"
             value={generatedCaption}
             onChange={(e) => setGeneratedCaption(e.target.value)}
-            placeholder="게시글 내용을 입력하세요."
+            placeholder={t.review.placeholder_caption}
           />
         </div>
       </div>
@@ -394,7 +389,7 @@ function ReviewContent() {
           {isLoading ? (
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
-            "수정 및 인스타 업로드"
+            t.review.btn_upload
           )}
         </button>
       </div>
@@ -415,7 +410,7 @@ function ReviewContent() {
                 </h2>
               </div>
               <div className="flex gap-2">
-                <button onClick={handleSavePhotos} className="px-4 py-1.5 bg-accent text-white rounded-md font-bold text-[13px] cursor-pointer">저장</button>
+                <button onClick={handleSavePhotos} className="px-4 py-1.5 bg-accent text-white rounded-md font-bold text-[13px] cursor-pointer">{t.common.save}</button>
                 <button onClick={closePhotoModal} className="text-[18px] text-text-secondary px-2 cursor-pointer">✕</button>
               </div>
             </div>
@@ -423,20 +418,20 @@ function ReviewContent() {
             <div className="flex-1 overflow-y-auto pr-1 scrollbar-hide">
               {modalStep === 'ALBUM_LIST' ? (
                 <div className="grid grid-cols-3 gap-3 content-start">
-                  <button onClick={() => { setCurrentAlbumPhotos(allPhotos); setCurrentAlbumTitle('전체 사진'); setModalStep('PHOTO_LIST'); }} className="flex flex-col items-center gap-1 group cursor-pointer">
+                  <button onClick={() => { setCurrentAlbumPhotos(allPhotos); setCurrentAlbumTitle(t.preview.all_photos); setModalStep('PHOTO_LIST'); }} className="flex flex-col items-center gap-1 group cursor-pointer">
                     <div className="w-full aspect-square bg-[#EAEAEA] rounded-xl border border-border flex items-center justify-center overflow-hidden">
-                      {allPhotos.length > 0 ? <img src={allPhotos[0].blob_url} className="w-full h-full object-cover" alt="커버" /> : <span className="text-3xl">📁</span>}
+                      {allPhotos.length > 0 ? <img src={allPhotos[0].blob_url} className="w-full h-full object-cover" alt={t.preview.all_photos} /> : <span className="text-3xl">📁</span>}
                     </div>
-                    <span className="font-bold text-[13px] mt-1">전체 사진</span>
+                    <span className="font-bold text-[13px] mt-1">{t.preview.all_photos}</span>
                   </button>
                   {albums.map((album) => (
                     <button key={album.id} onClick={() => {
                         setCurrentAlbumPhotos(allPhotos.slice(1, 3)); 
-                        setCurrentAlbumTitle(album.title); 
+                        setCurrentAlbumTitle(album.album_name);
                         setModalStep('PHOTO_LIST');
                     }} className="flex flex-col items-center gap-1 group cursor-pointer">
                       <div className="w-full aspect-square bg-[#EAEAEA] rounded-xl border border-border flex items-center justify-center"><span className="text-3xl">📁</span></div>
-                      <span className="font-bold text-[13px] mt-1 truncate w-full text-center">{album.title}</span>
+                      <span className="font-bold text-[13px] mt-1 truncate w-full text-center">{album.album_name}</span>
                     </button>
                   ))}
                 </div>
@@ -467,7 +462,7 @@ function ReviewContent() {
             <div className="flex justify-between items-center mb-4 border-b pb-3">
               <h2 className="text-[16px] font-bold text-text-primary">{t.preview.modal_photo_reorder}</h2>
               <div className="flex gap-2">
-                <button onClick={handleSavePhotoOrder} className="px-4 py-1.5 bg-accent text-white rounded-md font-bold text-[13px] cursor-pointer">저장</button>
+                <button onClick={handleSavePhotoOrder} className="px-4 py-1.5 bg-accent text-white rounded-md font-bold text-[13px] cursor-pointer">{t.common.save}</button>
                 <button onClick={closeOrderModal} className="text-[18px] text-text-secondary px-2 cursor-pointer">✕</button>
               </div>
             </div>
@@ -502,7 +497,7 @@ function ReviewContent() {
               onClick={handleAlertConfirm} 
               className="w-full py-3 bg-accent text-white rounded-lg font-bold text-[15px] cursor-pointer hover:bg-accent-dark transition-colors"
             >
-              확인
+              {t.common.confirm}
             </button>
           </div>
         </div>
