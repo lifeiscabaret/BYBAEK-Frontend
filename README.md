@@ -4,6 +4,15 @@
 
 ---
 
+## 🔗 배포 URL
+
+| 서비스 | URL |
+|---|---|
+| **Frontend** | https://bybaek-f-f2d2ara8b9bua8f6.koreacentral-01.azurewebsites.net |
+| **Backend** | https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net |
+
+---
+
 ## Tech Stack
 
 | 구분 | 기술 |
