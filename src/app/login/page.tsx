@@ -103,7 +103,7 @@ export default function LoginScreen() {
     setMsLoginStatus('IN_PROGRESS');
     const frontendCallbackUrl = encodeURIComponent(`${window.location.origin}/auth/callback`);
     // 🚨 [복구] 깔끔한 변수 사용
-    const loginUrl = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${frontendCallbackUrl}`;
+    const loginUrl = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${encodeURIComponent(BACKEND_URL + '/api/auth/ms/callback')}`;
     window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
   };
 
