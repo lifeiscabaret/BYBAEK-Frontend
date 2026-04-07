@@ -5,7 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL ||
-    'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net';
+    'https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net';
 
 export async function POST(request: NextRequest) {
     try {

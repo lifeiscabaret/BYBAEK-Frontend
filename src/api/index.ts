@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/api",
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net",
   withCredentials: true,
 
   timeout: 60000,
