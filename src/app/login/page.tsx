@@ -12,7 +12,7 @@ type LoginStep = 'LANGUAGE_SELECT' | 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
 // 🚨 [복구] 사장님이 깔끔하게 빼두셨던 백엔드 주소 상수!
-const BACKEND_URL = 'https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net';
+const BACKEND_URL = 'https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net'
 
 export default function LoginScreen() {
   const router = useRouter();

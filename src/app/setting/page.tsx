@@ -35,7 +35,7 @@ export default function SettingScreen() {
 
   // 1. 환경 설정 State
   const [isAutoUploadEnabled, setIsAutoUploadEnabled] = useState(false);
-  
+
   // 🚨 [수정 1] 컴포넌트 마운트 시, 무조건 로컬 스토리지의 글로벌 언어를 최우선으로 가져옵니다!
   const [language, setLanguage] = useState('ko');
   useEffect(() => {
@@ -43,7 +43,7 @@ export default function SettingScreen() {
       setLanguage(localStorage.getItem('language') || 'ko');
     }
   }, []);
-  
+
   // 2. 계정 연동 State
   const [isMicrosoftConnected, setIsMicrosoftConnected] = useState(false);
   const [isInstagramConnected, setIsInstagramConnected] = useState(false);
@@ -52,11 +52,11 @@ export default function SettingScreen() {
 
   // 3. UI 및 모달 제어 State
   const [isPromptListOpen, setIsPromptListOpen] = useState(false);
-  const [isAccountListOpen, setIsAccountListOpen] = useState(false); 
+  const [isAccountListOpen, setIsAccountListOpen] = useState(false);
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
   const [targetQuestionId, setTargetQuestionId] = useState<number>(1);
   const [isTimeModalVisible, setTimeModalVisible] = useState(false);
-  
+
   const [activeAuthModal, setActiveAuthModal] = useState<AuthModalType>('NONE');
   const [authStatus, setAuthStatus] = useState<AuthStatus>('IDLE');
 
@@ -75,12 +75,12 @@ export default function SettingScreen() {
   const [amPm, setAmPm] = useState('AM');
   const [hour, setHour] = useState('10');
   const [minute, setMinute] = useState('30');
-  
+
   const [tempFrequency, setTempFrequency] = useState(frequency);
   const [tempAmPm, setTempAmPm] = useState(amPm);
   const [tempHour, setTempHour] = useState(hour);
   const [tempMinute, setTempMinute] = useState(minute);
-  
+
   const [isHourDropdownOpen, setIsHourDropdownOpen] = useState(false);
   const [isMinuteDropdownOpen, setIsMinuteDropdownOpen] = useState(false);
 
@@ -94,7 +94,7 @@ export default function SettingScreen() {
       console.error("설정 업데이트 실패:", error);
       setCustomAlert({
         isOpen: true,
-        message: t.setting.alert_save_error, 
+        message: t.setting.alert_save_error,
         type: 'ALERT'
       });
     }
@@ -105,7 +105,7 @@ export default function SettingScreen() {
       if (!shopId) return;
       try {
         const response = await apiClient.get(`/onboarding/${shopId}`);
-        const data = response.data.shop_info || response.data; 
+        const data = response.data.shop_info || response.data;
 
         if (data) {
           // 🚨 [수정 2] DB 데이터가 아니라, 현재 화면의 글로벌 언어를 기준으로 맵핑합니다.
@@ -114,7 +114,7 @@ export default function SettingScreen() {
           setSurveyAnswers(mappedAnswers);
 
           setIsAutoUploadEnabled(data.insta_auto_upload_yn === 'Y');
-          
+
           // 🚨 [핵심 수정 3] setLanguage(data.language || 'ko'); 삭제!
           // 백엔드 DB에 과거에 저장된 언어값으로 현재 UI의 언어를 덮어씌우는 하극상(?)을 방지합니다.
 
@@ -122,11 +122,11 @@ export default function SettingScreen() {
           setIsMicrosoftConnected(data.is_ms_connected || false);
           setIsGmailConnected(data.is_gmail_connected || false);
           setGmailAddress(data.owner_email || '');
-          
+
           if (data.insta_upload_time) {
-             const [time, period] = data.insta_upload_time.split(' ');
-             const [h, m] = time.split(':');
-             setHour(h); setMinute(m); setAmPm(period);
+            const [time, period] = data.insta_upload_time.split(' ');
+            const [h, m] = time.split(':');
+            setHour(h); setMinute(m); setAmPm(period);
           }
           if (data.insta_upload_time_slot) setFrequency(data.insta_upload_time_slot);
         }
@@ -168,7 +168,7 @@ export default function SettingScreen() {
 
   const handleToggleLanguage = () => {
     const nextLang = language === 'ko' ? 'en' : 'ko';
-    
+
     setLanguage(nextLang);
     updateSetting({ language: nextLang });
     localStorage.setItem('language', nextLang);
@@ -177,17 +177,17 @@ export default function SettingScreen() {
 
   const triggerExternalPopup = (platform: AuthModalType) => {
     setAuthStatus('IN_PROGRESS');
-    
+
     const currentOrigin = window.location.origin;
     const callbackUrl = encodeURIComponent(`${currentOrigin}/auth/callback`);
     let authUrl = '';
 
     if (platform === 'Microsoft') {
-      authUrl = `https://bybaek-backend-awehcre3f3fpb4fg.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${callbackUrl}`;
+      authUrl = `https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=${callbackUrl}`;
     } else if (platform === 'Instagram') {
       authUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1219138883682659&redirect_uri=${callbackUrl}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     } else if (platform === 'Gmail') {
-      authUrl = 'https://accounts.google.com/'; 
+      authUrl = 'https://accounts.google.com/';
     }
 
     if (authUrl !== '') {
@@ -195,7 +195,7 @@ export default function SettingScreen() {
       if (!popup) {
         setCustomAlert({
           isOpen: true,
-          message: t.setting.popup_blocked, 
+          message: t.setting.popup_blocked,
           type: 'ALERT'
         });
         setAuthStatus('IDLE');
@@ -282,9 +282,9 @@ export default function SettingScreen() {
                 <p className="text-[14px] text-text-secondary text-center mt-2 whitespace-pre-wrap">{t.setting.auth_progress_desc}</p>
                 <button onClick={() => {
                   setAuthStatus('COMPLETED');
-                  if(activeAuthModal === 'Microsoft') { setIsMicrosoftConnected(true); updateSetting({ is_ms_connected: true }); }
-                  if(activeAuthModal === 'Instagram') { setIsInstagramConnected(true); updateSetting({ is_insta_connected: true }); }
-                  if(activeAuthModal === 'Gmail') { setIsGmailConnected(true); updateSetting({ is_gmail_connected: true }); }
+                  if (activeAuthModal === 'Microsoft') { setIsMicrosoftConnected(true); updateSetting({ is_ms_connected: true }); }
+                  if (activeAuthModal === 'Instagram') { setIsInstagramConnected(true); updateSetting({ is_insta_connected: true }); }
+                  if (activeAuthModal === 'Gmail') { setIsGmailConnected(true); updateSetting({ is_gmail_connected: true }); }
                 }} className="mt-8 text-xs text-gray-400 underline">{t.login.test_trigger}</button>
               </div>
             )}
@@ -317,7 +317,7 @@ export default function SettingScreen() {
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 pb-large min-h-0 scrollbar-hide">
-          
+
           <div className="bg-[#F5F5F5] rounded-xl p-5 mb-4">
             <div className="flex flex-row justify-between items-center">
               <h2 className="text-base font-bold text-text-primary m-0">{t.setting.section_marketer}</h2>
@@ -361,7 +361,7 @@ export default function SettingScreen() {
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
                     {isMicrosoftConnected ? 'bybaek_barber@outlook.com' : t.setting.no_account}
                   </p>
-                  <button 
+                  <button
                     onClick={() => {
                       if (isMicrosoftConnected) {
                         setCustomAlert({
@@ -391,7 +391,7 @@ export default function SettingScreen() {
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
                     {isInstagramConnected ? '@bybaek_official' : t.setting.no_account}
                   </p>
-                  <button 
+                  <button
                     onClick={() => {
                       if (isInstagramConnected) {
                         setCustomAlert({
@@ -421,7 +421,7 @@ export default function SettingScreen() {
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
                     {isGmailConnected ? (gmailAddress || t.setting.no_account) : t.setting.no_account}
                   </p>
-                  <button 
+                  <button
                     onClick={() => {
                       if (isGmailConnected) {
                         setCustomAlert({
@@ -532,9 +532,9 @@ export default function SettingScreen() {
         isVisible={isTimeModalVisible} title={t.setting.modal_schedule_title} onClose={() => setTimeModalVisible(false)}
         onSave={() => {
           setFrequency(tempFrequency); setAmPm(tempAmPm); setHour(tempHour); setMinute(tempMinute);
-          updateSetting({ 
-            insta_upload_time_slot: tempFrequency, 
-            insta_upload_time: `${tempHour}:${tempMinute} ${tempAmPm}` 
+          updateSetting({
+            insta_upload_time_slot: tempFrequency,
+            insta_upload_time: `${tempHour}:${tempMinute} ${tempAmPm}`
           });
           setTimeModalVisible(false);
         }}
@@ -578,13 +578,13 @@ export default function SettingScreen() {
       </SettingEditModal>
 
       {isOnboardingModalOpen && (
-        <OnboardingSurvey 
-          initialQuestionId={targetQuestionId} 
-          initialAnswers={surveyAnswers} 
+        <OnboardingSurvey
+          initialQuestionId={targetQuestionId}
+          initialAnswers={surveyAnswers}
           onFinish={(newAnswers) => {
             setIsOnboardingModalOpen(false);
             if (newAnswers) {
-              setSurveyAnswers(newAnswers); 
+              setSurveyAnswers(newAnswers);
               setGmailAddress(newAnswers[12] || '');
 
               const schedule = newAnswers[13];
