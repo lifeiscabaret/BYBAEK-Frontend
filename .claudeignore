@@ -1,0 +1,19 @@
+# 의존성 및 빌드 산출물
+node_modules/
+.next/
+
+# 패키지 잠금 파일
+package-lock.json
+
+# 정적 에셋 (이미지/SVG)
+public/images/
+public/*.svg
+
+# Git 내부 데이터
+.git/
+
+# CI/CD 워크플로우
+.github/
+
+# 프로젝트 소개 (CLAUDE.md로 대체)
+README.md
