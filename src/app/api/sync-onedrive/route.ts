@@ -10,21 +10,18 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL ||
 export async function POST(request: NextRequest) {
     try {
         // 쿠키 전체를 백엔드로 그대로 전달
-        const allCookies = request.headers.get('cookie') || '';
-        const shopId = request.cookies.get('shop_id')?.value ||
-            request.cookies.get('user_id')?.value || '';
-
         const body = await request.json().catch(() => ({}));
+        const accessToken = request.headers.get('x-ms-token-aad-access-token') || '';
+        const principalId = request.headers.get('x-ms-client-principal-id') || '';
 
-        // 백엔드 sync-photos 호출 (쿠키 통째로 전달)
         const syncRes = await fetch(`${BACKEND_URL}/api/onedrive/sync-photos`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(allCookies ? { Cookie: allCookies } : {}),
-                ...(shopId ? { 'X-MS-CLIENT-PRINCIPAL-ID': shopId } : {}),
+                ...(accessToken ? { 'x-ms-token-aad-access-token': accessToken } : {}),
+                ...(principalId ? { 'X-MS-CLIENT-PRINCIPAL-ID': principalId } : {}),
             },
-            body: JSON.stringify({ ...body, shop_id: shopId }),
+            body: JSON.stringify(body),
         });
 
         const text = await syncRes.text();
