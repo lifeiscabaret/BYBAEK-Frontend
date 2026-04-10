@@ -10,13 +10,13 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL ||
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json().catch(() => ({}));
-
-        // ✅ /.auth/me로 실제 토큰 가져오기
         const cookie = request.headers.get('cookie') || '';
-        const host = request.headers.get('host') || '';
-        const protocol = request.headers.get('x-forwarded-proto') || 'https';
 
-        const meRes = await fetch(`${protocol}://${host}/.auth/me`, {
+        // ✅ 환경변수로 프론트 URL 고정
+        const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL ||
+            'https://bybaek-f-f2d2ara8b9bua8f6.koreacentral-01.azurewebsites.net';
+
+        const meRes = await fetch(`${frontendUrl}/.auth/me`, {
             headers: { Cookie: cookie }
         });
         const meData = await meRes.json().catch(() => []);
