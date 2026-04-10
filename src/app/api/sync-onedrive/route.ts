@@ -60,12 +60,8 @@ export async function GET(request: NextRequest) {
         const authSession = request.cookies.get('AppServiceAuthSession')?.value;
 
         const statusRes = await fetch(
-            `${BACKEND_URL}/api/onedrive/sync-status/${shopId}`,
-            {
-                headers: authSession
-                    ? { Cookie: `AppServiceAuthSession=${authSession}` }
-                    : {},
-            }
+            `${BACKEND_URL}/api/photos/status/${shopId}`,  // ← 수정
+            { headers: authSession ? { Cookie: `AppServiceAuthSession=${authSession}` } : {} }
         );
 
         const statusData = await statusRes.json();

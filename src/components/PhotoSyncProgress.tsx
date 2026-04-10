@@ -61,8 +61,17 @@ export function PhotoSyncProgress() {
       const poll = async () => {
         try {
           const response = await fetch(`/api/sync-onedrive?shop_id=${shopId}`);
-          const data: SyncStatus = await response.json();
-          setStatus(data);
+          const raw = await response.json();
+
+          // 필드 매핑
+          const data: SyncStatus = {
+            shop_id: raw.shop_id || shopId,
+            status: raw.status === 'done' ? 'done' : raw.pending > 0 ? 'running' : raw.status,
+            total_scanned: raw.total || 0,
+            stage1_passed: raw.passed || 0,
+            stage2_passed: raw.passed || 0,
+            message: raw.status === 'done' ? t.photo_sync.sync_complete_msg : t.photo_sync.syncing_msg,
+          };
 
           if (data.status === 'running') {
             setIsVisible(true);
