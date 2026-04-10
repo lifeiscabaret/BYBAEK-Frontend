@@ -276,6 +276,23 @@
 
 ---
 
+## 21. 앱 버전 버그픽스 웹 버전 반영 (2026-04-10)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| `handleStartClick` SSR 가드 추가 (`typeof window`) | ✅ 완료 | `app/page.tsx` |
+| 스트리밍 reader undefined 시 명시적 throw + `while(true)` 변경 | ✅ 완료 | `app/preview/page.tsx` |
+| `parsed.hashtags` Array.isArray 타입 검증 추가 | ✅ 완료 | `app/preview/page.tsx` |
+| albums API 응답 Array.isArray 런타임 검증으로 교체 | ✅ 완료 | `app/preview/page.tsx` |
+| `insta_upload_time` split 결과 이중 길이 검증 추가 | ✅ 완료 | `app/setting/page.tsx` |
+| postMessage wildcard `'*'` → `window.location.origin` (MS/Instagram 2곳) | ✅ 완료 | `app/auth/callback/page.tsx` |
+| selectedIndexes 배열 범위 초과 방지 `.filter()` 추가 | ✅ 완료 | `app/photos/page.tsx` |
+| localStorage try-catch 추가 | ✅ 완료 | `app/dashboard/page.tsx`, `app/photos/page.tsx`, `app/album/page.tsx` |
+| useEffect 의존성 `[lang]` → `[]` 변경 | ✅ 완료 | `hooks/useTranslation.ts` |
+| `as any` → `as Record<string, string>` 교체 | ✅ 완료 | `components/OnboardingSurvey.tsx` |
+
+---
+
 ## 20. 프로젝트 문서 정비 (2026-04-03)
 
 | 작업 | 상태 | 대상 파일 |
