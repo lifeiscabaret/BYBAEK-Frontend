@@ -46,15 +46,22 @@ export function PhotoSyncProgress() {
       if (!syncStartedRef.current) {
         syncStartedRef.current = true;
         try {
-          // Next.js API route를 통해 프록시 호출 (쿠키 자동 포함)
+          // 브라우저에서 직접 토큰 가져오기
+          const meRes = await fetch('/.auth/me');
+          const meData = await meRes.json();
+          const accessToken = meData?.[0]?.access_token || '';
+          const principalId = meData?.[0]?.user_id || '';
+
           await fetch('/api/sync-onedrive', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'x-access-token': accessToken,
+              'x-principal-id': principalId,
+            },
             body: JSON.stringify({ shop_id: shopId }),
           });
-        } catch {
-          // sync 시작 실패 (이미 실행 중이거나 연동 안 됨)
-        }
+        } catch { }
       }
 
       // 상태 폴링

@@ -10,18 +10,10 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL ||
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json().catch(() => ({}));
-        const cookie = request.headers.get('cookie') || '';
 
-        // ✅ 환경변수로 프론트 URL 고정
-        const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL ||
-            'https://bybaek-f-f2d2ara8b9bua8f6.koreacentral-01.azurewebsites.net';
-
-        const meRes = await fetch(`${frontendUrl}/.auth/me`, {
-            headers: { Cookie: cookie }
-        });
-        const meData = await meRes.json().catch(() => []);
-        const accessToken = meData?.[0]?.access_token || '';
-        const principalId = meData?.[0]?.user_id || '';
+        // ✅ 프론트에서 넘긴 토큰 그대로 사용
+        const accessToken = request.headers.get('x-access-token') || '';
+        const principalId = request.headers.get('x-principal-id') || '';
 
         if (!accessToken) {
             return NextResponse.json({ success: false, message: 'MS 로그인 필요' }, { status: 401 });
