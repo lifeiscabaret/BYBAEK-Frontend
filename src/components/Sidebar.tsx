@@ -82,7 +82,7 @@ export const Sidebar: React.FC = () => {
             >
               <div className="relative w-10 h-10 transition-transform duration-300">
                 <Image 
-                  src="/images/logo.png" 
+                  src="/images/logo.svg" 
                   alt="BYBAEK Logo" 
                   fill 
                   className="object-contain"

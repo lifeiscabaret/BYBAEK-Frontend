@@ -9,17 +9,30 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL ||
 
 export async function POST(request: NextRequest) {
     try {
-        // 쿠키 전체를 백엔드로 그대로 전달
         const body = await request.json().catch(() => ({}));
-        const accessToken = request.headers.get('x-ms-token-aad-access-token') || '';
-        const principalId = request.headers.get('x-ms-client-principal-id') || '';
+
+        // ✅ /.auth/me로 실제 토큰 가져오기
+        const cookie = request.headers.get('cookie') || '';
+        const host = request.headers.get('host') || '';
+        const protocol = request.headers.get('x-forwarded-proto') || 'https';
+
+        const meRes = await fetch(`${protocol}://${host}/.auth/me`, {
+            headers: { Cookie: cookie }
+        });
+        const meData = await meRes.json().catch(() => []);
+        const accessToken = meData?.[0]?.access_token || '';
+        const principalId = meData?.[0]?.user_id || '';
+
+        if (!accessToken) {
+            return NextResponse.json({ success: false, message: 'MS 로그인 필요' }, { status: 401 });
+        }
 
         const syncRes = await fetch(`${BACKEND_URL}/api/onedrive/sync-photos`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                ...(accessToken ? { 'x-ms-token-aad-access-token': accessToken } : {}),
-                ...(principalId ? { 'X-MS-CLIENT-PRINCIPAL-ID': principalId } : {}),
+                'x-ms-token-aad-access-token': accessToken,
+                'X-MS-CLIENT-PRINCIPAL-ID': principalId,
             },
             body: JSON.stringify(body),
         });
@@ -33,10 +46,7 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
         console.error('[sync-onedrive] 오류:', error);
-        return NextResponse.json(
-            { success: false, message: '동기화 시작 실패' },
-            { status: 500 }
-        );
+        return NextResponse.json({ success: false, message: '동기화 시작 실패' }, { status: 500 });
     }
 }
 
