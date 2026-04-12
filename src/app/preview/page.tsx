@@ -78,7 +78,8 @@ export default function PreviewScreen() {
         setAllPhotos(allRes.data.photos || []);
 
         const albumRes = await apiClient.get(`/photos/albums/${shopId}`);
-        setAlbums(albumRes.data.albums || albumRes.data || []);
+        const albumData = albumRes.data.albums ?? albumRes.data;
+        setAlbums(Array.isArray(albumData) ? albumData : []);
       } catch (error) {
         console.error('데이터 로딩 실패:', error);
       }
@@ -270,10 +271,11 @@ export default function PreviewScreen() {
       );
 
       const reader = response.body?.getReader();
+      if (!reader) throw new Error('No readable stream from server');
       const decoder = new TextDecoder('utf-8');
       let fullResponse = '';
 
-      while (reader) {
+      while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
@@ -290,7 +292,7 @@ export default function PreviewScreen() {
       try {
         const parsed = JSON.parse(fullResponse);
         const display = parsed.caption + "\n\n"
-          + parsed.hashtags.join(" ") + "\n"
+          + (Array.isArray(parsed.hashtags) ? parsed.hashtags.join(" ") : (parsed.hashtags || "")) + "\n"
           + (parsed.cta || "");
         setGeneratedCaption(display);
       } catch {

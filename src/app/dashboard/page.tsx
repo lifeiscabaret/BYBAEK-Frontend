@@ -22,16 +22,20 @@ export default function DashboardScreen() {
   
   // 1. 페이지 로드 시 localStorage에서 정보를 먼저 가져옴
   useEffect(() => {
-    const storedShopId = localStorage.getItem("shop_id");
-    const guestStatus = localStorage.getItem("isGuest");
+    try {
+      const storedShopId = localStorage.getItem("shop_id");
+      const guestStatus = localStorage.getItem("isGuest");
 
-    if (guestStatus === "true") {
-      setIsGuest(true);
-      setShopId("guest"); // 게스트용 임시 ID
-    } else if (storedShopId) {
-      setShopId(storedShopId);
-    } else {
-      // 로그인 정보도 없고 게스트도 아니면 로그인 페이지로 튕겨내기
+      if (guestStatus === "true") {
+        setIsGuest(true);
+        setShopId("guest"); // 게스트용 임시 ID
+      } else if (storedShopId) {
+        setShopId(storedShopId);
+      } else {
+        // 로그인 정보도 없고 게스트도 아니면 로그인 페이지로 튕겨내기
+        router.push('/login');
+      }
+    } catch {
       router.push('/login');
     }
   }, [router]);
