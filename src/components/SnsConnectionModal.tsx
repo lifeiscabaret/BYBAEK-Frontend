@@ -51,7 +51,7 @@ export const SnsConnectionModal: React.FC<SnsConnectionModalProps> = ({
         <div className="flex flex-row justify-between items-center mb-5">
           <span className="text-[15px] text-text-primary">Instagram</span>
           <button 
-            onClick={() => handleSnsConnection('인스타그램', isInstagramConnected, setIsInstagramConnected, 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1219138883682659&redirect_uri=https://bybaek.azurewebsites.net/api/instagram_business_login&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights')}
+            onClick={() => handleSnsConnection('인스타그램', isInstagramConnected, setIsInstagramConnected, 'https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=3357678851057487&redirect_uri=https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net/api/auth/instagram&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights')}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors focus:outline-none ${
               isInstagramConnected 
                 ? 'bg-background border border-text-primary text-text-primary hover:bg-gray-50' 
