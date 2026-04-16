@@ -167,7 +167,10 @@ export default function SettingScreen() {
 
   const handleToggleAutoUpload = (val: boolean) => {
     setIsAutoUploadEnabled(val);
-    updateSetting({ insta_auto_upload_yn: val ? 'Y' : 'N' });
+    updateSetting({
+      insta_auto_upload_yn: val ? 'Y' : 'N',
+      insta_review_bfr_upload_yn: val ? 'N' : 'Y'  // ← 추가
+    });
   };
 
   const handleToggleLanguage = () => {
