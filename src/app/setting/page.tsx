@@ -169,7 +169,7 @@ export default function SettingScreen() {
     setIsAutoUploadEnabled(val);
     updateSetting({
       insta_auto_upload_yn: val ? 'Y' : 'N',
-      insta_review_bfr_upload_yn: val ? 'N' : 'Y'  // ← 추가
+      insta_review_bfr_upload_yn: val ? 'N' : 'Y'  // ← 이 줄만 추가
     });
   };
 
@@ -366,7 +366,7 @@ export default function SettingScreen() {
                     <span className="text-[14px] font-bold text-text-primary">Microsoft</span>
                   </div>
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
-                    {isMicrosoftConnected ? 'bybaek_barber@outlook.com' : t.setting.no_account}
+                    {isMicrosoftConnected ? (gmailAddress ? gmailAddress.replace(/@.*/, '') + ' (MS)' : '연결됨') : t.setting.no_account}
                   </p>
                   <button
                     onClick={() => {
@@ -396,7 +396,7 @@ export default function SettingScreen() {
                     <span className="text-[14px] font-bold text-text-primary">Instagram</span>
                   </div>
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
-                    {isInstagramConnected ? '@bybaek_official' : t.setting.no_account}
+                    {isInstagramConnected ? '연결됨' : t.setting.no_account}
                   </p>
                   <button
                     onClick={() => {
@@ -594,18 +594,25 @@ export default function SettingScreen() {
               setSurveyAnswers(newAnswers);
               setGmailAddress(newAnswers[12] || '');
 
-              const schedule = newAnswers[13];
-              if (schedule) {
-                setFrequency(schedule.frequency || '매일');
-                setAmPm(schedule.amPm || 'AM');
-                setHour(schedule.hour || '10');
-                setMinute(schedule.minute || '30');
-
-                updateSetting({
-                  insta_upload_time_slot: schedule.frequency,
-                  insta_upload_time: `${schedule.hour}:${schedule.minute} ${schedule.amPm}`
-                });
-              }
+              // [FIX] 전체 onboarding 필드 저장
+              const schedule = newAnswers[13] || {};
+              const isAutoUpload = newAnswers[11] === '예 (추천)';
+              updateSetting({
+                brand_tone: Array.isArray(newAnswers[1]) ? newAnswers[1] : (newAnswers[1] ? [newAnswers[1]] : []),
+                preferred_styles: Array.isArray(newAnswers[2]) ? newAnswers[2] : (newAnswers[2] ? [newAnswers[2]] : []),
+                exclude_conditions: Array.isArray(newAnswers[3]) ? newAnswers[3] : (newAnswers[3] ? [newAnswers[3]] : []),
+                hashtag_style: Array.isArray(newAnswers[4]) ? newAnswers[4] : (newAnswers[4] ? [newAnswers[4]] : []),
+                cta: newAnswers[5]?.trim() || null,
+                shop_intro: newAnswers[6]?.trim() || null,
+                forbidden_words: Array.isArray(newAnswers[7]) ? newAnswers[7] : (newAnswers[7] ? [newAnswers[7]] : []),
+                rag_reference: newAnswers[8]?.trim() || null,
+                city: newAnswers[9]?.trim() || null,
+                owner_email: newAnswers[12]?.trim() || null,
+                insta_auto_upload_yn: isAutoUpload ? 'Y' : 'N',
+                insta_review_bfr_upload_yn: isAutoUpload ? 'N' : 'Y',
+                insta_upload_time_slot: schedule.frequency || '매일',
+                insta_upload_time: schedule.hour ? `${schedule.hour}:${schedule.minute} ${schedule.amPm}` : null,
+              });
             }
           }}
           onSkip={() => setIsOnboardingModalOpen(false)}
