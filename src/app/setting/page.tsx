@@ -49,7 +49,7 @@ export default function SettingScreen() {
   const [isInstagramConnected, setIsInstagramConnected] = useState(false);
   const [isGmailConnected, setIsGmailConnected] = useState(false);
   const [gmailAddress, setGmailAddress] = useState('');
-
+  const [msAccountName, setMsAccountName] = useState(''); 
   // 3. UI 및 모달 제어 State
   const [isPromptListOpen, setIsPromptListOpen] = useState(false);
   const [isAccountListOpen, setIsAccountListOpen] = useState(false);
@@ -122,6 +122,7 @@ export default function SettingScreen() {
           setIsMicrosoftConnected(data.is_ms_connected || false);
           setIsGmailConnected(data.is_gmail_connected || false);
           setGmailAddress(data.owner_email || '');
+          setMsAccountName(data.name || '');  
 
           if (data.insta_upload_time) {
             const parts = data.insta_upload_time.split(' ');
@@ -366,7 +367,7 @@ export default function SettingScreen() {
                     <span className="text-[14px] font-bold text-text-primary">Microsoft</span>
                   </div>
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
-                    {isMicrosoftConnected ? (gmailAddress ? gmailAddress.replace(/@.*/, '') + ' (MS)' : '연결됨') : t.setting.no_account}
+                    {isMicrosoftConnected ? (msAccountName || '연결됨') : t.setting.no_account}
                   </p>
                   <button
                     onClick={() => {
