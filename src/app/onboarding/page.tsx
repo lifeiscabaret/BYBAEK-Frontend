@@ -40,27 +40,26 @@ export default function OnboardingScreen() {
       // 자동 업로드 ON(Y) → 검토 안 함(N), 자동 업로드 OFF(N) → 검토 필요(Y)
       const isAutoUpload = answers[11] === '예 (추천)';
 
-      const payload = {
-        brand_tone: Array.isArray(answers[1]) ? answers[1] : (answers[1] ? [answers[1]] : []),
-        preferred_styles: Array.isArray(answers[2]) ? answers[2] : (answers[2] ? [answers[2]] : []),
-        exclude_conditions: Array.isArray(answers[3]) ? answers[3] : (answers[3] ? [answers[3]] : []),
-        hashtag_style: Array.isArray(answers[4]) ? answers[4] : (answers[4] ? [answers[4]] : []),
-        cta: answers[5]?.trim() || null,
-        shop_intro: answers[6]?.trim() || null,
-        forbidden_words: Array.isArray(answers[7]) ? answers[7] : (answers[7] ? [answers[7]] : []),
-        rag_reference: answers[8]?.trim() || null,
-        city: answers[9]?.trim() || null,
-        
+      const payload: Record<string, any> = {
         insta_auto_upload_yn: isAutoUpload ? 'Y' : 'N',
-        insta_review_bfr_upload_yn: isAutoUpload ? 'N' : 'Y',  // [FIX] 추가
-        
-        owner_email: answers[12]?.trim() || null,
+        insta_review_bfr_upload_yn: isAutoUpload ? 'N' : 'Y',
         insta_upload_time_slot: schedule.frequency || '매일',
         insta_upload_time: uploadTime || null,
         language: dbLanguageCode,
         is_ms_connected: true,
-        is_insta_connected: true
+        is_insta_connected: true,
       };
+
+      if (answers[1]?.length > 0) payload.brand_tone = Array.isArray(answers[1]) ? answers[1] : [answers[1]];
+      if (answers[2]?.length > 0) payload.preferred_styles = Array.isArray(answers[2]) ? answers[2] : [answers[2]];
+      if (answers[3]?.length > 0) payload.exclude_conditions = Array.isArray(answers[3]) ? answers[3] : [answers[3]];
+      if (answers[4]?.length > 0) payload.hashtag_style = Array.isArray(answers[4]) ? answers[4] : [answers[4]];
+      if (answers[5]?.trim()) payload.cta = answers[5].trim();
+      if (answers[6]?.trim()) payload.shop_intro = answers[6].trim();
+      if (answers[7]?.length > 0) payload.forbidden_words = Array.isArray(answers[7]) ? answers[7] : [answers[7]];
+      if (answers[8]?.trim()) payload.rag_reference = answers[8].trim();
+      if (answers[9]?.trim()) payload.city = answers[9].trim();
+      if (answers[12]?.trim()) payload.owner_email = answers[12].trim();
 
       await apiClient.post(`/onboarding/${shopId}`, payload);
       window.location.href = '/dashboard';
