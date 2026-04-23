@@ -1,3 +1,4 @@
+// 타겟 경로: src/app/setting/page.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -6,6 +7,7 @@ import { SettingEditModal } from '@/components/SettingEditModal';
 import { OnboardingSurvey } from '@/components/OnboardingSurvey';
 import { getOnboardingQuestions, mapDBToSurveyAnswers } from '@/utils/constants/OnboardingData';
 import apiClient from '@/api/index';
+// 🚨 [다국어 적용] 번역 훅 추가
 import { useTranslation } from '@/hooks/useTranslation';
 
 type AuthModalType = 'NONE' | 'Microsoft' | 'Instagram' | 'Gmail';
@@ -31,7 +33,10 @@ export default function SettingScreen() {
 
   const { t } = useTranslation();
 
+  // 1. 환경 설정 State
   const [isAutoUploadEnabled, setIsAutoUploadEnabled] = useState(false);
+
+  // 🚨 [수정 1] 컴포넌트 마운트 시, 무조건 로컬 스토리지의 글로벌 언어를 최우선으로 가져옵니다!
   const [language, setLanguage] = useState('ko');
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -39,15 +44,13 @@ export default function SettingScreen() {
     }
   }, []);
 
+  // 2. 계정 연동 State
   const [isMicrosoftConnected, setIsMicrosoftConnected] = useState(false);
   const [isInstagramConnected, setIsInstagramConnected] = useState(false);
   const [isGmailConnected, setIsGmailConnected] = useState(false);
+  const [gmailAddress, setGmailAddress] = useState('');
 
-  // [FIX] 하드코딩 제거 → DB에서 받아온 실제 값으로 표시
-  const [msAccountEmail, setMsAccountEmail] = useState('');       // name 필드
-  const [gmailAddress, setGmailAddress] = useState('');           // owner_email 필드
-  const [instaUserId, setInstaUserId] = useState<string | null>(null); // insta_user_id 필드
-
+  // 3. UI 및 모달 제어 State
   const [isPromptListOpen, setIsPromptListOpen] = useState(false);
   const [isAccountListOpen, setIsAccountListOpen] = useState(false);
   const [isOnboardingModalOpen, setIsOnboardingModalOpen] = useState(false);
@@ -58,9 +61,12 @@ export default function SettingScreen() {
   const [authStatus, setAuthStatus] = useState<AuthStatus>('IDLE');
 
   const [customAlert, setCustomAlert] = useState<CustomAlertState>({
-    isOpen: false, message: '', type: 'ALERT'
+    isOpen: false,
+    message: '',
+    type: 'ALERT'
   });
 
+  // 4. 업로드 시간 설정 State (백엔드 전송용은 한국어 유지)
   const frequencies = ['매일', '2일마다', '3일마다', '4일마다', '5일마다', '6일마다', '일주일마다'];
   const hours = Array.from({ length: 12 }, (_, i) => String(i + 1));
   const minutes = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
@@ -78,6 +84,7 @@ export default function SettingScreen() {
   const [isHourDropdownOpen, setIsHourDropdownOpen] = useState(false);
   const [isMinuteDropdownOpen, setIsMinuteDropdownOpen] = useState(false);
 
+  // 5. 스무고개(설문) 답변 State
   const [surveyAnswers, setSurveyAnswers] = useState<Record<number, any>>({});
 
   const updateSetting = async (payload: Record<string, any>) => {
@@ -85,7 +92,11 @@ export default function SettingScreen() {
       await apiClient.post(`/onboarding/${shopId}`, payload);
     } catch (error) {
       console.error("설정 업데이트 실패:", error);
-      setCustomAlert({ isOpen: true, message: t.setting.alert_save_error, type: 'ALERT' });
+      setCustomAlert({
+        isOpen: true,
+        message: t.setting.alert_save_error,
+        type: 'ALERT'
+      });
     }
   };
 
@@ -97,19 +108,20 @@ export default function SettingScreen() {
         const data = response.data.shop_info || response.data;
 
         if (data) {
+          // 🚨 [수정 2] DB 데이터가 아니라, 현재 화면의 글로벌 언어를 기준으로 맵핑합니다.
           const currentLang = localStorage.getItem('language') || 'ko';
           const mappedAnswers = mapDBToSurveyAnswers(data, currentLang);
           setSurveyAnswers(mappedAnswers);
 
           setIsAutoUploadEnabled(data.insta_auto_upload_yn === 'Y');
+
+          // 🚨 [핵심 수정 3] setLanguage(data.language || 'ko'); 삭제!
+          // 백엔드 DB에 과거에 저장된 언어값으로 현재 UI의 언어를 덮어씌우는 하극상(?)을 방지합니다.
+
           setIsInstagramConnected(data.is_insta_connected || false);
           setIsMicrosoftConnected(data.is_ms_connected || false);
           setIsGmailConnected(data.is_gmail_connected || false);
-
-          // [FIX] DB 실제 값으로 교체
-          setMsAccountEmail(data.name || '');               // MS 계정 이메일
-          setGmailAddress(data.owner_email || '');          // Gmail 주소
-          setInstaUserId(data.insta_user_id ? String(data.insta_user_id) : null); // 인스타 user_id
+          setGmailAddress(data.owner_email || '');
 
           if (data.insta_upload_time) {
             const parts = data.insta_upload_time.split(' ');
@@ -157,12 +169,13 @@ export default function SettingScreen() {
     setIsAutoUploadEnabled(val);
     updateSetting({
       insta_auto_upload_yn: val ? 'Y' : 'N',
-      insta_review_bfr_upload_yn: val ? 'N' : 'Y'  // [FIX] 함께 저장
+      insta_review_bfr_upload_yn: val ? 'N' : 'Y'  // ← 이 줄만 추가
     });
   };
 
   const handleToggleLanguage = () => {
     const nextLang = language === 'ko' ? 'en' : 'ko';
+
     setLanguage(nextLang);
     updateSetting({ language: nextLang });
     localStorage.setItem('language', nextLang);
@@ -171,7 +184,11 @@ export default function SettingScreen() {
 
   const triggerExternalPopup = (platform: AuthModalType) => {
     setAuthStatus('IN_PROGRESS');
+
+    const currentOrigin = window.location.origin;
+    const callbackUrl = encodeURIComponent(`${currentOrigin}/auth/callback`);
     let authUrl = '';
+
     if (platform === 'Microsoft') {
       authUrl = `https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net/.auth/login/aad?post_login_redirect_uri=/api/auth/ms/callback`;
     } else if (platform === 'Instagram') {
@@ -179,10 +196,15 @@ export default function SettingScreen() {
     } else if (platform === 'Gmail') {
       authUrl = 'https://accounts.google.com/';
     }
+
     if (authUrl !== '') {
       const popup = window.open(authUrl, `${platform}_Login_Popup`, 'width=500,height=600');
       if (!popup) {
-        setCustomAlert({ isOpen: true, message: t.setting.popup_blocked, type: 'ALERT' });
+        setCustomAlert({
+          isOpen: true,
+          message: t.setting.popup_blocked,
+          type: 'ALERT'
+        });
         setAuthStatus('IDLE');
       }
     }
@@ -235,6 +257,7 @@ export default function SettingScreen() {
   const renderAuthModal = () => {
     if (activeAuthModal === 'NONE') return null;
     let title = '', desc = '', btnText = '';
+
     if (activeAuthModal === 'Microsoft') {
       title = t.login.ms_title; desc = t.login.ms_desc; btnText = t.login.ms_btn;
     } else if (activeAuthModal === 'Instagram') {
@@ -338,24 +361,28 @@ export default function SettingScreen() {
 
             {isAccountListOpen && (
               <div className="flex flex-col gap-5 mt-4 pt-4 border-t border-[#E0E0E0]">
-                {/* Microsoft */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Microsoft</span>
                   </div>
-                  {/* [FIX] 하드코딩 제거 → DB name 필드 값 표시 */}
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
-                    {isMicrosoftConnected ? (msAccountEmail || t.setting.connected) : t.setting.no_account}
+                    {isMicrosoftConnected ? (gmailAddress ? gmailAddress.replace(/@.*/, '') + ' (MS)' : '연결됨') : t.setting.no_account}
                   </p>
                   <button
                     onClick={() => {
                       if (isMicrosoftConnected) {
                         setCustomAlert({
-                          isOpen: true, message: t.setting.ms_disconnect_confirm, type: 'CONFIRM',
-                          onConfirm: () => { setIsMicrosoftConnected(false); updateSetting({ is_ms_connected: false }); }
+                          isOpen: true,
+                          message: t.setting.ms_disconnect_confirm,
+                          type: 'CONFIRM',
+                          onConfirm: () => {
+                            setIsMicrosoftConnected(false);
+                            updateSetting({ is_ms_connected: false });
+                          }
                         });
                       } else {
-                        setActiveAuthModal('Microsoft'); setAuthStatus('IDLE');
+                        setActiveAuthModal('Microsoft');
+                        setAuthStatus('IDLE');
                       }
                     }}
                     className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isMicrosoftConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
@@ -364,24 +391,28 @@ export default function SettingScreen() {
                   </button>
                 </div>
 
-                {/* Instagram */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Instagram</span>
                   </div>
-                  {/* [FIX] 하드코딩 제거 → insta_user_id 있으면 연결됨 표시, 계정명은 DB에 없음 */}
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
-                    {isInstagramConnected && instaUserId ? t.setting.connected : (isInstagramConnected ? t.setting.connected : t.setting.no_account)}
+                    {isInstagramConnected ? '연결됨' : t.setting.no_account}
                   </p>
                   <button
                     onClick={() => {
                       if (isInstagramConnected) {
                         setCustomAlert({
-                          isOpen: true, message: t.setting.insta_disconnect_confirm, type: 'CONFIRM',
-                          onConfirm: () => { setIsInstagramConnected(false); updateSetting({ is_insta_connected: false }); }
+                          isOpen: true,
+                          message: t.setting.insta_disconnect_confirm,
+                          type: 'CONFIRM',
+                          onConfirm: () => {
+                            setIsInstagramConnected(false);
+                            updateSetting({ is_insta_connected: false });
+                          }
                         });
                       } else {
-                        setActiveAuthModal('Instagram'); setAuthStatus('IDLE');
+                        setActiveAuthModal('Instagram');
+                        setAuthStatus('IDLE');
                       }
                     }}
                     className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isInstagramConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
@@ -390,12 +421,10 @@ export default function SettingScreen() {
                   </button>
                 </div>
 
-                {/* Gmail */}
                 <div className="flex flex-row items-center justify-between gap-4">
                   <div className="flex-[1] flex items-center gap-2">
                     <span className="text-[14px] font-bold text-text-primary">Gmail</span>
                   </div>
-                  {/* [FIX] 하드코딩 제거 → DB owner_email 값 표시 */}
                   <p className="flex-[2] text-[14px] text-text-secondary text-right truncate">
                     {isGmailConnected ? (gmailAddress || t.setting.no_account) : t.setting.no_account}
                   </p>
@@ -403,11 +432,17 @@ export default function SettingScreen() {
                     onClick={() => {
                       if (isGmailConnected) {
                         setCustomAlert({
-                          isOpen: true, message: t.setting.gmail_disconnect_confirm, type: 'CONFIRM',
-                          onConfirm: () => { setIsGmailConnected(false); updateSetting({ is_gmail_connected: false }); }
+                          isOpen: true,
+                          message: t.setting.gmail_disconnect_confirm,
+                          type: 'CONFIRM',
+                          onConfirm: () => {
+                            setIsGmailConnected(false);
+                            updateSetting({ is_gmail_connected: false });
+                          }
                         });
                       } else {
-                        setActiveAuthModal('Gmail'); setAuthStatus('IDLE');
+                        setActiveAuthModal('Gmail');
+                        setAuthStatus('IDLE');
                       }
                     }}
                     className={`px-4 py-1.5 rounded-full text-[13px] font-semibold transition-colors focus:outline-none shrink-0 w-[100px] whitespace-nowrap text-center ${isGmailConnected ? 'bg-background border border-[#D0D0D0] text-text-primary hover:bg-gray-50' : 'bg-accent text-white hover:bg-accent-dark'}`}
@@ -455,11 +490,17 @@ export default function SettingScreen() {
           </div>
 
           <div className="flex flex-row justify-center gap-6 py-4 mt-2">
-            <button onClick={() => setLegalModal('terms')} className="text-[13px] text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors focus:outline-none">
+            <button
+              onClick={() => setLegalModal('terms')}
+              className="text-[13px] text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors focus:outline-none"
+            >
               {t.setting.terms_of_service || '이용약관'}
             </button>
             <span className="text-[13px] text-[#D0D0D0]">|</span>
-            <button onClick={() => setLegalModal('privacy')} className="text-[13px] text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors focus:outline-none">
+            <button
+              onClick={() => setLegalModal('privacy')}
+              className="text-[13px] text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors focus:outline-none"
+            >
               {t.setting.privacy_policy || '개인정보처리방침'}
             </button>
           </div>
@@ -471,11 +512,22 @@ export default function SettingScreen() {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-[800px] h-[85vh] flex flex-col overflow-hidden">
             <div className="flex flex-row justify-between items-center px-6 py-4 border-b border-gray-200 shrink-0">
               <h2 className="text-[18px] font-bold text-text-primary">
-                {legalModal === 'terms' ? (t.setting.terms_of_service || '이용약관') : (t.setting.privacy_policy || '개인정보처리방침')}
+                {legalModal === 'terms'
+                  ? (t.setting.terms_of_service || '이용약관')
+                  : (t.setting.privacy_policy || '개인정보처리방침')}
               </h2>
-              <button onClick={() => setLegalModal('NONE')} className="w-9 h-9 rounded-full bg-[#F0F0F0] flex items-center justify-center text-text-primary font-bold text-lg hover:bg-gray-300 transition-colors focus:outline-none">✕</button>
+              <button
+                onClick={() => setLegalModal('NONE')}
+                className="w-9 h-9 rounded-full bg-[#F0F0F0] flex items-center justify-center text-text-primary font-bold text-lg hover:bg-gray-300 transition-colors focus:outline-none"
+              >
+                ✕
+              </button>
             </div>
-            <iframe src={legalModal === 'terms' ? '/terms.html' : '/privacy.html'} className="flex-1 w-full border-none" title={legalModal === 'terms' ? '이용약관' : '개인정보처리방침'} />
+            <iframe
+              src={legalModal === 'terms' ? '/terms.html' : '/privacy.html'}
+              className="flex-1 w-full border-none"
+              title={legalModal === 'terms' ? '이용약관' : '개인정보처리방침'}
+            />
           </div>
         </div>
       )}
@@ -487,7 +539,10 @@ export default function SettingScreen() {
         isVisible={isTimeModalVisible} title={t.setting.modal_schedule_title} onClose={() => setTimeModalVisible(false)}
         onSave={() => {
           setFrequency(tempFrequency); setAmPm(tempAmPm); setHour(tempHour); setMinute(tempMinute);
-          updateSetting({ insta_upload_time_slot: tempFrequency, insta_upload_time: `${tempHour}:${tempMinute} ${tempAmPm}` });
+          updateSetting({
+            insta_upload_time_slot: tempFrequency,
+            insta_upload_time: `${tempHour}:${tempMinute} ${tempAmPm}`
+          });
           setTimeModalVisible(false);
         }}
       >
@@ -538,17 +593,26 @@ export default function SettingScreen() {
             if (newAnswers) {
               setSurveyAnswers(newAnswers);
               setGmailAddress(newAnswers[12] || '');
-              const schedule = newAnswers[13];
-              if (schedule) {
-                setFrequency(schedule.frequency || '매일');
-                setAmPm(schedule.amPm || 'AM');
-                setHour(schedule.hour || '10');
-                setMinute(schedule.minute || '30');
-                updateSetting({
-                  insta_upload_time_slot: schedule.frequency,
-                  insta_upload_time: `${schedule.hour}:${schedule.minute} ${schedule.amPm}`
-                });
-              }
+
+              // [FIX] 전체 onboarding 필드 저장
+              const schedule = newAnswers[13] || {};
+              const isAutoUpload = newAnswers[11] === '예 (추천)';
+              updateSetting({
+                brand_tone: Array.isArray(newAnswers[1]) ? newAnswers[1] : (newAnswers[1] ? [newAnswers[1]] : []),
+                preferred_styles: Array.isArray(newAnswers[2]) ? newAnswers[2] : (newAnswers[2] ? [newAnswers[2]] : []),
+                exclude_conditions: Array.isArray(newAnswers[3]) ? newAnswers[3] : (newAnswers[3] ? [newAnswers[3]] : []),
+                hashtag_style: Array.isArray(newAnswers[4]) ? newAnswers[4] : (newAnswers[4] ? [newAnswers[4]] : []),
+                cta: newAnswers[5]?.trim() || null,
+                shop_intro: newAnswers[6]?.trim() || null,
+                forbidden_words: Array.isArray(newAnswers[7]) ? newAnswers[7] : (newAnswers[7] ? [newAnswers[7]] : []),
+                rag_reference: newAnswers[8]?.trim() || null,
+                city: newAnswers[9]?.trim() || null,
+                owner_email: newAnswers[12]?.trim() || null,
+                insta_auto_upload_yn: isAutoUpload ? 'Y' : 'N',
+                insta_review_bfr_upload_yn: isAutoUpload ? 'N' : 'Y',
+                insta_upload_time_slot: schedule.frequency || '매일',
+                insta_upload_time: schedule.hour ? `${schedule.hour}:${schedule.minute} ${schedule.amPm}` : null,
+              });
             }
           }}
           onSkip={() => setIsOnboardingModalOpen(false)}
