@@ -122,6 +122,7 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
     }
 
     if (currentIndex < ONBOARDING_QUESTIONS.length - 1) {
+      setAnswers(updatedAnswers);  // ← 이 줄 추가
       setCurrentIndex(currentIndex + 1);
       setInputText('');
     } else {
