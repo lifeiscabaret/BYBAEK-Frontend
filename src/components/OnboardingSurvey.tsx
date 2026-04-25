@@ -222,7 +222,10 @@ export const OnboardingSurvey: React.FC<OnboardingSurveyProps> = ({
                   placeholder={currentQuestion.placeholder} value={inputText}
                   onChange={(e) => {
                     setInputText(e.target.value);
-                    if (!currentQuestion.isMultiSelect) setAnswers({ ...answers, [currentQuestion.id]: '' });
+                    // SELECT_TEXT에서 텍스트 입력 시 선택 옵션만 초기화
+                    if (currentQuestion.type === 'SELECT_TEXT' && !currentQuestion.isMultiSelect) {
+                      setAnswers({ ...answers, [currentQuestion.id]: '' });
+                    }
                   }}
                 />
               </div>
