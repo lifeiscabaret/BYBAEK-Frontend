@@ -53,6 +53,10 @@ export default function PreviewScreen() {
     t.preview.default_caption
   );
 
+  // [FIX] AI 생성 게시물의 hashtags/cta를 분리 저장
+  const [parsedHashtags, setParsedHashtags] = useState<string[]>([]);
+  const [parsedCta, setParsedCta] = useState<string>('');
+
   useEffect(() => {
     // 채팅방 첫 인사말 초기화
     setMessages([
@@ -209,18 +213,19 @@ export default function PreviewScreen() {
     setIsLoading(true);
     try {
       // 1단계: 초안 저장
+      // [FIX] hashtags/cta를 파싱된 state 값으로 전달 (빈값 하드코딩 제거)
       const saveRes = await apiClient.post('/agent/save', {
         shop_id: shopId,
         caption: generatedCaption,
-        hashtags: [],
+        hashtags: parsedHashtags,
         photo_ids: images.map((img) => img.id),
-        cta: "",
+        cta: parsedCta,
       });
 
       // 2단계: 인스타 업로드
       const reviewRes = await apiClient.post('/agent/review', {
         shop_id: shopId,
-        post_id: saveRes.data.post_id,  // save에서 받은 post_id
+        post_id: saveRes.data.post_id,
         action: "ok"
       });
 
@@ -289,14 +294,20 @@ export default function PreviewScreen() {
         );
       }
 
+      // [FIX] 파싱 결과를 hashtags/cta state에 분리 저장
       try {
         const parsed = JSON.parse(fullResponse);
         const display = parsed.caption + "\n\n"
           + (Array.isArray(parsed.hashtags) ? parsed.hashtags.join(" ") : (parsed.hashtags || "")) + "\n"
           + (parsed.cta || "");
         setGeneratedCaption(display);
+        setParsedHashtags(Array.isArray(parsed.hashtags) ? parsed.hashtags : []);
+        setParsedCta(parsed.cta || "");
       } catch {
-        setGeneratedCaption(fullResponse); // 파싱 실패시 원본
+        // 파싱 실패 시 원본 그대로 (hashtags/cta는 빈값 유지)
+        setGeneratedCaption(fullResponse);
+        setParsedHashtags([]);
+        setParsedCta('');
       }
     } catch {
       // 스트리밍 에러 발생 시 무시
@@ -464,7 +475,6 @@ export default function PreviewScreen() {
             />
           </div>
 
-          {/* 🚨 [수정] 업로드 버튼 2:1 비율 분할 & 인스타그램 아이콘 추가 */}
           <div className="shrink-0 flex flex-row gap-3 h-[52px]">
             <button
               onClick={handleUpload}
@@ -480,7 +490,6 @@ export default function PreviewScreen() {
               className="flex-[1] h-full bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition-all shadow-sm cursor-pointer transform hover:scale-[1.02]"
               title="인스타그램 바로가기"
             >
-              {/* 인스타그램 브랜드 컬러(#E1306C) 적용 */}
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28" fill="#E1306C">
                 <path d="M7.75 2C4.574 2 2 4.574 2 7.75v8.5C2 19.426 4.574 22 7.75 22h8.5C19.426 22 22 19.426 22 16.25v-8.5C22 4.574 19.426 2 16.25 2h-8.5zm0 2h8.5C18.321 4 20 5.679 20 7.75v8.5C20 18.321 18.321 20 16.25 20h-8.5C5.679 20 4 18.321 4 16.25v-8.5C4 5.679 5.679 4 7.75 4zm9.25 1.5a1.25 1.25 0 110 2.5 1.25 1.25 0 010-2.5zM12 7a5 5 0 100 10 5 5 0 000-10zm0 2a3 3 0 110 6 3 3 0 010-6z" />
               </svg>
