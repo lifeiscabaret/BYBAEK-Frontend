@@ -1,16 +1,25 @@
 // 타겟 경로: src/app/layout.tsx
 import type { Metadata } from 'next';
 // 1. Next.js 내장 폰트 최적화 도구 로드 (가장 기본인 Noto Sans KR 적용)
-import { Noto_Sans_KR } from 'next/font/google'; 
+import { Noto_Sans_KR, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
 import { PhotoSyncProgress } from '@/components/PhotoSyncProgress';
 import { TutorialTour } from '@/components/TutorialTour';
 
 // 2. 폰트 객체 생성 및 굵기 설정
 const notoSansKr = Noto_Sans_KR({
-  subsets: ['latin'], // 웹 폰트 서브셋 설정
-  weight: ['300', '400', '500', '700'], // 프로젝트에서 사용할 굵기 지정
-  display: 'swap', // 폰트 로딩 최적화
+  subsets: ['latin'],
+  weight: ['200', '300', '400', '500', '700'],
+  display: 'swap',
+  variable: '--font-noto-sans-kr',
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['300', '400'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+  variable: '--font-cormorant',
 });
 
 export const metadata: Metadata = {
@@ -28,7 +37,7 @@ export default function RootLayout({
       {/* 3. 폰트 클래스(notoSansKr.className)를 body에 주입하고,
         하드코딩된 헥스 코드 대신 tailwind.config.ts에 정의한 시맨틱 컬러 사용 
       */}
-      <body className={`${notoSansKr.className} bg-background text-text-primary min-h-screen flex flex-col`}>
+      <body className={`${notoSansKr.className} ${notoSansKr.variable} ${cormorantGaramond.variable} bg-background text-text-primary min-h-screen flex flex-col`}>
         {children}
 
         {/* 🚨 최상위 뼈대에 동기화 알림창 부착! (항상 모든 화면 위를 덮게 됩니다) */}
