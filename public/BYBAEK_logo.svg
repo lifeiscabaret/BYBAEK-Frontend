@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 160" width="480" height="160">
+
+  <!-- ===========================
+       BYBAEK 브랜드 로고
+       Version: 1.0
+       Color: Dark Red #8B0000 + White
+       Usage: Main horizontal lockup
+       =========================== -->
+
+  <!-- 심볼: 원형 B 마크 -->
+  <g id="symbol">
+    <circle cx="80" cy="80" r="60" fill="#8B0000"/>
+    <text
+      x="80" y="100"
+      text-anchor="middle"
+      font-family="Georgia, 'Times New Roman', serif"
+      font-size="72"
+      font-weight="700"
+      fill="#FFFFFF"
+      letter-spacing="-1">B</text>
+  </g>
+
+  <!-- 워드마크 -->
+  <g id="wordmark" transform="translate(160, 0)">
+
+    <!-- BY (작은 세리프) -->
+    <text
+      x="4" y="62"
+      font-family="Georgia, 'Times New Roman', serif"
+      font-size="16"
+      font-weight="400"
+      fill="#8B0000"
+      letter-spacing="6">BY</text>
+
+    <!-- BAEK (큰 산세리프) -->
+    <text
+      x="0" y="108"
+      font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+      font-size="60"
+      font-weight="300"
+      fill="#1A1A1A"
+      letter-spacing="12">BAEK</text>
+
+  </g>
+
+</svg>
