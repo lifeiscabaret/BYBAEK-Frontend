@@ -152,7 +152,7 @@ export default function LandingScreen() {
             {texts[lang].btn1}
           </button>
           <button
-            onClick={handleStartClick}
+            onClick={() => router.push('/demo')}
             className="bg-transparent border border-white/70 text-white text-lg font-medium rounded-lg px-12 py-3.5 hover:bg-white/15 transition-all duration-[250ms] ease-in-out"
           >
             {texts[lang].btn2}
@@ -281,7 +281,7 @@ export default function LandingScreen() {
             {texts[lang].btn1}
           </button>
           <button
-            onClick={handleStartClick}
+            onClick={() => router.push('/demo')}
             className="bg-transparent border border-white/70 text-white text-lg font-medium rounded-lg px-12 py-3.5 hover:bg-white/15 transition-all duration-[250ms] ease-in-out"
           >
             {texts[lang].btn2}
