@@ -33,6 +33,11 @@
   --spacing-xlarge: 32px;
 }
 
+@keyframes fluidRotate {
+  0% { transform: rotate(0deg) scale(1.4); }
+  100% { transform: rotate(360deg) scale(1.4); }
+}
+
 @layer base {
   body {
     background-color: var(--color-background);
