@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Footer } from '@/components/Footer';
 
 function FluidBackground() {
   return (
@@ -158,6 +159,10 @@ export default function LandingScreen() {
             {texts[lang].btn2}
           </button>
         </div>
+
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <Footer />
+        </div>
       </div>
     );
   }
@@ -286,6 +291,10 @@ export default function LandingScreen() {
           >
             {texts[lang].btn2}
           </button>
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 z-10" style={{ opacity: showFinal ? 1 : 0, transition: 'opacity 2s ease-out' }}>
+          <Footer />
         </div>
       </div>
     );
