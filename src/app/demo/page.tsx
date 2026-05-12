@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, useInView } from 'framer-motion';
+import { useScroll } from 'framer-motion';
 
 const demoTexts = {
   ko: {
-    heroLine1: '사진 한 장으로',
-    heroLine2: '마케팅이 어떻게 만들어지는지 보여드릴게요',
+    hero: '사진 한 장으로\n마케팅이 어떻게 만들어지는지 보여드릴게요',
     step1Label: 'Step 1',
     step1Text: 'AI가 바버샵 사진만 골라냅니다',
     step2Label: 'Step 2',
@@ -21,8 +20,7 @@ const demoTexts = {
     ctaBtn2: '처음으로',
   },
   en: {
-    heroLine1: 'See how one photo',
-    heroLine2: 'becomes your next Instagram post',
+    hero: 'See how one photo\nbecomes your next Instagram post',
     step1Label: 'Step 1',
     step1Text: 'AI picks only barbershop photos',
     step2Label: 'Step 2',
@@ -43,32 +41,46 @@ const styleCards = [
   { ko: '모던', en: 'Modern' },
 ];
 
+function interpolateColor(progress: number, colors: { stop: number; color: [number, number, number] }[]) {
+  for (let i = 0; i < colors.length - 1; i++) {
+    if (progress >= colors[i].stop && progress <= colors[i + 1].stop) {
+      const localProgress = (progress - colors[i].stop) / (colors[i + 1].stop - colors[i].stop);
+      const r = Math.round(colors[i].color[0] + (colors[i + 1].color[0] - colors[i].color[0]) * localProgress);
+      const g = Math.round(colors[i].color[1] + (colors[i + 1].color[1] - colors[i].color[1]) * localProgress);
+      const b = Math.round(colors[i].color[2] + (colors[i + 1].color[2] - colors[i].color[2]) * localProgress);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+  }
+  const last = colors[colors.length - 1];
+  return `rgb(${last.color[0]}, ${last.color[1]}, ${last.color[2]})`;
+}
+
+const bgColors: { stop: number; color: [number, number, number] }[] = [
+  { stop: 0.0, color: [252, 228, 236] },
+  { stop: 0.15, color: [253, 240, 240] },
+  { stop: 0.35, color: [255, 255, 255] },
+  { stop: 0.55, color: [253, 240, 240] },
+  { stop: 0.75, color: [74, 0, 0] },
+  { stop: 1.0, color: [139, 0, 0] },
+];
+
+function rangeMap(value: number, inMin: number, inMax: number, outMin: number, outMax: number) {
+  const clamped = Math.max(inMin, Math.min(inMax, value));
+  return outMin + ((clamped - inMin) / (inMax - inMin)) * (outMax - outMin);
+}
+
 export default function DemoPage() {
   const router = useRouter();
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   const [isMounted, setIsMounted] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  const section1Ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll();
 
-  // Section 2 auto animation
-  const section2Ref = useRef<HTMLDivElement>(null);
-  const section2InView = useInView(section2Ref, { once: true, amount: 0.2 });
-  const [filterDone, setFilterDone] = useState(false);
-  const [filteredPhotos] = useState(() =>
-    Array(16).fill(false).map(() => Math.random() > 0.5)
-  );
-
-  // Section 3 auto animation
-  const section3Ref = useRef<HTMLDivElement>(null);
-  const section3InView = useInView(section3Ref, { once: true, amount: 0.2 });
-  const [styleRevealed, setStyleRevealed] = useState(0);
-  const [autoSelected, setAutoSelected] = useState(-1);
-
-  // Section 4 typing
-  const section4Ref = useRef<HTMLDivElement>(null);
-  const section4InView = useInView(section4Ref, { once: true, amount: 0.2 });
-  const [typedCaption, setTypedCaption] = useState('');
-  const [hashtagsShown, setHashtagsShown] = useState(0);
+  useEffect(() => {
+    const unsubscribe = scrollYProgress.on('change', (v) => setProgress(v));
+    return unsubscribe;
+  }, [scrollYProgress]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -83,44 +95,6 @@ export default function DemoPage() {
     }
   }, []);
 
-  // Section 2: auto filter after in view
-  useEffect(() => {
-    if (!section2InView || filterDone) return;
-    const timer = setTimeout(() => setFilterDone(true), 2000);
-    return () => clearTimeout(timer);
-  }, [section2InView, filterDone]);
-
-  // Section 3: stagger cards + auto select
-  useEffect(() => {
-    if (!section3InView || styleRevealed >= 3) return;
-    const timer = setTimeout(() => setStyleRevealed(prev => prev + 1), 600);
-    return () => clearTimeout(timer);
-  }, [section3InView, styleRevealed]);
-
-  useEffect(() => {
-    if (styleRevealed < 3) return;
-    const timer = setTimeout(() => setAutoSelected(1), 800);
-    return () => clearTimeout(timer);
-  }, [styleRevealed]);
-
-  // Section 4: typing effect
-  useEffect(() => {
-    if (!section4InView) return;
-    const caption = demoTexts[lang].step3Caption;
-    if (typedCaption.length >= caption.length) {
-      const hashtags = demoTexts[lang].step3Hashtags;
-      if (hashtagsShown < hashtags.length) {
-        const timer = setTimeout(() => setHashtagsShown(prev => prev + 1), 400);
-        return () => clearTimeout(timer);
-      }
-      return;
-    }
-    const timer = setTimeout(() => {
-      setTypedCaption(caption.slice(0, typedCaption.length + 1));
-    }, 35);
-    return () => clearTimeout(timer);
-  }, [section4InView, typedCaption, hashtagsShown, lang]);
-
   const switchLang = (l: 'ko' | 'en') => {
     setLang(l);
     localStorage.setItem('language', l);
@@ -129,250 +103,224 @@ export default function DemoPage() {
   if (!isMounted) return null;
 
   const t = demoTexts[lang];
+  const bgColor = interpolateColor(progress, bgColors);
+  const isLightBg = progress < 0.65;
+
+  // Section visibilities
+  const s1Opacity = rangeMap(progress, 0, 0.12, 1, 0);
+  const s2Opacity = rangeMap(progress, 0.12, 0.15, 0, 1) * rangeMap(progress, 0.32, 0.35, 1, 0);
+  const s3Opacity = rangeMap(progress, 0.32, 0.35, 0, 1) * rangeMap(progress, 0.52, 0.55, 1, 0);
+  const s4Opacity = rangeMap(progress, 0.52, 0.55, 0, 1) * rangeMap(progress, 0.72, 0.75, 1, 0);
+  const s5Opacity = rangeMap(progress, 0.72, 0.75, 0, 1);
+
+  // Section 2 filter progress (0~1 within its range)
+  const filterProgress = rangeMap(progress, 0.2, 0.32, 0, 1);
+
+  // Section 3 card reveal
+  const cardProgress = rangeMap(progress, 0.38, 0.50, 0, 1);
+  const card1Visible = cardProgress > 0;
+  const card2Visible = cardProgress > 0.33;
+  const card3Visible = cardProgress > 0.66;
+  const autoSelectVisible = cardProgress >= 1;
+
+  // Section 4 typing progress
+  const typingProgress = rangeMap(progress, 0.58, 0.70, 0, 1);
+  const caption = t.step3Caption;
+  const typedLength = Math.floor(typingProgress * caption.length);
+  const hashtagProgress = rangeMap(progress, 0.68, 0.73, 0, 1);
+  const hashtagCount = Math.floor(hashtagProgress * t.step3Hashtags.length);
 
   return (
-    <div className="h-screen overflow-y-scroll snap-y snap-mandatory">
-      {/* 고정 헤더 */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-12 py-6">
-        <div className="absolute left-12 top-1/2 -translate-y-1/2">
-          <img src="/BYBAEK_icon.svg" alt="BYBAEK" className="w-10 h-10 object-contain" />
-        </div>
-        <h1 className="text-[#8B0000] text-3xl tracking-[0.18em] font-thin" style={{ fontFamily: "'S-Core Dream', sans-serif" }}>
-          BYBAEK
-        </h1>
-        <div className="absolute right-12 top-1/2 -translate-y-1/2 text-[#8B0000] text-lg tracking-wide">
-          <span
-            className={`cursor-pointer transition-opacity duration-300 ${lang === 'ko' ? 'font-bold opacity-100' : 'font-normal opacity-40 hover:opacity-70'}`}
-            onClick={() => switchLang('ko')}
-          >KR</span>
-          <span className="mx-2 opacity-40">|</span>
-          <span
-            className={`cursor-pointer transition-opacity duration-300 ${lang === 'en' ? 'font-bold opacity-100' : 'font-normal opacity-40 hover:opacity-70'}`}
-            onClick={() => switchLang('en')}
-          >EN</span>
-        </div>
-      </header>
-
-      {/* 섹션 1: 인트로 */}
-      <section
-        ref={section1Ref}
-        className="h-screen snap-start flex flex-col items-center justify-center relative"
-        style={{ background: 'linear-gradient(to bottom, #fce4ec, #fdf0f0)' }}
-      >
-        <div className="text-center px-8">
-          <motion.p
-            className="text-[#8B0000] font-light tracking-[0.08em] leading-relaxed"
-            style={{ fontFamily: "'NanumSquare', sans-serif", fontSize: lang === 'en' ? 'clamp(1.6rem, 3vw, 2.6rem)' : 'clamp(1.8rem, 3.5vw, 3rem)' }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
-          >
-            {t.heroLine1}
-          </motion.p>
-          <motion.p
-            className="text-[#8B0000] font-light tracking-[0.08em] leading-relaxed mt-3"
-            style={{ fontFamily: "'NanumSquare', sans-serif", fontSize: lang === 'en' ? 'clamp(1.6rem, 3vw, 2.6rem)' : 'clamp(1.8rem, 3.5vw, 3rem)' }}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.7, ease: 'easeOut' }}
-          >
-            {t.heroLine2}
-          </motion.p>
-        </div>
-        <motion.div
-          className="absolute bottom-12"
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+    <div>
+      {/* Scrollable height */}
+      <div style={{ height: '500vh', position: 'relative' }}>
+        {/* Sticky viewport */}
+        <div
+          className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center"
+          style={{ backgroundColor: bgColor }}
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8B0000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 5v14M5 12l7 7 7-7" />
-          </svg>
-        </motion.div>
-      </section>
-
-      {/* 섹션 2: Step 1 AI 필터링 */}
-      <section
-        ref={section2Ref}
-        className="h-screen snap-start flex items-center justify-center px-8"
-        style={{ background: 'linear-gradient(to bottom, #fdf0f0, #ffffff)' }}
-      >
-        <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            <p className="text-[#8B0000] text-sm uppercase tracking-widest mb-3 font-medium">{t.step1Label}</p>
-            <p
-              className="text-gray-800 text-2xl font-light leading-relaxed"
-              style={{ fontFamily: "'NanumSquare', sans-serif" }}
+          {/* 고정 헤더 */}
+          <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-center px-12 py-6">
+            <div className="absolute left-12 top-1/2 -translate-y-1/2">
+              <img src="/BYBAEK_icon.svg" alt="BYBAEK" className="w-10 h-10 object-contain" />
+            </div>
+            <h1
+              className="text-3xl tracking-[0.18em] font-thin transition-colors duration-300"
+              style={{ fontFamily: "'S-Core Dream', sans-serif", color: isLightBg ? '#8B0000' : '#ffffff' }}
             >
-              {t.step1Text}
-            </p>
-          </motion.div>
-          <motion.div
-            className="grid grid-cols-4 gap-3"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            {Array(16).fill(null).map((_, i) => (
-              <div
-                key={i}
-                className={`aspect-square rounded-lg bg-gray-200 flex items-center justify-center transition-all duration-[1500ms] ${
-                  filterDone
-                    ? filteredPhotos[i]
-                      ? 'bg-gray-300 ring-2 ring-[#8B0000]/50 scale-105'
-                      : 'opacity-20 scale-95'
-                    : ''
-                }`}
-              >
-                {filterDone && (
-                  <span className={`text-lg ${filteredPhotos[i] ? 'text-[#8B0000]' : 'text-gray-400'}`}>
-                    {filteredPhotos[i] ? '✓' : '✕'}
-                  </span>
-                )}
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+              BYBAEK
+            </h1>
+            <div className="absolute right-12 top-1/2 -translate-y-1/2 text-lg tracking-wide transition-colors duration-300" style={{ color: isLightBg ? '#8B0000' : '#ffffff' }}>
+              <span
+                className={`cursor-pointer transition-opacity duration-300 ${lang === 'ko' ? 'font-bold opacity-100' : 'font-normal opacity-40 hover:opacity-70'}`}
+                onClick={() => switchLang('ko')}
+              >KR</span>
+              <span className="mx-2 opacity-40">|</span>
+              <span
+                className={`cursor-pointer transition-opacity duration-300 ${lang === 'en' ? 'font-bold opacity-100' : 'font-normal opacity-40 hover:opacity-70'}`}
+                onClick={() => switchLang('en')}
+              >EN</span>
+            </div>
+          </header>
 
-      {/* 섹션 3: Step 2 마케터 설정 */}
-      <section
-        ref={section3Ref}
-        className="h-screen snap-start flex items-center justify-center px-8"
-        style={{ background: 'linear-gradient(to bottom, #ffffff, #fdf0f0)' }}
-      >
-        <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            viewport={{ once: true, amount: 0.2 }}
+          {/* 섹션 1: 인트로 */}
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center px-8 transition-none"
+            style={{ opacity: s1Opacity, pointerEvents: s1Opacity > 0.1 ? 'auto' : 'none' }}
           >
-            <p className="text-[#8B0000] text-sm uppercase tracking-widest mb-3 font-medium">{t.step2Label}</p>
             <p
-              className="text-gray-800 text-2xl font-light leading-relaxed"
-              style={{ fontFamily: "'NanumSquare', sans-serif" }}
+              className="text-center font-light tracking-[0.08em] leading-relaxed whitespace-pre-line"
+              style={{
+                fontFamily: "'NanumSquare', sans-serif",
+                fontSize: lang === 'en' ? 'clamp(1.6rem, 3vw, 2.6rem)' : 'clamp(1.8rem, 3.5vw, 3rem)',
+                color: '#8B0000',
+              }}
             >
-              {t.step2Text}
+              {t.hero}
             </p>
-          </motion.div>
-          <div className="space-y-4">
-            {styleCards.map((card, i) => (
-              <motion.div
-                key={i}
-                className={`px-6 py-5 rounded-xl border-2 transition-colors duration-500 ${
-                  autoSelected === i
-                    ? 'border-[#8B0000] bg-[#8B0000]/10'
-                    : 'border-gray-200 bg-white'
-                }`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={i < styleRevealed ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-              >
-                <span className={`text-lg font-medium ${autoSelected === i ? 'text-[#8B0000]' : 'text-gray-700'}`}>
-                  {card[lang]}
-                </span>
-              </motion.div>
-            ))}
+            <div className="absolute bottom-12 animate-bounce">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8B0000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 5v14M5 12l7 7 7-7" />
+              </svg>
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* 섹션 4: Step 3 게시물 생성 */}
-      <section
-        ref={section4Ref}
-        className="h-screen snap-start flex items-center justify-center px-8"
-        style={{ background: 'linear-gradient(to bottom, #fdf0f0, #4a0000)' }}
-      >
-        <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            viewport={{ once: true, amount: 0.2 }}
+          {/* 섹션 2: Step 1 AI 필터링 */}
+          <div
+            className="absolute inset-0 flex items-center justify-center px-8"
+            style={{ opacity: s2Opacity, pointerEvents: s2Opacity > 0.1 ? 'auto' : 'none' }}
           >
-            <p className="text-[#8B0000] text-sm uppercase tracking-widest mb-3 font-medium">{t.step3Label}</p>
-            <p
-              className="text-gray-800 text-2xl font-light leading-relaxed"
-              style={{ fontFamily: "'NanumSquare', sans-serif" }}
-            >
-              {t.step3Text}
-            </p>
-          </motion.div>
-          <motion.div
-            className="rounded-2xl border border-gray-200 overflow-hidden shadow-lg bg-white"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: 'easeOut' }}
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            <div className="aspect-video bg-gray-200" />
-            <div className="p-5">
-              <p className="text-sm text-gray-800 leading-relaxed min-h-[3rem]" style={{ fontFamily: "'NanumSquare', sans-serif" }}>
-                {typedCaption}
-                {typedCaption.length < t.step3Caption.length && (
-                  <span className="animate-pulse">|</span>
-                )}
-              </p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {t.step3Hashtags.slice(0, hashtagsShown).map((tag, i) => (
-                  <motion.span
-                    key={i}
-                    className="text-xs text-[#8B0000] font-medium"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {tag}
-                  </motion.span>
-                ))}
+            <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+              <div style={{ transform: `translateX(${rangeMap(progress, 0.13, 0.2, -40, 0)}px)` }}>
+                <p className="text-[#8B0000] text-sm uppercase tracking-widest mb-3 font-medium">{t.step1Label}</p>
+                <p className="text-gray-800 text-2xl font-light leading-relaxed" style={{ fontFamily: "'NanumSquare', sans-serif" }}>
+                  {t.step1Text}
+                </p>
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {Array(16).fill(null).map((_, i) => {
+                  const isKept = i % 3 !== 0;
+                  return (
+                    <div
+                      key={i}
+                      className="aspect-square rounded-lg bg-gray-200 flex items-center justify-center"
+                      style={{
+                        opacity: filterProgress > 0.3 ? (isKept ? 1 : 0.2) : 1,
+                        transform: filterProgress > 0.3 ? (isKept ? 'scale(1.05)' : 'scale(0.95)') : 'scale(1)',
+                        boxShadow: filterProgress > 0.3 && isKept ? '0 0 0 2px rgba(139,0,0,0.4)' : 'none',
+                        transition: 'all 0.6s ease',
+                      }}
+                    >
+                      {filterProgress > 0.5 && (
+                        <span className={`text-lg ${isKept ? 'text-[#8B0000]' : 'text-gray-400'}`}>
+                          {isKept ? '✓' : '✕'}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          </motion.div>
-        </div>
-      </section>
+          </div>
 
-      {/* 섹션 5: CTA */}
-      <section
-        className="h-screen snap-start flex flex-col items-center justify-center px-8"
-        style={{ background: '#8B0000' }}
-      >
-        <motion.p
-          className="text-white text-center font-light tracking-[0.1em] mb-16"
-          style={{ fontFamily: "'NanumSquare', sans-serif", fontSize: 'clamp(1.6rem, 3vw, 2.8rem)' }}
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-          viewport={{ once: true, amount: 0.2 }}
-        >
-          {t.ctaText}
-        </motion.p>
-        <motion.div
-          className="flex items-center gap-8"
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.5, ease: 'easeOut' }}
-          viewport={{ once: true, amount: 0.2 }}
-        >
-          <button
-            onClick={() => router.push('/')}
-            className="bg-white text-[#8B0000] text-lg font-medium rounded-lg px-10 py-4 hover:bg-white/90 transition-colors"
+          {/* 섹션 3: Step 2 마케터 설정 */}
+          <div
+            className="absolute inset-0 flex items-center justify-center px-8"
+            style={{ opacity: s3Opacity, pointerEvents: s3Opacity > 0.1 ? 'auto' : 'none' }}
           >
-            {t.ctaBtn1}
-          </button>
-          <button
-            onClick={() => section1Ref.current?.scrollIntoView({ behavior: 'smooth' })}
-            className="bg-transparent border border-white/70 text-white text-lg font-medium rounded-lg px-10 py-4 hover:bg-white/15 transition-colors"
+            <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+              <div style={{ transform: `translateX(${rangeMap(progress, 0.33, 0.4, -40, 0)}px)` }}>
+                <p className="text-[#8B0000] text-sm uppercase tracking-widest mb-3 font-medium">{t.step2Label}</p>
+                <p className="text-gray-800 text-2xl font-light leading-relaxed" style={{ fontFamily: "'NanumSquare', sans-serif" }}>
+                  {t.step2Text}
+                </p>
+              </div>
+              <div className="space-y-4">
+                {styleCards.map((card, i) => {
+                  const visible = i === 0 ? card1Visible : i === 1 ? card2Visible : card3Visible;
+                  const selected = autoSelectVisible && i === 1;
+                  return (
+                    <div
+                      key={i}
+                      className={`px-6 py-5 rounded-xl border-2 transition-all duration-500 ${
+                        selected ? 'border-[#8B0000] bg-[#8B0000]/10' : 'border-gray-200 bg-white'
+                      }`}
+                      style={{
+                        opacity: visible ? 1 : 0,
+                        transform: visible ? 'translateY(0)' : 'translateY(20px)',
+                        transition: 'opacity 0.5s ease, transform 0.5s ease, border-color 0.5s ease, background-color 0.5s ease',
+                      }}
+                    >
+                      <span className={`text-lg font-medium ${selected ? 'text-[#8B0000]' : 'text-gray-700'}`}>
+                        {card[lang]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* 섹션 4: Step 3 게시물 생성 */}
+          <div
+            className="absolute inset-0 flex items-center justify-center px-8"
+            style={{ opacity: s4Opacity, pointerEvents: s4Opacity > 0.1 ? 'auto' : 'none' }}
           >
-            {t.ctaBtn2}
-          </button>
-        </motion.div>
-      </section>
+            <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+              <div style={{ transform: `translateX(${rangeMap(progress, 0.53, 0.6, -40, 0)}px)` }}>
+                <p className="text-sm uppercase tracking-widest mb-3 font-medium" style={{ color: progress > 0.65 ? '#ffb3b3' : '#8B0000' }}>{t.step3Label}</p>
+                <p
+                  className="text-2xl font-light leading-relaxed"
+                  style={{ fontFamily: "'NanumSquare', sans-serif", color: progress > 0.65 ? '#ffffff' : '#1f2937' }}
+                >
+                  {t.step3Text}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-lg bg-white">
+                <div className="aspect-video bg-gray-200" />
+                <div className="p-5">
+                  <p className="text-sm text-gray-800 leading-relaxed min-h-[3rem]" style={{ fontFamily: "'NanumSquare', sans-serif" }}>
+                    {caption.slice(0, typedLength)}
+                    {typedLength < caption.length && <span className="animate-pulse">|</span>}
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {t.step3Hashtags.slice(0, hashtagCount).map((tag, i) => (
+                      <span key={i} className="text-xs text-[#8B0000] font-medium">{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 섹션 5: CTA */}
+          <div
+            className="absolute inset-0 flex flex-col items-center justify-center px-8"
+            style={{ opacity: s5Opacity, pointerEvents: s5Opacity > 0.1 ? 'auto' : 'none' }}
+          >
+            <p
+              className="text-white text-center font-light tracking-[0.1em] mb-16"
+              style={{ fontFamily: "'NanumSquare', sans-serif", fontSize: 'clamp(1.6rem, 3vw, 2.8rem)' }}
+            >
+              {t.ctaText}
+            </p>
+            <div className="flex items-center gap-8">
+              <button
+                onClick={() => router.push('/')}
+                className="bg-white text-[#8B0000] text-lg font-medium rounded-lg px-10 py-4 hover:bg-white/90 transition-colors"
+              >
+                {t.ctaBtn1}
+              </button>
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="bg-transparent border border-white/70 text-white text-lg font-medium rounded-lg px-10 py-4 hover:bg-white/15 transition-colors"
+              >
+                {t.ctaBtn2}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
