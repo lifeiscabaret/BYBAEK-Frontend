@@ -120,7 +120,12 @@ export default function LandingScreen() {
 
         {/* B 로고 - 좌상단 */}
         <div className="absolute z-10 left-12 top-8">
-          <img src="/BYBAEK_icon.svg" alt="BYBAEK" className="w-10 h-10 object-contain" />
+          <img
+            src="/BYBAEK_icon.svg"
+            alt="BYBAEK"
+            className="w-10 h-10 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => window.location.reload()}
+          />
         </div>
 
         {/* KR|EN - 우상단 */}
@@ -197,7 +202,12 @@ export default function LandingScreen() {
             transition: 'opacity 1s cubic-bezier(0.4, 0, 0.2, 1), top 0.8s cubic-bezier(0.4, 0, 0.2, 1), left 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
-          <img src="/BYBAEK_icon.svg" alt="BYBAEK" className="w-10 h-10 object-contain" />
+          <img
+            src="/BYBAEK_icon.svg"
+            alt="BYBAEK"
+            className="w-10 h-10 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => window.location.reload()}
+          />
         </div>
 
         {/* KR|EN - 우상단 고정 */}

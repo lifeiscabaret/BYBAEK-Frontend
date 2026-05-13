@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useScroll } from 'framer-motion';
+import { Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 
 const demoTexts = {
   ko: {
@@ -34,6 +36,28 @@ const demoTexts = {
     ctaBtn2: 'Back to top',
   },
 };
+
+const PASS_PHOTOS = [
+  '/demo/pass_01.jpg',
+  '/demo/pass_02.jpg',
+  '/demo/pass_03.jpg',
+  '/demo/pass_04.jpg',
+];
+
+const FAIL_PHOTOS = [
+  'https://picsum.photos/seed/food1/300/300',
+  'https://picsum.photos/seed/nature2/300/300',
+  'https://picsum.photos/seed/city3/300/300',
+  'https://picsum.photos/seed/travel4/300/300',
+  'https://picsum.photos/seed/cafe5/300/300',
+  'https://picsum.photos/seed/street6/300/300',
+  'https://picsum.photos/seed/beach7/300/300',
+  'https://picsum.photos/seed/dog8/300/300',
+  'https://picsum.photos/seed/flower9/300/300',
+  'https://picsum.photos/seed/sky10/300/300',
+  'https://picsum.photos/seed/food11/300/300',
+  'https://picsum.photos/seed/park12/300/300',
+];
 
 const styleCards = [
   { ko: '힙합', en: 'Hip-hop' },
@@ -142,7 +166,9 @@ export default function DemoPage() {
           {/* 고정 헤더 */}
           <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-center px-12 py-6">
             <div className="absolute left-12 top-1/2 -translate-y-1/2">
-              <img src="/BYBAEK_icon.svg" alt="BYBAEK" className="w-10 h-10 object-contain" />
+              <Link href="/">
+                <img src="/BYBAEK_icon.svg" alt="BYBAEK" className="w-10 h-10 object-contain cursor-pointer hover:opacity-80 transition-opacity" />
+              </Link>
             </div>
             <h1
               className="text-3xl tracking-[0.18em] font-thin transition-colors duration-300"
@@ -198,12 +224,12 @@ export default function DemoPage() {
                 </p>
               </div>
               <div className="grid grid-cols-4 gap-3">
-                {Array(16).fill(null).map((_, i) => {
-                  const isKept = i % 3 !== 0;
+                {[...PASS_PHOTOS, ...FAIL_PHOTOS].map((src, i) => {
+                  const isKept = i < PASS_PHOTOS.length;
                   return (
                     <div
                       key={i}
-                      className="aspect-square rounded-lg bg-gray-200 flex items-center justify-center"
+                      className="aspect-square rounded-lg overflow-hidden relative"
                       style={{
                         opacity: filterProgress > 0.3 ? (isKept ? 1 : 0.2) : 1,
                         transform: filterProgress > 0.3 ? (isKept ? 'scale(1.05)' : 'scale(0.95)') : 'scale(1)',
@@ -211,8 +237,13 @@ export default function DemoPage() {
                         transition: 'all 0.6s ease',
                       }}
                     >
+                      {src ? (
+                        <img src={src} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200" />
+                      )}
                       {filterProgress > 0.5 && (
-                        <span className={`text-lg ${isKept ? 'text-[#8B0000]' : 'text-gray-400'}`}>
+                        <span className={`absolute inset-0 flex items-center justify-center text-lg font-bold ${isKept ? 'text-[#8B0000] bg-white/60' : 'text-gray-400 bg-black/40'}`}>
                           {isKept ? '✓' : '✕'}
                         </span>
                       )}
@@ -276,19 +307,49 @@ export default function DemoPage() {
                   {t.step3Text}
                 </p>
               </div>
-              <div className="rounded-2xl border border-gray-200 overflow-hidden shadow-lg bg-white">
-                <div className="aspect-video bg-gray-200" />
-                <div className="p-5">
-                  <p className="text-sm text-gray-800 leading-relaxed min-h-[3rem]" style={{ fontFamily: "'NanumSquare', sans-serif" }}>
+              <div className="max-w-[280px] rounded-lg border border-gray-200 overflow-hidden shadow-lg bg-white" style={{ fontFamily: "'NanumSquare', sans-serif" }}>
+                {/* 헤더 */}
+                <div className="flex items-center justify-between px-3 py-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-[32px] h-[32px] rounded-full bg-gray-300 shrink-0" />
+                    <span className="text-sm font-bold text-gray-900">barber_studio</span>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="5" cy="12" r="1.5" fill="#262626" />
+                    <circle cx="12" cy="12" r="1.5" fill="#262626" />
+                    <circle cx="19" cy="12" r="1.5" fill="#262626" />
+                  </svg>
+                </div>
+                {/* 사진 */}
+                <div className="aspect-square w-full bg-gray-200">
+                  <img src="/demo/pass_01.jpg" alt="" className="w-full h-full object-cover" />
+                </div>
+                {/* 액션바 */}
+                <div className="flex items-center justify-between px-3 py-2.5">
+                  <div className="flex items-center gap-4">
+                    <Heart size={20} className="text-gray-800" />
+                    <MessageCircle size={20} className="text-gray-800" />
+                    <Send size={20} className="text-gray-800" />
+                  </div>
+                  <Bookmark size={20} className="text-gray-800" />
+                </div>
+                {/* 좋아요 */}
+                <p className="px-3 text-xs font-bold text-gray-900">{lang === 'ko' ? '좋아요 247개' : '247 likes'}</p>
+                {/* 캡션 */}
+                <div className="px-3 pt-1.5 pb-1">
+                  <p className="text-xs text-gray-800 leading-relaxed">
+                    <span className="font-bold">barber_studio</span>{' '}
                     {caption.slice(0, typedLength)}
                     {typedLength < caption.length && <span className="animate-pulse">|</span>}
                   </p>
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
                     {t.step3Hashtags.slice(0, hashtagCount).map((tag, i) => (
-                      <span key={i} className="text-xs text-[#8B0000] font-medium">{tag}</span>
+                      <span key={i} className="text-[11px] text-[#8B0000] font-medium">{tag}</span>
                     ))}
                   </div>
                 </div>
+                {/* 시간 */}
+                <p className="px-3 pb-2.5 text-[10px] text-gray-400">{lang === 'ko' ? '3시간 전' : '3 hours ago'}</p>
               </div>
             </div>
           </div>
@@ -306,7 +367,7 @@ export default function DemoPage() {
             </p>
             <div className="flex items-center gap-8">
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/login')}
                 className="bg-white text-[#8B0000] text-lg font-medium rounded-lg px-10 py-4 hover:bg-white/90 transition-colors"
               >
                 {t.ctaBtn1}

@@ -1,8 +1,9 @@
 // 타겟 경로: src/app/login/page.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useTranslation } from '@/hooks/useTranslation';
 import apiClient from '@/api/index';
 import Image from 'next/image';
@@ -131,161 +132,226 @@ export default function LoginScreen() {
     });
   };
 
-  const renderModalContainer = (title: string, content: React.ReactNode) => (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 backdrop-blur-sm">
-      <div className="w-[450px] min-h-[450px] bg-background rounded-xl shadow-2xl p-large flex flex-col relative">
-        <div className="flex justify-center items-center mb-8 mt-2">
-          <h2 className="text-h2 font-bold text-text-primary text-center">{title}</h2>
-        </div>
-        <div className="flex-1 flex flex-col justify-center items-center">
-          {content}
-        </div>
-      </div>
-    </div>
-  );
 
   if (!isMounted) return null;
 
+  const lang = (localStorage.getItem('language') as 'ko' | 'en') || 'ko';
+  const switchLang = (l: 'ko' | 'en') => {
+    localStorage.setItem('language', l);
+    window.location.reload();
+  };
+
+  const copyText = lang === 'ko'
+    ? '간단한 설정만 하면\n마케팅이 자동으로 시작됩니다'
+    : 'Simple setup.\nMarketing runs itself.';
+
   return (
     <>
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F5F5]">
+      <div
+        className="min-h-screen flex items-center justify-center relative"
+        style={{ background: 'linear-gradient(135deg, #fce4ec 0%, #fdf0f0 50%, #F5F0EB 100%)' }}
+      >
+        {/* 상단 좌측: B 로고 */}
+        <div className="absolute left-12 top-8 z-10">
+          <Link href="/">
+            <img src="/BYBAEK_icon.svg" alt="BYBAEK" className="w-10 h-10 object-contain cursor-pointer hover:opacity-80 transition-opacity" />
+          </Link>
+        </div>
 
-        {/* 0. 언어 선택 단계 */}
-        {step === 'LANGUAGE_SELECT' && renderModalContainer(
-          "Language / 언어 설정",
-          <div className="flex flex-col items-center w-full px-4 gap-4">
-            <p className="text-body text-text-primary text-center mb-6">
-              사용할 언어를 선택해주세요.<br />
-              <span className="text-sm text-gray-500">Please select your preferred language.</span>
-            </p>
-            <button onClick={() => handleLanguageSelect('ko')} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[16px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
-              🇰🇷 한국어 (Korean)
-            </button>
-            <button onClick={() => handleLanguageSelect('en')} className="w-full bg-white border border-border py-[14px] rounded-lg shadow-sm text-text-primary font-bold text-[16px] hover:bg-gray-50 transition-colors cursor-pointer focus:outline-none">
-              🇺🇸 English (영어)
-            </button>
-          </div>
-        )}
+        {/* 상단 우측: KR | EN */}
+        <div className="absolute right-12 top-10 z-10 text-lg tracking-wide text-[#8B0000]">
+          <span
+            className={`cursor-pointer transition-opacity duration-300 ${lang === 'ko' ? 'font-bold opacity-100' : 'font-normal opacity-40 hover:opacity-70'}`}
+            onClick={() => switchLang('ko')}
+          >KR</span>
+          <span className="mx-2 opacity-40">|</span>
+          <span
+            className={`cursor-pointer transition-opacity duration-300 ${lang === 'en' ? 'font-bold opacity-100' : 'font-normal opacity-40 hover:opacity-70'}`}
+            onClick={() => switchLang('en')}
+          >EN</span>
+        </div>
 
-        {/* 1. MS 로그인 단계 */}
-        {step === 'MS_LOGIN' && renderModalContainer(
-          t.login.ms_title,
-          <div className="flex flex-col items-center w-full px-4">
-            {msLoginStatus === 'IDLE' && (
-              <>
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-red-500 text-3xl font-bold">!</span>
-                </div>
-                <p className="text-[18px] font-bold text-accent mb-4">{t.login.not_authenticated}</p>
-                <p className="text-body text-text-primary text-center mb-8">{t.login.ms_desc}</p>
-                <button onClick={handleMsLoginClick} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
-                  {t.login.ms_btn}
+        {/* 중앙 콘텐츠 */}
+        <div className="flex flex-col items-center w-full max-w-[420px] px-6">
+          {/* 워드마크 */}
+          <h1
+            className="text-[4rem] tracking-[0.2em] font-thin text-[#5a0000] mb-4"
+            style={{ fontFamily: "'S-Core Dream', sans-serif", fontWeight: 100 }}
+          >
+            BYBAEK
+          </h1>
+
+          {/* 카피 텍스트 */}
+          <p
+            className="text-center text-[1rem] text-[#5a2a2a] whitespace-pre-line leading-relaxed mb-10"
+            style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 400 }}
+          >
+            {copyText}
+          </p>
+
+          {/* 언어 선택 단계 */}
+          {step === 'LANGUAGE_SELECT' && (
+            <div
+              className="w-full bg-white/80 backdrop-blur-md rounded-2xl px-10 py-10 animate-[fadeInUp_0.5s_ease_both]"
+              style={{ boxShadow: '0 4px 24px rgba(139,0,0,0.06)' }}
+            >
+              <p className="text-center text-[0.9rem] text-[#5a2a2a] mb-7" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 400 }}>
+                {lang === 'ko' ? '사용할 언어를 선택해주세요' : 'Select your language'}
+              </p>
+              <div className="flex flex-col gap-3">
+                <button onClick={() => handleLanguageSelect('ko')} className="w-full bg-[#8B0000] py-[15px] rounded-xl text-white text-[0.95rem] hover:bg-[#6b0000] transition-all duration-200 cursor-pointer focus:outline-none" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                  한국어
                 </button>
-              </>
-            )}
-            {msLoginStatus === 'IN_PROGRESS' && (
-              <div className="flex flex-col items-center animate-pulse">
-                <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-body text-text-primary text-center font-bold">{t.login.in_progress}</p>
-                <button onClick={() => { localStorage.setItem('shop_id', '3sesac18'); setMsLoginStatus('COMPLETED'); }} className="mt-8 text-xs text-gray-400 underline cursor-pointer">
-                  {t.login.test_trigger}
+                <button onClick={() => handleLanguageSelect('en')} className="w-full bg-white border border-[#e8d8d8] py-[15px] rounded-xl text-[#5a2a2a] text-[0.95rem] hover:bg-[#fdf5f5] transition-all duration-200 cursor-pointer focus:outline-none" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                  English
                 </button>
-              </div>
-            )}
-            {msLoginStatus === 'COMPLETED' && (
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-green-600 text-3xl">✓</span>
-                </div>
-                <p className="text-[18px] font-bold text-text-primary">{t.login.ms_completed}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* 2. OneDrive QR 단계 */}
-        {step === 'ONEDRIVE_QR' && renderModalContainer(
-          t.login.onedrive_title,
-          <div className="flex flex-col items-center w-full px-4">
-            <p className="text-body text-text-primary text-center mb-small">{t.login.onedrive_desc1}</p>
-            <p className="text-body text-text-primary text-center mb-small">
-              {t.login.onedrive_desc2_1}<br />{t.login.onedrive_desc2_2}
-            </p>
-            <p className="text-body text-text-primary text-center mb-small">
-              {t.login.onedrive_desc3_1}<br />{t.login.onedrive_desc3_2}
-            </p>
-            <div className="flex flex-row gap-8 mt-6 mb-8">
-              <div className="flex flex-col items-center gap-2">
-                <div className="relative w-[130px] h-[130px] border border-border rounded-lg overflow-hidden shadow-sm">
-                  <Image src="/images/QRcode_android.png" alt="Android QR Code" fill className="object-contain p-2" />
-                </div>
-                <span className="text-[13px] font-bold text-text-secondary">Android</span>
-              </div>
-              <div className="flex flex-col items-center gap-2">
-                <div className="relative w-[130px] h-[130px] border border-border rounded-lg overflow-hidden shadow-sm">
-                  <Image src="/images/QRcode_ios.png" alt="iOS QR Code" fill className="object-contain p-2" />
-                </div>
-                <span className="text-[13px] font-bold text-text-secondary">iOS</span>
               </div>
             </div>
-            <button onClick={handleOneDriveNextClick} className="w-full bg-accent py-[14px] rounded-lg shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
-              {t.login.btn_next}
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* 3. 인스타그램 로그인 단계 */}
-        {step === 'INSTA_LOGIN' && renderModalContainer(
-          t.login.insta_title,
-          <div className="flex flex-col items-center w-full px-4">
-            {instaLoginStatus === 'IDLE' && (
-              <>
-                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-red-500 text-3xl font-bold">!</span>
+          {/* MS 로그인 단계 */}
+          {step === 'MS_LOGIN' && (
+            <div
+              className="w-full bg-white/80 backdrop-blur-md rounded-2xl px-10 py-10 animate-[fadeInUp_0.5s_ease_both]"
+              style={{ boxShadow: '0 4px 24px rgba(139,0,0,0.06)' }}
+            >
+              {msLoginStatus === 'IDLE' && (
+                <div className="flex flex-col items-center">
+                  <button onClick={handleMsLoginClick} className="w-full flex items-center justify-center gap-3 bg-[#8B0000] py-[15px] rounded-xl text-white text-[0.95rem] hover:bg-[#6b0000] transition-all duration-200 cursor-pointer focus:outline-none mb-7" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                    <svg width="18" height="18" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="0" y="0" width="10" height="10" fill="#F25022"/>
+                      <rect x="11" y="0" width="10" height="10" fill="#7FBA00"/>
+                      <rect x="0" y="11" width="10" height="10" fill="#00A4EF"/>
+                      <rect x="11" y="11" width="10" height="10" fill="#FFB900"/>
+                    </svg>
+                    {lang === 'ko' ? 'Microsoft로 시작하기' : 'Continue with Microsoft'}
+                  </button>
+                  <div className="space-y-2.5 w-full pl-1">
+                    <p className="text-[0.85rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ fontWeight: 400, fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                      <span className="text-[#8B0000] text-sm">✓</span> {lang === 'ko' ? '원드라이브 사진 자동 연동' : 'Auto-sync OneDrive photos'}
+                    </p>
+                    <p className="text-[0.85rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ fontWeight: 400, fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                      <span className="text-[#8B0000] text-sm">✓</span> {lang === 'ko' ? '계정 하나로 모든 기능 이용' : 'All features with one account'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[18px] font-bold text-accent mb-4">{t.login.not_authenticated}</p>
-                <p className="text-body text-text-primary text-center mb-small">{t.login.insta_desc}</p>
-                <button onClick={handleInstaLoginClick} className="w-full bg-accent py-[14px] px-6 rounded-lg mt-5 flex items-center justify-center shadow-sm text-text-inverse font-bold text-[15px] hover:bg-accent-dark transition-colors cursor-pointer focus:outline-none">
-                  {t.login.insta_btn}
-                </button>
-              </>
-            )}
-            {instaLoginStatus === 'IN_PROGRESS' && (
-              <div className="flex flex-col items-center animate-pulse">
-                <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="text-body text-text-primary text-center font-bold">{t.login.insta_in_progress}</p>
-                <button onClick={() => setInstaLoginStatus('COMPLETED')} className="mt-8 text-xs text-gray-400 underline cursor-pointer">{t.login.test_trigger}</button>
-              </div>
-            )}
-            {instaLoginStatus === 'COMPLETED' && (
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                  <span className="text-green-600 text-3xl">✓</span>
+              )}
+              {msLoginStatus === 'IN_PROGRESS' && (
+                <div className="flex flex-col items-center py-4">
+                  <div className="w-10 h-10 border-3 border-[#8B0000] border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-[0.9rem] text-[#5a2a2a] text-center" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 400 }}>{t.login.in_progress}</p>
+                  <button onClick={() => { localStorage.setItem('shop_id', '3sesac18'); setMsLoginStatus('COMPLETED'); }} className="mt-6 text-xs text-gray-400 underline cursor-pointer">
+                    {t.login.test_trigger}
+                  </button>
                 </div>
-                <p className="text-[18px] font-bold text-text-primary">{t.login.insta_completed}</p>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+              {msLoginStatus === 'COMPLETED' && (
+                <div className="flex flex-col items-center py-4">
+                  <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-green-600 text-2xl">✓</span>
+                  </div>
+                  <p className="text-[1rem] font-medium text-[#5a2a2a]">{t.login.ms_completed}</p>
+                </div>
+              )}
+            </div>
+          )}
 
+          {/* OneDrive QR 단계 */}
+          {step === 'ONEDRIVE_QR' && (
+            <div
+              className="w-full bg-white/80 backdrop-blur-md rounded-2xl px-10 py-10 animate-[fadeInUp_0.5s_ease_both]"
+              style={{ boxShadow: '0 4px 24px rgba(139,0,0,0.06)' }}
+            >
+              <p className="text-[0.85rem] text-[#5a2a2a] text-center mb-4" style={{ fontWeight: 400, fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>{t.login.onedrive_desc1}</p>
+              <p className="text-[0.85rem] text-[#5a2a2a] text-center mb-2" style={{ fontWeight: 400, fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                {t.login.onedrive_desc2_1}<br />{t.login.onedrive_desc2_2}
+              </p>
+              <p className="text-[0.85rem] text-[#5a2a2a] text-center mb-6" style={{ fontWeight: 400, fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                {t.login.onedrive_desc3_1}<br />{t.login.onedrive_desc3_2}
+              </p>
+              <div className="flex flex-row gap-5 justify-center mb-8">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative w-[100px] h-[100px] border border-[#e8d8d8] rounded-xl overflow-hidden bg-white">
+                    <Image src="/images/QRcode_android.png" alt="Android QR Code" fill className="object-contain p-2" />
+                  </div>
+                  <span className="text-[12px] text-[#5a2a2a]" style={{ fontWeight: 400 }}>Android</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative w-[100px] h-[100px] border border-[#e8d8d8] rounded-xl overflow-hidden bg-white">
+                    <Image src="/images/QRcode_ios.png" alt="iOS QR Code" fill className="object-contain p-2" />
+                  </div>
+                  <span className="text-[12px] text-[#5a2a2a]" style={{ fontWeight: 400 }}>iOS</span>
+                </div>
+              </div>
+              <button onClick={handleOneDriveNextClick} className="w-full bg-[#8B0000] py-[15px] rounded-xl text-white text-[0.95rem] hover:bg-[#6b0000] transition-all duration-200 cursor-pointer focus:outline-none" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                {t.login.btn_next}
+              </button>
+            </div>
+          )}
+
+          {/* 인스타그램 로그인 단계 */}
+          {step === 'INSTA_LOGIN' && (
+            <div
+              className="w-full bg-white/80 backdrop-blur-md rounded-2xl px-10 py-10 animate-[fadeInUp_0.5s_ease_both]"
+              style={{ boxShadow: '0 4px 24px rgba(139,0,0,0.06)' }}
+            >
+              {instaLoginStatus === 'IDLE' && (
+                <div className="flex flex-col items-center">
+                  <p className="text-[0.9rem] text-[#5a2a2a] text-center mb-7" style={{ fontWeight: 400, fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>{t.login.insta_desc}</p>
+                  <button onClick={handleInstaLoginClick} className="w-full bg-[#8B0000] py-[15px] rounded-xl text-white text-[0.95rem] hover:bg-[#6b0000] transition-all duration-200 cursor-pointer focus:outline-none" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
+                    {t.login.insta_btn}
+                  </button>
+                </div>
+              )}
+              {instaLoginStatus === 'IN_PROGRESS' && (
+                <div className="flex flex-col items-center py-4">
+                  <div className="w-10 h-10 border-3 border-[#8B0000] border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-[0.9rem] text-[#5a2a2a] text-center" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 400 }}>{t.login.insta_in_progress}</p>
+                  <button onClick={() => setInstaLoginStatus('COMPLETED')} className="mt-6 text-xs text-gray-400 underline cursor-pointer">{t.login.test_trigger}</button>
+                </div>
+              )}
+              {instaLoginStatus === 'COMPLETED' && (
+                <div className="flex flex-col items-center py-4">
+                  <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center mb-4">
+                    <span className="text-green-600 text-2xl">✓</span>
+                  </div>
+                  <p className="text-[1rem] font-medium text-[#5a2a2a]">{t.login.insta_completed}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 🚨 커스텀 알림창 UI */}
+      {/* 커스텀 알림창 UI */}
       {alertData.isOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[10001] backdrop-blur-sm p-4">
-          <div className="bg-background rounded-xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center">
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 shrink-0">
-              <span className="text-red-500 text-2xl font-bold">!</span>
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-2xl p-8 w-full max-w-[360px] flex flex-col items-center border border-[rgba(139,0,0,0.08)]">
+            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4 shrink-0">
+              <span className="text-[#8B0000] text-2xl font-bold">!</span>
             </div>
-            <p className="text-[15px] text-text-primary text-center mb-6 font-bold whitespace-pre-wrap leading-relaxed">
+            <p className="text-[0.9rem] text-[#5a2a2a] text-center mb-6 whitespace-pre-wrap leading-relaxed" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 400 }}>
               {alertData.message}
             </p>
-            <button onClick={alertData.onConfirm} className="w-full py-3 bg-accent text-white rounded-lg font-bold text-[15px] cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none">
+            <button onClick={alertData.onConfirm} className="w-full py-3 bg-[#8B0000] text-white rounded-xl font-normal text-[1rem] cursor-pointer hover:bg-[#6b0000] transition-all duration-200 focus:outline-none" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
               {t.common?.confirm || '확인'}
             </button>
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </>
   );
 }
