@@ -23,7 +23,6 @@ export default function LoginScreen() {
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => { setIsMounted(true); }, []);
 
-  const [isFromSidebar, setIsFromSidebar] = useState(false);
   const [step, setStep] = useState<LoginStep>('LANGUAGE_SELECT');
   const [msLoginStatus, setMsLoginStatus] = useState<LoginStatus>('IDLE');
   const [instaLoginStatus, setInstaLoginStatus] = useState<LoginStatus>('IDLE');
@@ -34,8 +33,6 @@ export default function LoginScreen() {
 
   useEffect(() => {
     if (!isMounted) return;
-    const searchParams = new URLSearchParams(window.location.search);
-    setIsFromSidebar(searchParams.get('from') === 'sidebar');
 
     // 페이지 로드 시 이미 언어가 설정되어 있다면 언어 선택 단계를 건너뛰고 MS_LOGIN으로 이동
     const savedLanguage = localStorage.getItem('language');
@@ -79,21 +76,17 @@ export default function LoginScreen() {
     return () => window.removeEventListener('message', handleAuthMessage);
   }, [isMounted]);
 
-  // MS 인증 성공 시 자동으로 다음 단계(QR)로 넘어가게 하는 타이머
+  // MS 인증 성공 시 대시보드로 바로 이동
   useEffect(() => {
     if (msLoginStatus === 'COMPLETED') {
-      const timer = setTimeout(() => setStep('ONEDRIVE_QR'), 1500);
+      const timer = setTimeout(() => {
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.removeItem('isGuest');
+        router.push('/photos');
+      }, 1500);
       return () => clearTimeout(timer);
     }
   }, [msLoginStatus]);
-
-  // 인스타 인증 성공 시 자동으로 최종 완료 처리하는 타이머
-  useEffect(() => {
-    if (instaLoginStatus === 'COMPLETED') {
-      const timer = setTimeout(() => handleFinishLogin(), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [instaLoginStatus]);
 
   const handleLanguageSelect = (lang: 'ko' | 'en') => {
     localStorage.setItem('language', lang);
@@ -102,8 +95,6 @@ export default function LoginScreen() {
 
   const handleMsLoginClick = () => {
     setMsLoginStatus('IN_PROGRESS');
-    const frontendCallbackUrl = encodeURIComponent(`${window.location.origin}/auth/callback`);
-    // 🚨 [복구] 깔끔한 변수 사용
     const loginUrl = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${encodeURIComponent(BACKEND_URL + '/api/auth/ms/callback')}&scope=openid+profile+email+Files.ReadWrite.All+offline_access`;
     window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
   };
@@ -113,12 +104,6 @@ export default function LoginScreen() {
     const redirectUri = encodeURIComponent(`${BACKEND_URL}/api/auth/instagram`);
     const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=3357678851057487&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     window.open(instaUrl, 'Insta_Login_Popup', 'width=500,height=600');
-  };
-
-  const handleFinishLogin = () => {
-    localStorage.setItem('isLoggedIn', 'true');
-    localStorage.removeItem('isGuest');
-    router.push(isFromSidebar ? '/dashboard' : '/onboarding/intro');
   };
 
   const handleOneDriveNextClick = () => {
