@@ -46,8 +46,8 @@ export function PhotoSyncProgress() {
       if (!syncStartedRef.current) {
         syncStartedRef.current = true;
         try {
-          // 브라우저에서 직접 토큰 가져오기
           const meRes = await fetch('/.auth/me');
+          if (!meRes.ok) throw new Error('auth endpoint unavailable');
           const meData = await meRes.json();
           const accessToken = meData?.[0]?.access_token || '';
           const principalId = meData?.[0]?.user_id || '';
