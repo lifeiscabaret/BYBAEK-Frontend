@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { useTranslation } from '@/hooks/useTranslation';
+import apiClient from '@/api/index';
 
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
@@ -15,22 +16,50 @@ export default function SettingsPage() {
   const [photoRange, setPhotoRange] = useState(3);
   const [emojiUsage, setEmojiUsage] = useState<string | null>('가끔 씀');
   const [language, setLanguage] = useState<'ko' | 'en'>('ko');
+  const [shopId, setShopId] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     setIsMounted(true);
+    const id = localStorage.getItem('shop_id');
+    setShopId(id);
     const savedLang = localStorage.getItem('language');
     if (savedLang === 'en' || savedLang === 'ko') setLanguage(savedLang);
+
+    if (id) {
+      const fetchSettings = async () => {
+        try {
+          const res = await apiClient.get(`/onboarding/${id}`);
+          if (res.data) {
+            if (res.data.upload_time) setUploadTime(res.data.upload_time);
+            if (res.data.upload_frequency) setUploadFrequency(res.data.upload_frequency);
+            if (res.data.photo_range) setPhotoRange(res.data.photo_range);
+            if (res.data.emoji_usage) setEmojiUsage(res.data.emoji_usage);
+          }
+        } catch {}
+      };
+      fetchSettings();
+    }
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (language) localStorage.setItem('language', language);
-    console.log('settings_saved', {
-      upload_time: uploadTime,
-      upload_frequency: uploadFrequency,
-      photo_range: photoRange,
-      emoji_usage: emojiUsage,
-      language,
-    });
+    setSaveStatus('saving');
+    try {
+      if (shopId) {
+        await apiClient.post(`/onboarding/${shopId}`, {
+          upload_time: uploadTime,
+          upload_frequency: uploadFrequency,
+          photo_range: photoRange,
+          emoji_usage: emojiUsage,
+        });
+      }
+      setSaveStatus('success');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch {
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    }
   };
 
   if (!isMounted) return null;
@@ -131,10 +160,11 @@ export default function SettingsPage() {
         {/* ④ 저장 */}
         <button
           onClick={handleSave}
-          className="px-10 py-3.5 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
+          disabled={saveStatus === 'saving'}
+          className={`px-10 py-3.5 rounded-[10px] text-white text-[0.95rem] font-medium transition-colors cursor-pointer ${saveStatus === 'saving' ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#8B0000] hover:bg-[#6b0000]'}`}
           style={font}
         >
-          {t.settings_page.saveBtn}
+          {saveStatus === 'saving' ? '...' : saveStatus === 'success' ? '저장됨 ✓' : saveStatus === 'error' ? '저장 실패' : t.settings_page.saveBtn}
         </button>
       </div>
     </div>

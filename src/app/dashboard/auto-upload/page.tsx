@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { CheckCircle, X, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import apiClient from '@/api/index';
 
 const BACKEND_URL = 'https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net';
 
@@ -58,6 +59,7 @@ export default function AutoUploadPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [isInstaConnected, setIsInstaConnected] = useState(false);
   const [step, setStep] = useState(1);
+  const [shopId, setShopId] = useState<string | null>(null);
 
   // Step 1
   const [shopName, setShopName] = useState('');
@@ -88,6 +90,8 @@ export default function AutoUploadPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    const id = localStorage.getItem('shop_id');
+    setShopId(id);
     const connected = localStorage.getItem('insta_connected') === 'true';
     setIsInstaConnected(connected);
 
@@ -146,22 +150,28 @@ export default function AutoUploadPage() {
     );
   };
 
-  const handleComplete = () => {
-    console.log('onboarding_data', {
-      shop_name: shopName,
-      shop_description: shopDescription,
-      services: [...selectedServices, ...customServices],
-      target_customers: targetCustomers,
-      target_custom_text: targetCustomText,
-      reference_style: referenceStyle,
+  const handleComplete = async () => {
+    const payload = {
+      brand_tone: [referenceStyle, ...(targetCustomers.length > 0 ? targetCustomers : []), emojiUsage].filter(Boolean),
       forbidden_words: forbiddenWords,
-      hashtags,
       cta,
-      emoji_usage: emojiUsage,
-      upload_time: uploadTime,
-      upload_frequency: uploadFrequency,
-      photo_range: photoRange,
-    });
+      hashtag_style: hashtags,
+      insta_upload_time: uploadTime,
+      insta_upload_time_slot: uploadFrequency,
+      shop_intro: `${shopName ? `샵명: ${shopName}\n` : ''}${shopDescription}`.trim(),
+      preferred_styles: [...selectedServices, ...customServices],
+      language: localStorage.getItem('language') || 'ko',
+      insta_auto_upload_yn: 'Y',
+      insta_review_bfr_upload_yn: 'Y',
+    };
+    try {
+      if (shopId) {
+        await apiClient.post(`/onboarding/${shopId}`, payload);
+      }
+    } catch {
+      // fallback: just proceed
+    }
+    localStorage.setItem('onboarding_completed', 'true');
     setStep(6);
   };
 

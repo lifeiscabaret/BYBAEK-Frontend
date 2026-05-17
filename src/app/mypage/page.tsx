@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { useTranslation } from '@/hooks/useTranslation';
+import apiClient from '@/api/index';
 
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
@@ -14,12 +15,43 @@ export default function MyPage() {
   const [shopId, setShopId] = useState('');
   const [onedriveConnected, setOnedriveConnected] = useState(false);
   const [instaConnected, setInstaConnected] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
-    setShopId(localStorage.getItem('shop_id') || '');
+    const storedShopId = localStorage.getItem('shop_id') || '';
+    setShopId(storedShopId);
     setOnedriveConnected(localStorage.getItem('onedrive_connected') === 'true');
     setInstaConnected(localStorage.getItem('insta_connected') === 'true');
+
+    const fetchUserInfo = async () => {
+      try {
+        const res = await apiClient.get('/auth/me');
+        if (res.data) {
+          setUserName(res.data.name || res.data.shop_id || '');
+          setUserEmail(res.data.email || '');
+        }
+      } catch {}
+    };
+    fetchUserInfo();
+
+    if (storedShopId) {
+      const fetchStatus = async () => {
+        try {
+          const statusRes = await apiClient.get(`/auth/status/${storedShopId}`);
+          if (statusRes.data) {
+            setOnedriveConnected(statusRes.data.onedrive_connected ?? localStorage.getItem('onedrive_connected') === 'true');
+            setInstaConnected(statusRes.data.insta_connected ?? localStorage.getItem('insta_connected') === 'true');
+          }
+        } catch {
+          // fallback to localStorage
+          setOnedriveConnected(localStorage.getItem('onedrive_connected') === 'true');
+          setInstaConnected(localStorage.getItem('insta_connected') === 'true');
+        }
+      };
+      fetchStatus();
+    }
   }, []);
 
   const handleLogout = () => {
@@ -45,7 +77,8 @@ export default function MyPage() {
               <span className="text-white text-[2rem] font-bold">{initial}</span>
             </div>
             <div>
-              <p className="text-[1.1rem] text-[#1A1A1A] font-bold" style={font}>{shopId || '사용자'}</p>
+              <p className="text-[1.1rem] text-[#1A1A1A] font-bold" style={font}>{userName || shopId || '사용자'}</p>
+              {userEmail && <p className="text-[0.85rem] text-gray-500 mt-0.5" style={font}>{userEmail}</p>}
               <p className="text-[0.85rem] text-gray-500 mt-1" style={font}>{t.mypage_page.accountInfo}</p>
             </div>
           </div>
