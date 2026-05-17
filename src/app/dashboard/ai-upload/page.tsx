@@ -96,11 +96,10 @@ export default function AIUploadPage() {
           if (photos.length > 0 && photos[i]) return photos[i].id;
           return `mock_${i}`;
         });
-        const result = await runAgent({
-          shop_id: shopId || '',
-          trigger: 'manual',
-          photo_ids: photoIds,
-        });
+        const [result] = await Promise.all([
+          runAgent({ shop_id: shopId || '', trigger: 'manual', photo_ids: photoIds }),
+          new Promise(resolve => setTimeout(resolve, 3000)),
+        ]);
         setGeneratedCaption(result.caption || MOCK_CAPTION);
         setGeneratedHashtags(result.hashtags || MOCK_HASHTAGS);
         setGeneratedPhotoUrl(result.photo_urls?.[0] || grid[selectedPhotos[0]] || '/demo/pass_01.jpg');
@@ -109,6 +108,7 @@ export default function AIUploadPage() {
         if (loadingInterval.current) clearInterval(loadingInterval.current);
         setStep(4);
       } catch {
+        await new Promise(resolve => setTimeout(resolve, 1500));
         if (loadingInterval.current) clearInterval(loadingInterval.current);
         setGeneratedCaption(MOCK_CAPTION);
         setGeneratedHashtags(MOCK_HASHTAGS);
