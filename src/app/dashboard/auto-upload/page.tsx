@@ -95,6 +95,41 @@ export default function AutoUploadPage() {
     const connected = localStorage.getItem('insta_connected') === 'true';
     setIsInstaConnected(connected);
 
+    const onboardingDone = localStorage.getItem('onboarding_completed') === 'true';
+    if (connected && onboardingDone) {
+      setStep(6);
+    }
+
+    if (id) {
+      const fetchExisting = async () => {
+        try {
+          const res = await apiClient.get(`/onboarding/${id}`);
+          if (res.data) {
+            if (res.data.shop_intro) {
+              const intro = res.data.shop_intro as string;
+              const nameMatch = intro.match(/^샵명: (.+)\n/);
+              if (nameMatch) {
+                setShopName(nameMatch[1]);
+                setShopDescription(intro.replace(/^샵명: .+\n/, ''));
+              } else {
+                setShopDescription(intro);
+              }
+            }
+            if (res.data.preferred_styles) setSelectedServices(res.data.preferred_styles);
+            if (res.data.brand_tone && Array.isArray(res.data.brand_tone)) {
+              setReferenceStyle(res.data.brand_tone[0] || null);
+            }
+            if (res.data.forbidden_words) setForbiddenWords(res.data.forbidden_words);
+            if (res.data.hashtag_style) setHashtags(res.data.hashtag_style);
+            if (res.data.cta) setCta(res.data.cta);
+            if (res.data.insta_upload_time) setUploadTime(res.data.insta_upload_time);
+            if (res.data.insta_upload_time_slot) setUploadFrequency(res.data.insta_upload_time_slot);
+          }
+        } catch {}
+      };
+      fetchExisting();
+    }
+
     const handleMessage = (event: MessageEvent) => {
       if (event.data === 'INSTA_LOGIN_SUCCESS') {
         localStorage.setItem('insta_connected', 'true');
@@ -610,13 +645,22 @@ export default function AutoUploadPage() {
                 </p>
               </div>
 
-              <button
-                onClick={() => router.push('/dashboard/posts')}
-                className="px-10 py-3.5 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
-                style={font}
-              >
-                {t.auto_upload.goToDashboard}
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => router.push('/dashboard/posts')}
+                  className="px-10 py-3.5 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
+                  style={font}
+                >
+                  {t.auto_upload.goToDashboard}
+                </button>
+                <button
+                  onClick={() => { localStorage.setItem('onboarding_completed', 'false'); setStep(1); }}
+                  className="px-8 py-3.5 rounded-[10px] border border-gray-200 text-[0.9rem] text-[#5a2a2a] font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+                  style={font}
+                >
+                  온보딩 다시 설정하기
+                </button>
+              </div>
             </div>
           </div>
         )}

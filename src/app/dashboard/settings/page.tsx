@@ -31,10 +31,9 @@ export default function SettingsPage() {
         try {
           const res = await apiClient.get(`/onboarding/${id}`);
           if (res.data) {
-            if (res.data.upload_time) setUploadTime(res.data.upload_time);
-            if (res.data.upload_frequency) setUploadFrequency(res.data.upload_frequency);
-            if (res.data.photo_range) setPhotoRange(res.data.photo_range);
-            if (res.data.emoji_usage) setEmojiUsage(res.data.emoji_usage);
+            if (res.data.insta_upload_time) setUploadTime(res.data.insta_upload_time);
+            if (res.data.insta_upload_time_slot) setUploadFrequency(res.data.insta_upload_time_slot);
+            if (res.data.language && (res.data.language === 'ko' || res.data.language === 'en')) setLanguage(res.data.language);
           }
         } catch {}
       };
@@ -43,15 +42,15 @@ export default function SettingsPage() {
   }, []);
 
   const handleSave = async () => {
-    if (language) localStorage.setItem('language', language);
+    localStorage.setItem('language', language);
     setSaveStatus('saving');
     try {
       if (shopId) {
         await apiClient.post(`/onboarding/${shopId}`, {
-          upload_time: uploadTime,
-          upload_frequency: uploadFrequency,
-          photo_range: photoRange,
-          emoji_usage: emojiUsage,
+          insta_upload_time: uploadTime,
+          insta_upload_time_slot: uploadFrequency,
+          language,
+          insta_auto_upload_yn: 'Y',
         });
       }
       setSaveStatus('success');
