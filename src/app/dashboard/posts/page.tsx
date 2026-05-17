@@ -8,11 +8,7 @@ import apiClient from '@/api/index';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { Post } from '@/types';
 
-interface PostCardData extends Post {
-  likes?: number;
-  comments?: number;
-  badge?: 'BEST' | 'GOOD';
-}
+type PostCardData = Post;
 
 export default function PostsPage() {
   const router = useRouter();
@@ -21,6 +17,8 @@ export default function PostsPage() {
   const [shopId, setShopId] = useState<string | null>(null);
   const [posts, setPosts] = useState<PostCardData[]>([]);
   const [selectedPost, setSelectedPost] = useState<PostCardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -35,18 +33,17 @@ export default function PostsPage() {
   useEffect(() => {
     if (!shopId) return;
     const fetchPosts = async () => {
+      setLoading(true);
+      setError(false);
       try {
         const response = await apiClient.get(`/agent/posts/${shopId}`);
         const raw = response.data.posts || [];
-        const enriched: PostCardData[] = raw.map((p: Post, i: number) => ({
-          ...p,
-          likes: Math.floor(Math.random() * 200) + 20,
-          comments: Math.floor(Math.random() * 40) + 3,
-          badge: i < 2 ? 'BEST' as const : 'GOOD' as const,
-        }));
+        const enriched: PostCardData[] = raw.map((p: Post) => ({ ...p }));
         setPosts(enriched);
-      } catch (error) {
-        console.error('게시물 로딩 실패:', error);
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
       }
     };
     fetchPosts();
@@ -66,8 +63,20 @@ export default function PostsPage() {
           {t.posts_page.title}
         </h1>
 
+        {loading && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-10 h-10 border-3 border-[#8B0000] border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="flex-1 flex items-center justify-center text-red-500 text-[0.95rem]">
+            게시물을 불러오지 못했습니다
+          </div>
+        )}
+
         {/* 3열 그리드 */}
-        <div className="grid grid-cols-3 gap-6">
+        {!loading && !error && <div className="grid grid-cols-3 gap-6">
           {posts.map((post) => (
             <div
               key={post.id}
@@ -77,13 +86,7 @@ export default function PostsPage() {
             >
               {/* 이미지 4:3 */}
               <div className="aspect-[4/3] w-full bg-gray-100 overflow-hidden">
-                {post.thumbnail_url ? (
-                  <img src={post.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                ) : post.photo_urls?.[0] ? (
-                  <img src={post.photo_urls[0]} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-sm">No Image</div>
-                )}
+                <img src={post.thumbnail_url || post.photo_urls?.[0] || '/demo/pass_01.jpg'} alt="" className="w-full h-full object-cover" />
               </div>
 
               {/* 캡션 + 해시태그 */}
@@ -102,23 +105,24 @@ export default function PostsPage() {
                   </p>
                 )}
 
-                {/* 지표 + 뱃지 */}
-                <div className="flex items-center gap-3 mt-3 text-[13px] text-[#1A1A1A]" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
-                  <span>♥️ {post.likes}</span>
-                  <span>💬 {post.comments}</span>
-                  {post.badge === 'BEST' && (
-                    <span className="ml-auto text-[11px] font-bold text-white bg-[#8B0000] px-2.5 py-0.5 rounded-full">BEST</span>
+                {/* 상태 뱃지 */}
+                <div className="flex items-center mt-3">
+                  {post.status === 'success' && (
+                    <span className="text-[11px] font-bold text-white bg-[#8B0000] px-2.5 py-0.5 rounded-full">UPLOADED</span>
                   )}
-                  {post.badge === 'GOOD' && (
-                    <span className="ml-auto text-[11px] font-bold text-[#8B0000] bg-[#e8d5d5] px-2.5 py-0.5 rounded-full">GOOD</span>
+                  {post.status === 'draft' && (
+                    <span className="text-[11px] font-bold text-gray-600 bg-gray-200 px-2.5 py-0.5 rounded-full">DRAFT</span>
+                  )}
+                  {post.status === 'fail' && (
+                    <span className="text-[11px] font-bold text-white bg-red-500 px-2.5 py-0.5 rounded-full">FAILED</span>
                   )}
                 </div>
               </div>
             </div>
           ))}
-        </div>
+        </div>}
 
-        {posts.length === 0 && (
+        {!loading && !error && posts.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-gray-400 text-[0.95rem]">
             {t.posts_page.empty}
           </div>
@@ -173,15 +177,11 @@ export default function PostsPage() {
                 </p>
               )}
 
-              {/* 지표 */}
-              <div className="flex items-center gap-4 mb-8 text-[14px] text-[#1A1A1A]" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}>
-                <span>♥️ {selectedPost.likes}</span>
-                <span>💬 {selectedPost.comments}</span>
-                {selectedPost.badge && (
-                  <span className={`text-[12px] font-bold px-3 py-1 rounded-full ${selectedPost.badge === 'BEST' ? 'text-white bg-[#8B0000]' : 'text-[#8B0000] bg-[#e8d5d5]'}`}>
-                    {selectedPost.badge}
-                  </span>
-                )}
+              {/* 상태 */}
+              <div className="flex items-center gap-4 mb-8">
+                {selectedPost.status === 'success' && <span className="text-[12px] font-bold text-white bg-[#8B0000] px-3 py-1 rounded-full">UPLOADED</span>}
+                {selectedPost.status === 'draft' && <span className="text-[12px] font-bold text-gray-600 bg-gray-200 px-3 py-1 rounded-full">DRAFT</span>}
+                {selectedPost.status === 'fail' && <span className="text-[12px] font-bold text-white bg-red-500 px-3 py-1 rounded-full">FAILED</span>}
               </div>
 
               {/* 버튼들 */}

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { CheckCircle, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import apiClient from '@/api/index';
+import { runAgent, reviewPost } from '@/api/agent';
+import type { Photo } from '@/types';
 
 const PHOTO_GRID = [
   '/demo/pass_01.jpg',
@@ -48,26 +51,75 @@ export default function AIUploadPage() {
   const [loadingTextIdx, setLoadingTextIdx] = useState(0);
   const loadingInterval = useRef<NodeJS.Timeout | null>(null);
 
+  // API state
+  const [shopId, setShopId] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [generatedCaption, setGeneratedCaption] = useState('');
+  const [generatedHashtags, setGeneratedHashtags] = useState<string[]>([]);
+  const [generatedPhotoUrl, setGeneratedPhotoUrl] = useState('');
+  const [generatedCta, setGeneratedCta] = useState('');
+  const [postId, setPostId] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+
   useEffect(() => {
     setIsMounted(true);
+    const id = localStorage.getItem('shop_id');
+    setShopId(id);
   }, []);
 
-  // Step 3 auto-advance
+  useEffect(() => {
+    if (!shopId) return;
+    const fetchPhotos = async () => {
+      try {
+        const res = await apiClient.get(`/photos/all/${shopId}`);
+        setPhotos(res.data.photos || []);
+      } catch {}
+    };
+    fetchPhotos();
+  }, [shopId]);
+
+  // Step 3 auto-advance with API call
   useEffect(() => {
     if (step !== 3) return;
     setLoadingTextIdx(0);
+    setApiError(null);
     let count = 0;
     loadingInterval.current = setInterval(() => {
       count++;
       setLoadingTextIdx(count % LOADING_KEYS.length);
     }, 1500);
-    const timer = setTimeout(() => {
-      if (loadingInterval.current) clearInterval(loadingInterval.current);
-      setStep(4);
-    }, 4500);
+
+    const generate = async () => {
+      const grid = photos.length > 0 ? photos.map(p => p.blob_url) : PHOTO_GRID;
+      try {
+        const photoIds = selectedPhotos.map(i => {
+          if (photos.length > 0 && photos[i]) return photos[i].id;
+          return `mock_${i}`;
+        });
+        const result = await runAgent({
+          shop_id: shopId || '',
+          trigger: 'manual',
+          photo_ids: photoIds,
+        });
+        setGeneratedCaption(result.caption || MOCK_CAPTION);
+        setGeneratedHashtags(result.hashtags || MOCK_HASHTAGS);
+        setGeneratedPhotoUrl(result.photo_urls?.[0] || grid[selectedPhotos[0]] || '/demo/pass_01.jpg');
+        setGeneratedCta(result.cta || '');
+        setPostId(result.post_id || null);
+        if (loadingInterval.current) clearInterval(loadingInterval.current);
+        setStep(4);
+      } catch {
+        if (loadingInterval.current) clearInterval(loadingInterval.current);
+        setGeneratedCaption(MOCK_CAPTION);
+        setGeneratedHashtags(MOCK_HASHTAGS);
+        setGeneratedPhotoUrl(grid[selectedPhotos[0]] || '/demo/pass_01.jpg');
+        setStep(4);
+      }
+    };
+    generate();
+
     return () => {
       if (loadingInterval.current) clearInterval(loadingInterval.current);
-      clearTimeout(timer);
     };
   }, [step]);
 
@@ -83,9 +135,19 @@ export default function AIUploadPage() {
     setSelectedStyle(null);
     setSelectedPurpose(null);
     setExtraRequest('');
+    setGeneratedCaption('');
+    setGeneratedHashtags([]);
+    setGeneratedPhotoUrl('');
+    setGeneratedCta('');
+    setPostId(null);
+    setApiError(null);
   };
 
   if (!isMounted) return null;
+
+  const photoGrid = photos.length > 0
+    ? photos.map(p => p.blob_url)
+    : PHOTO_GRID;
 
   const progressPercent = (step / 5) * 100;
 
@@ -119,7 +181,7 @@ export default function AIUploadPage() {
                 {t.ai_upload.selectPhotos}
               </h2>
               <div className="grid grid-cols-4 gap-4 mb-8">
-                {PHOTO_GRID.map((src, i) => {
+                {photoGrid.map((src, i) => {
                   const isSelected = selectedPhotos.includes(i);
                   return (
                     <div
@@ -249,7 +311,7 @@ export default function AIUploadPage() {
                 </div>
                 <div className="aspect-square w-full bg-gray-200">
                   <img
-                    src={selectedPhotos.length > 0 ? PHOTO_GRID[selectedPhotos[0]] : '/demo/pass_01.jpg'}
+                    src={generatedPhotoUrl || (selectedPhotos.length > 0 ? photoGrid[selectedPhotos[0]] : '/demo/pass_01.jpg')}
                     alt=""
                     className="w-full h-full object-cover"
                   />
@@ -265,13 +327,16 @@ export default function AIUploadPage() {
                 <div className="px-3 pb-3">
                   <p className="text-xs text-gray-800 leading-relaxed">
                     <span className="font-bold">barber_studio</span>{' '}
-                    {MOCK_CAPTION}
+                    {generatedCaption || MOCK_CAPTION}
                   </p>
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {MOCK_HASHTAGS.map((tag, i) => (
+                    {(generatedHashtags.length > 0 ? generatedHashtags : MOCK_HASHTAGS).map((tag, i) => (
                       <span key={i} className="text-[11px] text-[#8B0000] font-medium">{tag}</span>
                     ))}
                   </div>
+                  {generatedCta && (
+                    <p className="text-[11px] text-gray-600 mt-2 font-medium">{generatedCta}</p>
+                  )}
                   <p className="text-[10px] text-gray-400 mt-2">3시간 전</p>
                 </div>
               </div>
@@ -285,7 +350,14 @@ export default function AIUploadPage() {
                   {t.ai_upload.regenerate}
                 </button>
                 <button
-                  onClick={() => setStep(5)}
+                  onClick={async () => {
+                    if (postId && shopId) {
+                      try {
+                        await reviewPost({ shop_id: shopId, post_id: postId, action: 'ok' });
+                      } catch {}
+                    }
+                    setStep(5);
+                  }}
                   className="px-8 py-3 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
                   style={font}
                 >
