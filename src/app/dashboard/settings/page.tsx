@@ -30,11 +30,10 @@ export default function SettingsPage() {
       const fetchSettings = async () => {
         try {
           const res = await apiClient.get(`/onboarding/${id}`);
-          if (res.data) {
-            if (res.data.insta_upload_time) setUploadTime(res.data.insta_upload_time);
-            if (res.data.insta_upload_time_slot) setUploadFrequency(res.data.insta_upload_time_slot);
-            if (res.data.language && (res.data.language === 'ko' || res.data.language === 'en')) setLanguage(res.data.language);
-          }
+          const shop = res.data?.shop_info || {};
+          if (shop.insta_upload_time) setUploadTime(shop.insta_upload_time);
+          if (shop.insta_upload_time_slot) setUploadFrequency(shop.insta_upload_time_slot);
+          if (shop.language === 'ko' || shop.language === 'en') setLanguage(shop.language);
         } catch {}
       };
       fetchSettings();
