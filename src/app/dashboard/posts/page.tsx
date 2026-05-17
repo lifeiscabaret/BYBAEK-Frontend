@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { X, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import apiClient from '@/api/index';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { Post } from '@/types';
 
 interface PostCardData extends Post {
@@ -15,6 +16,7 @@ interface PostCardData extends Post {
 
 export default function PostsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [shopId, setShopId] = useState<string | null>(null);
   const [posts, setPosts] = useState<PostCardData[]>([]);
@@ -61,7 +63,7 @@ export default function PostsPage() {
           className="text-[1.6rem] text-[#1A1A1A] mb-8"
           style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 700 }}
         >
-          게시물
+          {t.posts_page.title}
         </h1>
 
         {/* 3열 그리드 */}
@@ -118,7 +120,7 @@ export default function PostsPage() {
 
         {posts.length === 0 && (
           <div className="flex-1 flex items-center justify-center text-gray-400 text-[0.95rem]">
-            아직 게시물이 없습니다
+            {t.posts_page.empty}
           </div>
         )}
       </div>
@@ -189,20 +191,20 @@ export default function PostsPage() {
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[10px] bg-[#8B0000] text-white text-[0.9rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
                   style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}
                 >
-                  <Pencil size={16} /> 수정
+                  <Pencil size={16} /> {t.posts_page.edit}
                 </button>
                 <button
                   onClick={() => router.push('/preview')}
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[10px] border border-[#8B0000] text-[#8B0000] text-[0.9rem] font-medium hover:bg-[#fdf0f0] transition-colors cursor-pointer"
                   style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}
                 >
-                  <RefreshCw size={16} /> 다시 생성
+                  <RefreshCw size={16} /> {t.posts_page.regenerate}
                 </button>
                 <button
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-[10px] border border-gray-200 text-gray-500 text-[0.9rem] font-medium hover:bg-gray-50 transition-colors cursor-pointer"
                   style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}
                 >
-                  <Trash2 size={16} /> 삭제
+                  <Trash2 size={16} /> {t.posts_page.delete_btn}
                 </button>
               </div>
             </div>

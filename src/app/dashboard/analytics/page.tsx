@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { TrendingUp, Clock, Hash } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const MOCK_DATA = {
   kpi: {
@@ -40,13 +41,13 @@ const MOCK_DATA = {
     { id: 'post-3', thumbnail: '/demo/pass_03.jpg', likes: 96, comments: 27, badge: '인기 상승' },
   ],
   insights: [
-    { icon: 'TrendingUp', text: '짧은 스타일 컷 게시물의 반응이 좋습니다' },
-    { icon: 'Clock', text: '저녁 7~9시 업로드 성과가 높습니다' },
-    { icon: 'Hash', text: 'fade 관련 해시태그 반응이 좋습니다' },
+    { icon: 'TrendingUp', key: 'insight1' },
+    { icon: 'Clock', key: 'insight2' },
+    { icon: 'Hash', key: 'insight3' },
   ],
 };
 
-function KpiCard({ label, value, change }: { label: string; value: string; change: number }) {
+function KpiCard({ label, value, change, goodText, growingText }: { label: string; value: string; change: number; goodText: string; growingText: string }) {
   const isPositive = change >= 0;
   return (
     <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-6 flex flex-col gap-2">
@@ -60,7 +61,7 @@ function KpiCard({ label, value, change }: { label: string; value: string; chang
         className={`text-[0.8rem] px-2.5 py-1 rounded-full w-fit ${isPositive ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}
         style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 400 }}
       >
-        {isPositive ? '잘 되고 있어요 🎉' : '성장 중이에요 📈'}
+        {isPositive ? goodText : growingText}
       </span>
     </div>
   );
@@ -68,6 +69,7 @@ function KpiCard({ label, value, change }: { label: string; value: string; chang
 
 export default function AnalyticsPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [shopId, setShopId] = useState<string | null>(null);
 
@@ -101,15 +103,15 @@ export default function AnalyticsPage() {
           className="text-[1.8rem] text-[#1a1a1a] mb-8 tracking-wide"
           style={{ fontFamily: "'S-Core Dream', sans-serif", fontWeight: 300 }}
         >
-          마케팅 성과 분석
+          {t.analytics_page.title}
         </h1>
 
         {/* ① KPI 카드 */}
         <div className="grid grid-cols-4 gap-5 mb-10">
-          <KpiCard label="총 좋아요" value={kpi.totalLikes.toLocaleString()} change={kpi.likesChange} />
-          <KpiCard label="총 댓글" value={kpi.totalComments.toLocaleString()} change={kpi.commentsChange} />
-          <KpiCard label="도달 수" value={kpi.reach.toLocaleString()} change={kpi.reachChange} />
-          <KpiCard label="인기 게시물" value={`${kpi.popularPosts}개`} change={kpi.popularChange} />
+          <KpiCard label={t.analytics_page.totalLikes} value={kpi.totalLikes.toLocaleString()} change={kpi.likesChange} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
+          <KpiCard label={t.analytics_page.totalComments} value={kpi.totalComments.toLocaleString()} change={kpi.commentsChange} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
+          <KpiCard label={t.analytics_page.reach} value={kpi.reach.toLocaleString()} change={kpi.reachChange} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
+          <KpiCard label={t.analytics_page.popularPosts} value={`${kpi.popularPosts}`} change={kpi.popularChange} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
         </div>
 
         {/* ② 성과 추이 그래프 */}
@@ -118,7 +120,7 @@ export default function AnalyticsPage() {
             className="text-[1.1rem] text-[#1a1a1a] mb-6"
             style={{ fontFamily: "'S-Core Dream', sans-serif", fontWeight: 300 }}
           >
-            최근 30일 반응 추이
+            {t.analytics_page.chartTitle}
           </h2>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -129,8 +131,8 @@ export default function AnalyticsPage() {
                 contentStyle={{ borderRadius: 12, border: '1px solid #f0e8e8', fontSize: 13 }}
               />
               <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
-              <Line type="monotone" dataKey="likes" name="좋아요" stroke="#8B0000" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="comments" name="댓글" stroke="rgba(196,118,118,0.5)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="likes" name={t.analytics_page.likes} stroke="#8B0000" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="comments" name={t.analytics_page.comments} stroke="rgba(196,118,118,0.5)" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -141,7 +143,7 @@ export default function AnalyticsPage() {
             className="text-[1.1rem] text-[#1a1a1a] mb-5"
             style={{ fontFamily: "'S-Core Dream', sans-serif", fontWeight: 300 }}
           >
-            인기 게시물
+            {t.analytics_page.popularTitle}
           </h2>
           <div className="flex gap-5 overflow-x-auto pb-2">
             {popularPosts.map((post) => (
@@ -173,28 +175,28 @@ export default function AnalyticsPage() {
             className="text-[1.2rem] text-white mb-6 flex items-center gap-2"
             style={{ fontFamily: "'S-Core Dream', sans-serif", fontWeight: 300 }}
           >
-            ✨ AI 마케팅 인사이트
+            {t.analytics_page.insightTitle}
           </h2>
           <div className="space-y-4 mb-8">
             {insights.map((item, i) => (
               <div key={i} className="flex items-center gap-3">
                 {iconMap[item.icon as keyof typeof iconMap]}
                 <span className="text-white text-[0.95rem]" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 300 }}>
-                  {item.text}
+                  {t.analytics_page[item.key as keyof typeof t.analytics_page]}
                 </span>
               </div>
             ))}
           </div>
           <div className="border-t border-white/20 pt-6 flex items-center justify-between">
             <p className="text-white/70 text-[0.85rem]" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 300 }}>
-              AI가 다음 게시물 방향을 추천해드릴게요
+              {t.analytics_page.insightCta}
             </p>
             <button
               onClick={() => router.push('/dashboard/ai-upload')}
               className="bg-white text-[#8B0000] text-[0.9rem] font-medium px-6 py-3 rounded-[10px] hover:bg-white/90 transition-colors cursor-pointer"
               style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" }}
             >
-              AI 업로드 시작하기
+              {t.analytics_page.insightBtn}
             </button>
           </div>
         </div>

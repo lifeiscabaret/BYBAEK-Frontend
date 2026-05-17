@@ -4,6 +4,7 @@ import { useState, useEffect, KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { CheckCircle, X, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const BACKEND_URL = 'https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net';
 
@@ -53,6 +54,7 @@ const CTA_SUGGESTIONS = [
 
 export default function AutoUploadPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [isInstaConnected, setIsInstaConnected] = useState(false);
   const [step, setStep] = useState(1);
@@ -197,17 +199,17 @@ export default function AutoUploadPage() {
                 </svg>
               </div>
               <p className="text-[1.1rem] text-[#1A1A1A] text-center whitespace-pre-line leading-relaxed mb-8" style={{ ...font, fontWeight: 400 }}>
-                {'자동 업로드를 시작하려면\nInstagram을 연결해주세요'}
+                {t.auto_upload.connectTitle}
               </p>
               <div className="space-y-3 w-full mb-8">
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> AI가 자동으로 게시물을 생성합니다
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.auto_upload.benefit1}
                 </p>
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> 예약 시간에 맞춰 자동 업로드합니다
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.auto_upload.benefit2}
                 </p>
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> 해시태그와 캡션을 자동으로 최적화합니다
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.auto_upload.benefit3}
                 </p>
               </div>
               <button
@@ -215,7 +217,7 @@ export default function AutoUploadPage() {
                 className="w-full py-4 rounded-[10px] text-white text-[1rem] font-medium hover:opacity-90 transition-opacity cursor-pointer"
                 style={{ ...font, background: 'linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #FCAF45 100%)' }}
               >
-                Instagram 연결하기
+                {t.auto_upload.connectBtn}
               </button>
               {process.env.NODE_ENV === 'development' && (
                 <button
@@ -235,10 +237,10 @@ export default function AutoUploadPage() {
             {/* 진행률 바 */}
             <div className="shrink-0 mb-2">
               <p className="text-[1.2rem] text-[#1A1A1A] mb-4" style={{ ...font, fontWeight: 700 }}>
-                BYBAEK AI 개인화 설정
+                {t.auto_upload.onboardingTitle}
               </p>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[0.8rem] text-[#8B0000] font-medium" style={font}>{step}/6 단계</span>
+                <span className="text-[0.8rem] text-[#8B0000] font-medium" style={font}>{step}/6 {t.auto_upload.step}</span>
               </div>
               <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div
@@ -252,26 +254,26 @@ export default function AutoUploadPage() {
               {/* Step 1: 샵 정체성 */}
               {step === 1 && (
                 <div className="max-w-[520px]">
-                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>샵 정체성</h2>
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>샵 이름</label>
+                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>{t.auto_upload.shopName}</h2>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.shopName}</label>
                   <input
                     type="text"
                     value={shopName}
                     onChange={e => setShopName(e.target.value)}
-                    placeholder="예: US바버샵"
+                    placeholder={t.auto_upload.shopNamePlaceholder}
                     className="w-full border border-gray-200 rounded-[12px] px-4 py-3.5 text-[0.9rem] text-[#1A1A1A] mb-6 focus:outline-none focus:border-[#8B0000] transition-colors"
                     style={font}
                   />
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>한 줄 소개</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.shopDesc}</label>
                   <input
                     type="text"
                     value={shopDescription}
                     onChange={e => setShopDescription(e.target.value)}
-                    placeholder="예: 용산 미군부대 앞 20년 전통 바버샵"
+                    placeholder={t.auto_upload.shopDescPlaceholder}
                     className="w-full border border-gray-200 rounded-[12px] px-4 py-3.5 text-[0.9rem] text-[#1A1A1A] mb-6 focus:outline-none focus:border-[#8B0000] transition-colors"
                     style={font}
                   />
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>대표 시술</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.services}</label>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {PRESET_SERVICES.map(s => {
                       const isSelected = selectedServices.includes(s);
@@ -299,7 +301,7 @@ export default function AutoUploadPage() {
                       value={serviceInput}
                       onChange={e => setServiceInput(e.target.value)}
                       onKeyDown={handleServiceKey}
-                      placeholder="직접 추가 (엔터로 입력)"
+                      placeholder={t.auto_upload.servicesPlaceholder}
                       className="flex-1 border border-gray-200 rounded-[12px] px-4 py-3 text-[0.9rem] text-[#1A1A1A] focus:outline-none focus:border-[#8B0000] transition-colors"
                       style={font}
                     />
@@ -313,7 +315,7 @@ export default function AutoUploadPage() {
                       className="px-4 py-3 rounded-[12px] bg-[#8B0000] text-white text-[0.85rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer shrink-0"
                       style={font}
                     >
-                      추가
+                      {t.auto_upload.addBtn}
                     </button>
                   </div>
                 </div>
@@ -322,7 +324,7 @@ export default function AutoUploadPage() {
               {/* Step 2: 타겟 고객 */}
               {step === 2 && (
                 <div className="max-w-[520px]">
-                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>타겟 고객</h2>
+                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>{t.auto_upload.targetTitle}</h2>
                   <div className="grid grid-cols-2 gap-3 mb-8">
                     {TARGET_OPTIONS.map(opt => {
                       const isSelected = targetCustomers.includes(opt.label);
@@ -338,12 +340,12 @@ export default function AutoUploadPage() {
                       );
                     })}
                   </div>
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>우리 샵 고객을 한 줄로 표현한다면?</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.targetCustomLabel}</label>
                   <input
                     type="text"
                     value={targetCustomText}
                     onChange={e => setTargetCustomText(e.target.value)}
-                    placeholder="예: 미군 및 외국인 고객이 많아요"
+                    placeholder={t.auto_upload.targetCustomPlaceholder}
                     className="w-full border border-gray-200 rounded-[12px] px-4 py-3.5 text-[0.9rem] text-[#1A1A1A] focus:outline-none focus:border-[#8B0000] transition-colors"
                     style={font}
                   />
@@ -353,8 +355,8 @@ export default function AutoUploadPage() {
               {/* Step 3: 레퍼런스 스타일 */}
               {step === 3 && (
                 <div className="max-w-[600px]">
-                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-2" style={{ ...font, fontWeight: 700 }}>레퍼런스 스타일 선택</h2>
-                  <p className="text-[0.85rem] text-gray-500 mb-8" style={font}>어떤 느낌의 마케팅을 원하시나요?</p>
+                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-2" style={{ ...font, fontWeight: 700 }}>{t.auto_upload.styleTitle}</h2>
+                  <p className="text-[0.85rem] text-gray-500 mb-8" style={font}>{t.auto_upload.styleSub}</p>
                   <div className="flex flex-col gap-3 mb-6">
                     {STYLE_OPTIONS.map(opt => {
                       const isSelected = referenceStyle === opt.label;
@@ -373,7 +375,7 @@ export default function AutoUploadPage() {
                   </div>
                   {referenceStyle && selectedStyleData && (
                     <div className="bg-[#fdf5f5] border border-[rgba(139,0,0,0.12)] rounded-[12px] p-5">
-                      <p className="text-[0.8rem] text-[#8B0000] mb-2 font-medium" style={font}>이런 느낌의 게시물이 만들어져요</p>
+                      <p className="text-[0.8rem] text-[#8B0000] mb-2 font-medium" style={font}>{t.auto_upload.stylePreview}</p>
                       <p className="text-[0.9rem] text-[#1A1A1A] leading-relaxed" style={font}>"{selectedStyleData.caption}"</p>
                       <p className="text-[0.8rem] text-[#8B0000] mt-2" style={font}>{selectedStyleData.hashtags}</p>
                     </div>
@@ -384,9 +386,9 @@ export default function AutoUploadPage() {
               {/* Step 4: 금칙어 + CTA */}
               {step === 4 && (
                 <div className="max-w-[520px]">
-                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>금칙어 + CTA 설정</h2>
+                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>{t.auto_upload.forbiddenTitle}</h2>
 
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>절대 쓰지 말아야 할 단어</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.forbiddenLabel}</label>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {forbiddenWords.map(tag => (
                       <span key={tag} className="flex items-center gap-1.5 bg-red-50 text-red-700 text-[0.8rem] font-medium px-3 py-1.5 rounded-full">
@@ -400,13 +402,13 @@ export default function AutoUploadPage() {
                     value={forbiddenInput}
                     onChange={e => setForbiddenInput(e.target.value)}
                     onKeyDown={handleForbiddenKey}
-                    placeholder="예: 저렴, 할인, 싸다"
+                    placeholder={t.auto_upload.forbiddenPlaceholder}
                     className="w-full border border-gray-200 rounded-[12px] px-4 py-3.5 text-[0.9rem] text-[#1A1A1A] mb-1 focus:outline-none focus:border-[#8B0000] transition-colors"
                     style={font}
                   />
-                  <p className="text-[0.75rem] text-gray-400 mb-8" style={font}>AI가 게시물 작성 시 이 단어들을 절대 사용하지 않아요</p>
+                  <p className="text-[0.75rem] text-gray-400 mb-8" style={font}>{t.auto_upload.forbiddenHint}</p>
 
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>자주 쓰는 해시태그</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.hashtagLabel}</label>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {hashtags.map(tag => (
                       <span key={tag} className="flex items-center gap-1.5 bg-[rgba(139,0,0,0.08)] text-[#8B0000] text-[0.8rem] font-medium px-3 py-1.5 rounded-full">
@@ -420,18 +422,18 @@ export default function AutoUploadPage() {
                     value={hashtagInput}
                     onChange={e => setHashtagInput(e.target.value)}
                     onKeyDown={handleHashtagKey}
-                    placeholder="예: #바버샵 #페이드컷 #남성헤어"
+                    placeholder={t.auto_upload.hashtagPlaceholder}
                     className="w-full border border-gray-200 rounded-[12px] px-4 py-3.5 text-[0.9rem] text-[#1A1A1A] mb-1 focus:outline-none focus:border-[#8B0000] transition-colors"
                     style={font}
                   />
-                  <p className="text-[0.75rem] text-gray-400 mb-8" style={font}>AI가 게시물 작성 시 이 해시태그를 우선적으로 사용해요</p>
+                  <p className="text-[0.75rem] text-gray-400 mb-8" style={font}>{t.auto_upload.hashtagHint}</p>
 
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>CTA 문구</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.ctaLabel}</label>
                   <input
                     type="text"
                     value={cta}
                     onChange={e => setCta(e.target.value)}
-                    placeholder="예: DM으로 예약해주세요"
+                    placeholder={t.auto_upload.ctaPlaceholder}
                     className="w-full border border-gray-200 rounded-[12px] px-4 py-3.5 text-[0.9rem] text-[#1A1A1A] mb-2 focus:outline-none focus:border-[#8B0000] transition-colors"
                     style={font}
                   />
@@ -443,9 +445,9 @@ export default function AutoUploadPage() {
                     ))}
                   </div>
 
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>이모지 사용 여부</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.emojiLabel}</label>
                   <div className="flex gap-3">
-                    {['자주 씀', '가끔 씀', '안 씀'].map(opt => (
+                    {[t.auto_upload.emojiOften, t.auto_upload.emojiSometimes, t.auto_upload.emojiNever].map(opt => (
                       <button
                         key={opt}
                         onClick={() => setEmojiUsage(opt)}
@@ -462,9 +464,9 @@ export default function AutoUploadPage() {
               {/* Step 5: 업로드 스케줄 */}
               {step === 5 && (
                 <div className="max-w-[520px]">
-                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>업로드 스케줄</h2>
+                  <h2 className="text-[1.3rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>{t.auto_upload.scheduleTitle}</h2>
 
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>업로드 시간</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.uploadTime}</label>
                   <select
                     value={uploadTime}
                     onChange={e => setUploadTime(e.target.value)}
@@ -476,11 +478,11 @@ export default function AutoUploadPage() {
                       return <option key={t} value={t}>{t}</option>;
                     })}
                   </select>
-                  <p className="text-[0.75rem] text-gray-400 mb-8" style={font}>💡 저녁 7~9시 업로드 성과가 높습니다</p>
+                  <p className="text-[0.75rem] text-gray-400 mb-8" style={font}>{t.auto_upload.timeTip}</p>
 
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>업로드 빈도</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.frequency}</label>
                   <div className="flex gap-3 mb-8">
-                    {['매일', '주 3회', '주 1회'].map(opt => (
+                    {[t.auto_upload.daily, t.auto_upload.threePerWeek, t.auto_upload.weekly].map(opt => (
                       <button
                         key={opt}
                         onClick={() => setUploadFrequency(opt)}
@@ -492,7 +494,7 @@ export default function AutoUploadPage() {
                     ))}
                   </div>
 
-                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>게시물당 사진 수: {photoRange}장</label>
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.photoCount}: {photoRange}</label>
                   <input
                     type="range"
                     min={1}
@@ -515,7 +517,7 @@ export default function AutoUploadPage() {
                   className={`px-8 py-3 rounded-[10px] border text-[0.95rem] font-medium transition-all cursor-pointer ${step === 1 ? 'border-gray-100 text-gray-300 cursor-not-allowed' : 'border-gray-200 text-[#5a2a2a] hover:bg-gray-50'}`}
                   style={font}
                 >
-                  이전
+                  {t.auto_upload.prev}
                 </button>
                 {step < 5 ? (
                   <button
@@ -524,7 +526,7 @@ export default function AutoUploadPage() {
                     className={`px-8 py-3 rounded-[10px] text-[0.95rem] font-medium transition-all cursor-pointer ${canNext() ? 'bg-[#8B0000] text-white hover:bg-[#6b0000]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                     style={font}
                   >
-                    다음
+                    {t.auto_upload.next}
                   </button>
                 ) : (
                   <button
@@ -533,7 +535,7 @@ export default function AutoUploadPage() {
                     className={`px-8 py-3 rounded-[10px] text-[0.95rem] font-medium transition-all cursor-pointer ${canNext() ? 'bg-[#8B0000] text-white hover:bg-[#6b0000]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                     style={font}
                   >
-                    완료
+                    {t.auto_upload.done}
                   </button>
                 )}
               </div>
@@ -547,11 +549,11 @@ export default function AutoUploadPage() {
             <div className="flex flex-col items-center max-w-[400px]">
               <CheckCircle size={80} className="text-[#8B0000] mb-6" strokeWidth={1.5} />
               <p className="text-[1.4rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 500 }}>
-                설정이 완료되었습니다!
+                {t.auto_upload.complete}
               </p>
 
               {/* 샘플 게시물 */}
-              <p className="text-[0.85rem] text-gray-500 mb-3" style={font}>AI가 이렇게 글을 써드릴게요</p>
+              <p className="text-[0.85rem] text-gray-500 mb-3" style={font}>{t.auto_upload.sampleLabel}</p>
               <div className="w-[280px] rounded-lg border border-gray-200 overflow-hidden shadow-md bg-white mb-8" style={font}>
                 <div className="flex items-center justify-between px-3 py-2.5">
                   <div className="flex items-center gap-2">
@@ -588,13 +590,13 @@ export default function AutoUploadPage() {
 
               <div className="space-y-3 mb-8">
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> Instagram 연결
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.auto_upload.checkInsta}
                 </p>
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> 개인화 설정 저장
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.auto_upload.checkPersonal}
                 </p>
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> AI 스타일 학습 완료
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.auto_upload.checkAI}
                 </p>
               </div>
 
@@ -603,7 +605,7 @@ export default function AutoUploadPage() {
                 className="px-10 py-3.5 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
                 style={font}
               >
-                대시보드로 이동
+                {t.auto_upload.goToDashboard}
               </button>
             </div>
           </div>

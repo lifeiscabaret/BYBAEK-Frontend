@@ -57,6 +57,7 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 }
 
 function OneDriveTutorialModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
   const [animKey, setAnimKey] = useState(0);
@@ -113,7 +114,7 @@ function OneDriveTutorialModal({ onClose }: { onClose: () => void }) {
 
         {/* 타이틀 */}
         <h2 className="text-[1.1rem] text-[#1A1A1A] font-bold mb-4" style={tutorialFont}>
-          OneDrive 연동 방법
+          {t.photos_page.tutorial_title}
         </h2>
 
         {/* 진행 도트 */}
@@ -186,10 +187,10 @@ function OneDriveTutorialModal({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
               <h3 className="text-[1rem] text-[#1A1A1A] font-bold mb-2 mt-2" style={tutorialFont}>
-                OneDrive 앱을 설치해주세요
+                {t.photos_page.tutorial_step1}
               </h3>
               <p className="text-[0.85rem] text-[#999] mb-6" style={tutorialFont}>
-                이미 있으면 바로 다음으로!
+                {t.photos_page.tutorial_step1_sub}
               </p>
               <button
                 onClick={() => goTo(1)}
@@ -250,10 +251,10 @@ function OneDriveTutorialModal({ onClose }: { onClose: () => void }) {
                 )}
               </div>
               <h3 className="text-[1rem] text-[#1A1A1A] font-bold mb-2 mt-2" style={tutorialFont}>
-                카메라 자동 백업을 켜주세요
+                {t.photos_page.tutorial_step2}
               </h3>
               <p className="text-[0.85rem] text-[#999] mb-6" style={tutorialFont}>
-                찍는 즉시 BYBAEK이 가져와요
+                {t.photos_page.tutorial_step2_sub}
               </p>
               <div className="flex items-center gap-3">
                 <button
@@ -323,10 +324,10 @@ function OneDriveTutorialModal({ onClose }: { onClose: () => void }) {
                 </div>
               </div>
               <h3 className="text-[1rem] text-[#1A1A1A] font-bold mb-2 mt-2" style={tutorialFont}>
-                이제 준비됐어요!
+                {t.photos_page.tutorial_step3}
               </h3>
               <p className="text-[0.85rem] text-[#999] mb-6" style={tutorialFont}>
-                첫 동기화는 몇 분 걸릴 수 있어요
+                {t.photos_page.tutorial_step3_sub}
               </p>
               <div className="flex items-center gap-3 w-full">
                 <button
@@ -341,7 +342,7 @@ function OneDriveTutorialModal({ onClose }: { onClose: () => void }) {
                   className="flex-1 py-3.5 rounded-[12px] text-white text-[0.95rem] font-bold cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ ...tutorialFont, backgroundColor: '#8B0000' }}
                 >
-                  사진 동기화 시작하기
+                  {t.photos_page.tutorial_startBtn}
                 </button>
               </div>
             </div>
@@ -506,17 +507,17 @@ export default function AllPhotosScreen() {
             <div className="flex flex-col items-center max-w-[380px]">
               <Camera size={80} className="text-[#8B0000] mb-6" strokeWidth={1.2} />
               <p className="text-[1.1rem] text-[#1A1A1A] text-center mb-8" style={{ ...font, fontWeight: 400 }}>
-                아직 연동된 사진이 없습니다
+                {t.photos_page.empty}
               </p>
               <div className="space-y-3 w-full mb-8">
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> 자동으로 게시물 생성
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.photos_page.benefit1}
                 </p>
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> 해시태그 추천
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.photos_page.benefit2}
                 </p>
                 <p className="text-[0.9rem] text-[#5a2a2a] flex items-center gap-2.5" style={{ ...font, fontWeight: 300 }}>
-                  <span className="text-[#8B0000] font-bold">✓</span> 인스타 업로드까지 진행합니다
+                  <span className="text-[#8B0000] font-bold">✓</span> {t.photos_page.benefit3}
                 </p>
               </div>
               <button
@@ -528,7 +529,7 @@ export default function AllPhotosScreen() {
                   <path d="M12.5 3L6.5 11h4v7h4v-7h4L12.5 3z" fill="#0078D4"/>
                   <path d="M4 14c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-2c0-1.1-.9-2-2-2H4z" fill="#0078D4" opacity="0.6"/>
                 </svg>
-                <span className="text-[0.95rem] text-[#1A1A1A] font-medium" style={font}>사진연동 시작하기</span>
+                <span className="text-[0.95rem] text-[#1A1A1A] font-medium" style={font}>{t.photos_page.connectBtn}</span>
               </button>
             </div>
           </div>
@@ -554,13 +555,13 @@ export default function AllPhotosScreen() {
                       <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     )}
                   </div>
-                  <span className="text-[14px] font-bold text-[#000]" style={font}>전체</span>
+                  <span className="text-[14px] font-bold text-[#000]" style={font}>{t.photos_page.all}</span>
                 </button>
 
                 {/* 선택 N개 */}
                 {selectedIndexes.length > 0 && (
                   <>
-                    <span className="text-[14px] font-bold text-[#000]" style={font}>선택</span>
+                    <span className="text-[14px] font-bold text-[#000]" style={font}>{t.photos_page.selected}</span>
                     <span className="text-[14px] text-[#6B0F1A]" style={{ ...font, fontWeight: 400 }}>{selectedIndexes.length}개</span>
                   </>
                 )}
@@ -572,14 +573,14 @@ export default function AllPhotosScreen() {
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-[8px] border text-[13px] font-bold transition-all ${selectedIndexes.length > 0 ? 'border-[#e0e0e0] text-[#6B0F1A] opacity-100 cursor-pointer hover:border-[#8B0000]' : 'border-[#e0e0e0] text-[#6B0F1A] opacity-50 cursor-not-allowed'}`}
                     style={{ ...font, background: 'white' }}
                   >
-                    <FolderPlus size={16} /> 앨범
+                    <FolderPlus size={16} /> {t.photos_page.album}
                   </button>
                   <button
                     onClick={() => selectedIndexes.length > 0 && handleDelete()}
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-[8px] border text-[13px] font-bold transition-all ${selectedIndexes.length > 0 ? 'border-[#e0e0e0] text-[#6B0F1A] opacity-100 cursor-pointer hover:border-[#8B0000]' : 'border-[#e0e0e0] text-[#6B0F1A] opacity-50 cursor-not-allowed'}`}
                     style={{ ...font, background: 'white' }}
                   >
-                    <Trash2 size={16} /> 삭제
+                    <Trash2 size={16} /> {t.photos_page.delete_btn}
                   </button>
                   <div className="relative">
                     <button
@@ -587,13 +588,13 @@ export default function AllPhotosScreen() {
                       className={`flex items-center gap-1.5 px-4 py-2 rounded-[8px] border text-[13px] font-bold transition-all ${selectedIndexes.length > 0 ? 'border-[#e0e0e0] text-[#6B0F1A] opacity-100 cursor-pointer hover:border-[#8B0000]' : 'border-[#e0e0e0] text-[#6B0F1A] opacity-50 cursor-not-allowed'}`}
                       style={{ ...font, background: 'white' }}
                     >
-                      <Share2 size={16} /> 공유 <ChevronDown size={14} />
+                      <Share2 size={16} /> {t.photos_page.share} <ChevronDown size={14} />
                     </button>
                     {showShareDropdown && (
                       <div className="absolute top-full left-0 mt-2 bg-white rounded-[9px] py-2 z-50 min-w-[160px]" style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
-                        <button className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-gray-50 cursor-pointer" style={font} onClick={() => setShowShareDropdown(false)}>카카오톡</button>
-                        <button className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-gray-50 cursor-pointer" style={font} onClick={() => setShowShareDropdown(false)}>다운로드</button>
-                        <button className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-gray-50 cursor-pointer" style={font} onClick={() => setShowShareDropdown(false)}>페이스북</button>
+                        <button className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-gray-50 cursor-pointer" style={font} onClick={() => setShowShareDropdown(false)}>{t.photos_page.kakao}</button>
+                        <button className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-gray-50 cursor-pointer" style={font} onClick={() => setShowShareDropdown(false)}>{t.photos_page.download}</button>
+                        <button className="w-full px-4 py-2.5 text-left text-[13px] hover:bg-gray-50 cursor-pointer" style={font} onClick={() => setShowShareDropdown(false)}>{t.photos_page.facebook}</button>
                       </div>
                     )}
                   </div>
@@ -617,7 +618,7 @@ export default function AllPhotosScreen() {
                   className="text-[13px] text-gray-500 hover:text-[#1A1A1A] cursor-pointer transition-colors"
                   style={font}
                 >
-                  전체
+                  {t.photos_page.all}
                 </button>
                 <span className="text-gray-300">/</span>
                 <span className="text-[13px] text-[#8B0000] font-medium" style={font}>{activeAlbum}</span>
@@ -688,7 +689,7 @@ export default function AllPhotosScreen() {
       {showAlbumModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-[99999]" onClick={() => setShowAlbumModal(false)}>
           <div className="bg-white rounded-[16px] p-8 w-[360px] flex flex-col" style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
-            <h3 className="text-[1.1rem] text-[#1A1A1A] font-bold mb-6" style={font}>앨범 이름을 입력해주세요</h3>
+            <h3 className="text-[1.1rem] text-[#1A1A1A] font-bold mb-6" style={font}>{t.photos_page.albumNamePrompt}</h3>
             <input
               type="text"
               value={albumNameInput}
@@ -713,7 +714,7 @@ export default function AllPhotosScreen() {
                 className={`flex-1 py-3 rounded-[10px] font-medium transition-colors cursor-pointer ${albumNameInput.trim() ? 'bg-[#8B0000] text-white hover:bg-[#6b0000]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                 style={font}
               >
-                만들기
+                {t.photos_page.create}
               </button>
             </div>
           </div>

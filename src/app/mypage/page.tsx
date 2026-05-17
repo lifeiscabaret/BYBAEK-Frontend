@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
 export default function MyPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [shopId, setShopId] = useState('');
   const [onedriveConnected, setOnedriveConnected] = useState(false);
@@ -34,7 +36,7 @@ export default function MyPage() {
       <Sidebar />
 
       <div className="flex-1 p-10 overflow-y-auto">
-        <h1 className="text-[1.6rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>마이페이지</h1>
+        <h1 className="text-[1.6rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>{t.mypage_page.title}</h1>
 
         {/* ① 프로필 */}
         <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-6">
@@ -44,14 +46,14 @@ export default function MyPage() {
             </div>
             <div>
               <p className="text-[1.1rem] text-[#1A1A1A] font-bold" style={font}>{shopId || '사용자'}</p>
-              <p className="text-[0.85rem] text-gray-500 mt-1" style={font}>계정 정보</p>
+              <p className="text-[0.85rem] text-gray-500 mt-1" style={font}>{t.mypage_page.accountInfo}</p>
             </div>
           </div>
         </div>
 
         {/* ② 연결 상태 */}
         <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-6">
-          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>연결 상태</p>
+          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>{t.mypage_page.connections}</p>
           <div className="flex flex-col gap-4">
             {/* Microsoft */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -64,7 +66,7 @@ export default function MyPage() {
                 </svg>
                 <span className="text-[0.9rem] text-[#1A1A1A]" style={font}>Microsoft</span>
               </div>
-              <span className="text-[0.8rem] text-green-600 font-medium" style={font}>✓ 연결됨</span>
+              <span className="text-[0.8rem] text-green-600 font-medium" style={font}>✓ {t.mypage_page.connected}</span>
             </div>
 
             {/* OneDrive */}
@@ -77,14 +79,14 @@ export default function MyPage() {
                 <span className="text-[0.9rem] text-[#1A1A1A]" style={font}>OneDrive</span>
               </div>
               {onedriveConnected ? (
-                <span className="text-[0.8rem] text-green-600 font-medium" style={font}>✓ 연결됨</span>
+                <span className="text-[0.8rem] text-green-600 font-medium" style={font}>✓ {t.mypage_page.connected}</span>
               ) : (
                 <button
                   onClick={() => router.push('/login')}
                   className="text-[0.8rem] text-[#8B0000] font-bold px-3 py-1.5 border border-[#8B0000] rounded-[8px] hover:bg-[rgba(139,0,0,0.06)] transition-colors cursor-pointer"
                   style={font}
                 >
-                  연결하기
+                  {t.mypage_page.connect}
                 </button>
               )}
             </div>
@@ -101,14 +103,14 @@ export default function MyPage() {
                 <span className="text-[0.9rem] text-[#1A1A1A]" style={font}>Instagram</span>
               </div>
               {instaConnected ? (
-                <span className="text-[0.8rem] text-green-600 font-medium" style={font}>✓ 연결됨</span>
+                <span className="text-[0.8rem] text-green-600 font-medium" style={font}>✓ {t.mypage_page.connected}</span>
               ) : (
                 <button
                   onClick={() => router.push('/dashboard/auto-upload')}
                   className="text-[0.8rem] text-[#8B0000] font-bold px-3 py-1.5 border border-[#8B0000] rounded-[8px] hover:bg-[rgba(139,0,0,0.06)] transition-colors cursor-pointer"
                   style={font}
                 >
-                  연결하기
+                  {t.mypage_page.connect}
                 </button>
               )}
             </div>
@@ -121,7 +123,7 @@ export default function MyPage() {
           className="text-[0.9rem] text-gray-500 hover:text-[#1A1A1A] transition-colors cursor-pointer"
           style={font}
         >
-          로그아웃
+          {t.mypage_page.logout}
         </button>
       </div>
     </div>

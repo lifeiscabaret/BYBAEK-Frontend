@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { CheckCircle, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const PHOTO_GRID = [
   '/demo/pass_01.jpg',
@@ -20,14 +21,9 @@ const PHOTO_GRID = [
   'https://picsum.photos/seed/barber8/300/300',
 ];
 
-const STYLE_OPTIONS = ['트렌디', '클래식', '프리미엄', '스트릿'];
-const PURPOSE_OPTIONS = ['홍보', '이벤트', '고객 리뷰', '신규 고객'];
-
-const LOADING_TEXTS = [
-  '게시물 작성 중...',
-  '해시태그 생성 중...',
-  '업로드용 미리보기 준비 중...',
-];
+const STYLE_KEYS = ['trendy', 'classic', 'premium', 'street'] as const;
+const PURPOSE_KEYS = ['promo', 'event', 'review', 'newCustomer'] as const;
+const LOADING_KEYS = ['loading1', 'loading2', 'loading3'] as const;
 
 const MOCK_CAPTION = '페이드컷 전문점이 있다고?! 바로 여기 US바버샵으로 오세요! 20년 경력의 용산미군부대출신 원장, 주니어부터 시니어까지 바로 예약 가능합니다 ✂️';
 const MOCK_HASHTAGS = ['#페이드컷', '#삼각지', '#US바버샵', '#유에스바버샵', '#남성커트전문'];
@@ -36,6 +32,7 @@ const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
 export default function AIUploadPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -62,7 +59,7 @@ export default function AIUploadPage() {
     let count = 0;
     loadingInterval.current = setInterval(() => {
       count++;
-      setLoadingTextIdx(count % LOADING_TEXTS.length);
+      setLoadingTextIdx(count % LOADING_KEYS.length);
     }, 1500);
     const timer = setTimeout(() => {
       if (loadingInterval.current) clearInterval(loadingInterval.current);
@@ -92,6 +89,10 @@ export default function AIUploadPage() {
 
   const progressPercent = (step / 5) * 100;
 
+  const STYLE_OPTIONS = [t.ai_upload.styles.trendy, t.ai_upload.styles.classic, t.ai_upload.styles.premium, t.ai_upload.styles.street];
+  const PURPOSE_OPTIONS = [t.ai_upload.purposes.promo, t.ai_upload.purposes.event, t.ai_upload.purposes.review, t.ai_upload.purposes.newCustomer];
+  const LOADING_TEXTS = [t.ai_upload.loading1, t.ai_upload.loading2, t.ai_upload.loading3];
+
   return (
     <div className="flex flex-row h-screen w-full bg-white overflow-hidden">
       <Sidebar />
@@ -100,7 +101,7 @@ export default function AIUploadPage() {
         {/* 진행률 바 */}
         <div className="shrink-0 px-10 pt-8 pb-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[0.8rem] text-[#8B0000] font-medium" style={font}>{step}/5 단계</span>
+            <span className="text-[0.8rem] text-[#8B0000] font-medium" style={font}>{step}/5</span>
           </div>
           <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div
@@ -115,7 +116,7 @@ export default function AIUploadPage() {
           {step === 1 && (
             <div>
               <h2 className="text-[1.4rem] text-[#1A1A1A] mb-6" style={{ ...font, fontWeight: 700 }}>
-                사진을 선택하세요
+                {t.ai_upload.selectPhotos}
               </h2>
               <div className="grid grid-cols-4 gap-4 mb-8">
                 {PHOTO_GRID.map((src, i) => {
@@ -138,7 +139,7 @@ export default function AIUploadPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[0.9rem] text-[#5a2a2a]" style={font}>
-                  {selectedPhotos.length}장 선택됨
+                  {selectedPhotos.length}{t.ai_upload.selectedCount}
                 </span>
                 <button
                   onClick={() => selectedPhotos.length > 0 && setStep(2)}
@@ -146,7 +147,7 @@ export default function AIUploadPage() {
                   className={`px-8 py-3 rounded-[10px] text-[0.95rem] font-medium transition-all cursor-pointer ${selectedPhotos.length > 0 ? 'bg-[#8B0000] text-white hover:bg-[#6b0000]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                   style={font}
                 >
-                  다음
+                  {t.ai_upload.next}
                 </button>
               </div>
             </div>
@@ -156,10 +157,10 @@ export default function AIUploadPage() {
           {step === 2 && (
             <div>
               <h2 className="text-[1.4rem] text-[#1A1A1A] mb-6" style={{ ...font, fontWeight: 700 }}>
-                스타일과 목적을 선택하세요
+                {t.ai_upload.styleAndPurpose}
               </h2>
 
-              <p className="text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>스타일</p>
+              <p className="text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.ai_upload.styleLabel}</p>
               <div className="grid grid-cols-4 gap-3 mb-8">
                 {STYLE_OPTIONS.map((s) => (
                   <button
@@ -173,7 +174,7 @@ export default function AIUploadPage() {
                 ))}
               </div>
 
-              <p className="text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>목적</p>
+              <p className="text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.ai_upload.purposeLabel}</p>
               <div className="grid grid-cols-4 gap-3 mb-8">
                 {PURPOSE_OPTIONS.map((p) => (
                   <button
@@ -187,11 +188,11 @@ export default function AIUploadPage() {
                 ))}
               </div>
 
-              <p className="text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>추가 요청 (선택)</p>
+              <p className="text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.ai_upload.additionalReq}</p>
               <textarea
                 value={extraRequest}
                 onChange={(e) => setExtraRequest(e.target.value)}
-                placeholder="예: 밝고 경쾌한 느낌으로"
+                placeholder={t.ai_upload.additionalPlaceholder}
                 className="w-full h-24 border border-gray-200 rounded-[12px] px-4 py-3 text-[0.9rem] text-[#1A1A1A] resize-none focus:outline-none focus:border-[#8B0000] transition-colors"
                 style={font}
               />
@@ -202,7 +203,7 @@ export default function AIUploadPage() {
                   className="px-8 py-3 rounded-[10px] border border-gray-200 text-[0.95rem] text-[#5a2a2a] font-medium hover:bg-gray-50 transition-colors cursor-pointer"
                   style={font}
                 >
-                  이전
+                  {t.ai_upload.prev}
                 </button>
                 <button
                   onClick={() => selectedStyle && selectedPurpose && setStep(3)}
@@ -210,7 +211,7 @@ export default function AIUploadPage() {
                   className={`px-8 py-3 rounded-[10px] text-[0.95rem] font-medium transition-all cursor-pointer ${selectedStyle && selectedPurpose ? 'bg-[#8B0000] text-white hover:bg-[#6b0000]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                   style={font}
                 >
-                  AI 게시물 생성하기
+                  {t.ai_upload.generateBtn}
                 </button>
               </div>
             </div>
@@ -221,7 +222,7 @@ export default function AIUploadPage() {
             <div className="flex-1 flex flex-col items-center justify-center h-full min-h-[500px]">
               <div className="w-12 h-12 border-3 border-[#8B0000] border-t-transparent rounded-full animate-spin mb-6" />
               <p className="text-[1.1rem] text-[#1A1A1A]" style={{ ...font, fontWeight: 400 }}>
-                {LOADING_TEXTS[loadingTextIdx]}
+                {LOADING_TEXTS[loadingTextIdx] || LOADING_TEXTS[0]}
               </p>
             </div>
           )}
@@ -230,7 +231,7 @@ export default function AIUploadPage() {
           {step === 4 && (
             <div className="flex flex-col items-center">
               <h2 className="text-[1.4rem] text-[#1A1A1A] mb-8 self-start" style={{ ...font, fontWeight: 700 }}>
-                미리보기
+                {t.ai_upload.preview}
               </h2>
 
               {/* 인스타그램 카드 */}
@@ -281,14 +282,14 @@ export default function AIUploadPage() {
                   className="px-8 py-3 rounded-[10px] border border-[#8B0000] text-[#8B0000] text-[0.95rem] font-medium hover:bg-[#fdf0f0] transition-colors cursor-pointer"
                   style={font}
                 >
-                  다시 생성
+                  {t.ai_upload.regenerate}
                 </button>
                 <button
                   onClick={() => setStep(5)}
                   className="px-8 py-3 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
                   style={font}
                 >
-                  게시물 업로드
+                  {t.ai_upload.uploadBtn}
                 </button>
               </div>
             </div>
@@ -299,7 +300,7 @@ export default function AIUploadPage() {
             <div className="flex-1 flex flex-col items-center justify-center h-full min-h-[500px]">
               <CheckCircle size={80} className="text-[#8B0000] mb-6" strokeWidth={1.5} />
               <p className="text-[1.4rem] text-[#1A1A1A] mb-10" style={{ ...font, fontWeight: 500 }}>
-                게시물이 업로드되었습니다!
+                {t.ai_upload.successMsg}
               </p>
               <div className="flex items-center gap-4">
                 <button
@@ -307,14 +308,14 @@ export default function AIUploadPage() {
                   className="px-8 py-3 rounded-[10px] border border-[#8B0000] text-[#8B0000] text-[0.95rem] font-medium hover:bg-[#fdf0f0] transition-colors cursor-pointer"
                   style={font}
                 >
-                  게시물 보러가기
+                  {t.ai_upload.viewPosts}
                 </button>
                 <button
                   onClick={resetAll}
                   className="px-8 py-3 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
                   style={font}
                 >
-                  새 게시물 만들기
+                  {t.ai_upload.newPost}
                 </button>
               </div>
             </div>
