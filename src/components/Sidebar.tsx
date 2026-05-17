@@ -2,23 +2,25 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-
-const MAIN_MENU = [
-  { name: '게시물', path: '/dashboard/posts' },
-  { name: '사진 보기', path: '/photos' },
-  { name: 'AI 업로드', path: '/dashboard/ai-upload' },
-  { name: '자동 업로드 설정', path: '/dashboard/auto-upload' },
-  { name: '분석', path: '/dashboard/analytics' },
-];
-
-const BOTTOM_MENU = [
-  { name: '마이페이지', path: '/mypage' },
-  { name: '설정', path: '/dashboard/settings' },
-];
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const Sidebar: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { t, lang } = useTranslation();
+
+  const MAIN_MENU = [
+    { name: t.sidebar_new.posts, path: '/dashboard/posts' },
+    { name: t.sidebar_new.photos, path: '/photos' },
+    { name: t.sidebar_new.aiUpload, path: '/dashboard/ai-upload' },
+    { name: t.sidebar_new.autoUpload, path: '/dashboard/auto-upload' },
+    { name: t.sidebar_new.analytics, path: '/dashboard/analytics' },
+  ];
+
+  const BOTTOM_MENU = [
+    { name: t.sidebar_new.mypage, path: '/mypage' },
+    { name: t.sidebar_new.settings, path: '/dashboard/settings' },
+  ];
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/');
 
@@ -137,7 +139,7 @@ export const Sidebar: React.FC = () => {
 
       {/* 하단 메뉴 */}
       <nav
-        className="flex flex-col pb-8 px-3"
+        className="flex flex-col pb-4 px-3"
         style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 16 }}
       >
         {BOTTOM_MENU.map(item => (
@@ -181,6 +183,25 @@ export const Sidebar: React.FC = () => {
           </button>
         ))}
       </nav>
+
+      {/* 언어 토글 */}
+      <div className="px-3 pb-6 flex justify-center">
+        <div className="flex items-center gap-1 text-[0.8rem] text-white" style={{ opacity: 0.7 }}>
+          <button
+            onClick={() => { localStorage.setItem('language', 'ko'); window.location.reload(); }}
+            className={`cursor-pointer ${lang === 'ko' ? 'font-bold opacity-100' : 'font-normal opacity-70'}`}
+          >
+            KR
+          </button>
+          <span>|</span>
+          <button
+            onClick={() => { localStorage.setItem('language', 'en'); window.location.reload(); }}
+            className={`cursor-pointer ${lang === 'en' ? 'font-bold opacity-100' : 'font-normal opacity-70'}`}
+          >
+            EN
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
