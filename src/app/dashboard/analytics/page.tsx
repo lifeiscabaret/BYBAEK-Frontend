@@ -6,6 +6,7 @@ import { Sidebar } from '@/components/Sidebar';
 import { TrendingUp, Clock, Hash } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useTranslation } from '@/hooks/useTranslation';
+import { getAgentMetrics } from '@/api/agent';
 
 const MOCK_DATA = {
   kpi: {
@@ -72,6 +73,8 @@ export default function AnalyticsPage() {
   const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [shopId, setShopId] = useState<string | null>(null);
+  const [metricsData, setMetricsData] = useState<{ total_posts: number; avg_caption_score: number; avg_retry_count: number; retry_rate: string; model_distribution: { mini: number; full: number } } | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
@@ -83,9 +86,30 @@ export default function AnalyticsPage() {
     }
   }, [router]);
 
+  useEffect(() => {
+    if (!shopId) return;
+    const fetchMetrics = async () => {
+      setLoading(true);
+      try {
+        const data = await getAgentMetrics(shopId);
+        if (data && data.total_posts !== undefined) {
+          setMetricsData(data);
+        }
+      } catch {}
+      setLoading(false);
+    };
+    fetchMetrics();
+  }, [shopId]);
+
   if (!isMounted) return null;
 
-  const { kpi, chartData, popularPosts, insights } = MOCK_DATA;
+  const m = metricsData;
+  const kpiTotalPosts = m ? m.total_posts : MOCK_DATA.kpi.totalLikes;
+  const kpiQualityScore = m ? (m.avg_caption_score * 100).toFixed(1) : MOCK_DATA.kpi.totalComments.toString();
+  const kpiRetryRate = m ? m.retry_rate : `${MOCK_DATA.kpi.reach}`;
+  const kpiModel = m ? (m.model_distribution.mini > m.model_distribution.full ? 'MINI' : 'FULL') : `${MOCK_DATA.kpi.popularPosts}`;
+  const kpiChange = m ? m.avg_caption_score : 0.85;
+  const { chartData, popularPosts, insights } = MOCK_DATA;
 
   const iconMap = {
     TrendingUp: <TrendingUp size={18} className="text-white/80" />,
@@ -106,12 +130,18 @@ export default function AnalyticsPage() {
           {t.analytics_page.title}
         </h1>
 
+        {loading && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="w-10 h-10 border-3 border-[#8B0000] border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
+        {!loading && (<>
         {/* ① KPI 카드 */}
         <div className="grid grid-cols-4 gap-5 mb-10">
-          <KpiCard label={t.analytics_page.totalLikes} value={kpi.totalLikes.toLocaleString()} change={kpi.likesChange} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
-          <KpiCard label={t.analytics_page.totalComments} value={kpi.totalComments.toLocaleString()} change={kpi.commentsChange} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
-          <KpiCard label={t.analytics_page.reach} value={kpi.reach.toLocaleString()} change={kpi.reachChange} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
-          <KpiCard label={t.analytics_page.popularPosts} value={`${kpi.popularPosts}`} change={kpi.popularChange} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
+          <KpiCard label={t.analytics_page.totalLikes} value={String(kpiTotalPosts)} change={kpiChange >= 0.8 ? 1 : -1} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
+          <KpiCard label={t.analytics_page.totalComments} value={kpiQualityScore} change={kpiChange >= 0.8 ? 1 : -1} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
+          <KpiCard label={t.analytics_page.reach} value={kpiRetryRate} change={kpiChange >= 0.8 ? 1 : -1} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
+          <KpiCard label={t.analytics_page.popularPosts} value={kpiModel} change={kpiChange >= 0.8 ? 1 : -1} goodText={t.analytics_page.good} growingText={t.analytics_page.growing} />
         </div>
 
         {/* ② 성과 추이 그래프 */}
@@ -200,6 +230,7 @@ export default function AnalyticsPage() {
             </button>
           </div>
         </div>
+        </>)}
       </div>
     </div>
   );
