@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
 export default function SettingsPage() {
+  const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
 
   const [uploadTime, setUploadTime] = useState('19:00');
@@ -38,13 +40,13 @@ export default function SettingsPage() {
       <Sidebar />
 
       <div className="flex-1 p-10 overflow-y-auto">
-        <h1 className="text-[1.6rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>설정</h1>
+        <h1 className="text-[1.6rem] text-[#1A1A1A] mb-8" style={{ ...font, fontWeight: 700 }}>{t.settings_page.title}</h1>
 
         {/* ① 업로드 스케줄 */}
         <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-6">
-          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>업로드 스케줄</p>
+          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>{t.settings_page.scheduleTitle}</p>
 
-          <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>업로드 시간</label>
+          <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.settings_page.uploadTime}</label>
           <select
             value={uploadTime}
             onChange={e => setUploadTime(e.target.value)}
@@ -56,11 +58,11 @@ export default function SettingsPage() {
               return <option key={t} value={t}>{t}</option>;
             })}
           </select>
-          <p className="text-[0.75rem] text-gray-400 mb-6" style={font}>💡 저녁 7~9시 업로드 성과가 높습니다</p>
+          <p className="text-[0.75rem] text-gray-400 mb-6" style={font}>{t.settings_page.timeTip}</p>
 
-          <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>업로드 빈도</label>
+          <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.settings_page.frequency}</label>
           <div className="flex gap-3">
-            {['매일', '주 3회', '주 1회'].map(opt => (
+            {[t.settings_page.daily, t.settings_page.threePerWeek, t.settings_page.weekly].map(opt => (
               <button
                 key={opt}
                 onClick={() => setUploadFrequency(opt)}
@@ -75,9 +77,9 @@ export default function SettingsPage() {
 
         {/* ② 게시물 설정 */}
         <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-6">
-          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>게시물 설정</p>
+          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>{t.settings_page.postSettings}</p>
 
-          <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>게시물당 사진 수: {photoRange}장</label>
+          <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.settings_page.photoCount}: {photoRange}</label>
           <input
             type="range"
             min={1}
@@ -90,9 +92,9 @@ export default function SettingsPage() {
             <span>1장</span><span>20장</span>
           </div>
 
-          <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>이모지 사용</label>
+          <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.settings_page.emojiUsage}</label>
           <div className="flex gap-3">
-            {['자주 씀', '가끔 씀', '안 씀'].map(opt => (
+            {[t.settings_page.often, t.settings_page.sometimes, t.settings_page.never].map(opt => (
               <button
                 key={opt}
                 onClick={() => setEmojiUsage(opt)}
@@ -107,7 +109,7 @@ export default function SettingsPage() {
 
         {/* ③ 언어 설정 */}
         <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-8">
-          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>언어 설정</p>
+          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>{t.settings_page.language}</p>
           <div className="flex gap-3">
             <button
               onClick={() => setLanguage('ko')}
@@ -132,7 +134,7 @@ export default function SettingsPage() {
           className="px-10 py-3.5 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
           style={font}
         >
-          설정 저장
+          {t.settings_page.saveBtn}
         </button>
       </div>
     </div>
