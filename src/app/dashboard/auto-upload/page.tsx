@@ -104,9 +104,10 @@ export default function AutoUploadPage() {
       const fetchExisting = async () => {
         try {
           const res = await apiClient.get(`/onboarding/${id}`);
-          if (res.data) {
-            if (res.data.shop_intro) {
-              const intro = res.data.shop_intro as string;
+          const shop = res.data?.shop_info || {};
+          if (shop) {
+            if (shop.shop_intro) {
+              const intro = shop.shop_intro as string;
               const nameMatch = intro.match(/^샵명: (.+)\n/);
               if (nameMatch) {
                 setShopName(nameMatch[1]);
@@ -115,17 +116,24 @@ export default function AutoUploadPage() {
                 setShopDescription(intro);
               }
             }
-            if (res.data.preferred_styles) setSelectedServices(res.data.preferred_styles);
-            if (res.data.brand_tone && Array.isArray(res.data.brand_tone)) {
-              setReferenceStyle(res.data.brand_tone[0] || null);
+            if (shop.preferred_styles) setSelectedServices(shop.preferred_styles);
+            if (shop.brand_tone && Array.isArray(shop.brand_tone)) {
+              setReferenceStyle(shop.brand_tone[0] || null);
             }
-            if (res.data.forbidden_words) setForbiddenWords(res.data.forbidden_words);
-            if (res.data.hashtag_style) setHashtags(res.data.hashtag_style);
-            if (res.data.cta) setCta(res.data.cta);
-            if (res.data.insta_upload_time) setUploadTime(res.data.insta_upload_time);
-            if (res.data.insta_upload_time_slot) setUploadFrequency(res.data.insta_upload_time_slot);
+            if (shop.forbidden_words) setForbiddenWords(shop.forbidden_words);
+            if (shop.hashtag_style) setHashtags(shop.hashtag_style);
+            if (shop.cta) setCta(shop.cta);
+            if (shop.insta_upload_time) setUploadTime(shop.insta_upload_time);
+            if (shop.insta_upload_time_slot) {
+              const slotMap: Record<string, string> = {
+                '매일': t.auto_upload.daily,
+                '주 3회': t.auto_upload.threePerWeek,
+                '주 1회': t.auto_upload.weekly,
+              };
+              setUploadFrequency(slotMap[shop.insta_upload_time_slot] || shop.insta_upload_time_slot);
+            }
           }
-        } catch {}
+        } catch { }
       };
       fetchExisting();
     }
@@ -149,7 +157,7 @@ export default function AutoUploadPage() {
   const handleServiceKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && serviceInput.trim()) {
       e.preventDefault();
-      const tag = serviceInput.trim().replace(/,$/,'');
+      const tag = serviceInput.trim().replace(/,$/, '');
       if (tag && !customServices.includes(tag) && !PRESET_SERVICES.includes(tag)) {
         setCustomServices([...customServices, tag]);
       }
@@ -192,7 +200,12 @@ export default function AutoUploadPage() {
       cta,
       hashtag_style: hashtags,
       insta_upload_time: uploadTime,
-      insta_upload_time_slot: uploadFrequency,
+      insta_upload_time_slot: (
+        uploadFrequency === 'Daily' ? '매일' :
+          uploadFrequency === '3x / week' ? '주 3회' :
+            uploadFrequency === 'Weekly' ? '주 1회' :
+              uploadFrequency
+      ),
       shop_intro: `${shopName ? `샵명: ${shopName}\n` : ''}${shopDescription}`.trim(),
       preferred_styles: [...selectedServices, ...customServices],
       language: localStorage.getItem('language') || 'ko',
@@ -238,9 +251,9 @@ export default function AutoUploadPage() {
             <div className="flex flex-col items-center max-w-[400px]">
               <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6" style={{ background: 'linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #FCAF45 100%)' }}>
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <rect x="2" y="2" width="20" height="20" rx="5" stroke="white" strokeWidth="1.5"/>
-                  <circle cx="12" cy="12" r="5" stroke="white" strokeWidth="1.5"/>
-                  <circle cx="17.5" cy="6.5" r="1.5" fill="white"/>
+                  <rect x="2" y="2" width="20" height="20" rx="5" stroke="white" strokeWidth="1.5" />
+                  <circle cx="12" cy="12" r="5" stroke="white" strokeWidth="1.5" />
+                  <circle cx="17.5" cy="6.5" r="1.5" fill="white" />
                 </svg>
               </div>
               <p className="text-[1.1rem] text-[#1A1A1A] text-center whitespace-pre-line leading-relaxed mb-8" style={{ ...font, fontWeight: 400 }}>
