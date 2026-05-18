@@ -118,7 +118,16 @@ export default function AutoUploadPage() {
             }
             if (shop.preferred_styles) setSelectedServices(shop.preferred_styles);
             if (shop.brand_tone && Array.isArray(shop.brand_tone)) {
-              setReferenceStyle(shop.brand_tone[0] || null);
+              const styleLabels = STYLE_OPTIONS.map(s => s.label);
+              const emojiOptions = ['자주 씀', '가끔 씀', '안 씀'];
+              const foundStyle = shop.brand_tone.find((v: string) => styleLabels.includes(v));
+              const foundEmoji = shop.brand_tone.find((v: string) => emojiOptions.includes(v));
+              const foundTargets = shop.brand_tone.filter((v: string) =>
+                !styleLabels.includes(v) && !emojiOptions.includes(v)
+              );
+              if (foundStyle) setReferenceStyle(foundStyle);
+              if (foundEmoji) setEmojiUsage(foundEmoji);
+              if (foundTargets.length > 0) setTargetCustomers(foundTargets);
             }
             if (shop.forbidden_words) setForbiddenWords(shop.forbidden_words);
             if (shop.hashtag_style) setHashtags(shop.hashtag_style);

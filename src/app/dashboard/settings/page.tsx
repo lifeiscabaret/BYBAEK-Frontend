@@ -12,9 +12,9 @@ export default function SettingsPage() {
   const [isMounted, setIsMounted] = useState(false);
 
   const [uploadTime, setUploadTime] = useState('19:00');
-  const [uploadFrequency, setUploadFrequency] = useState<string | null>('매일');
+  const [uploadFrequency, setUploadFrequency] = useState<string | null>(null);
   const [photoRange, setPhotoRange] = useState(3);
-  const [emojiUsage, setEmojiUsage] = useState<string | null>('가끔 씀');
+  const [emojiUsage, setEmojiUsage] = useState<string | null>(null);
   const [language, setLanguage] = useState<'ko' | 'en'>('ko');
   const [shopId, setShopId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
@@ -32,9 +32,16 @@ export default function SettingsPage() {
           const res = await apiClient.get(`/onboarding/${id}`);
           const shop = res.data?.shop_info || {};
           if (shop.insta_upload_time) setUploadTime(shop.insta_upload_time);
-          if (shop.insta_upload_time_slot) setUploadFrequency(shop.insta_upload_time_slot);
+          if (shop.insta_upload_time_slot) {
+            const slotMap: Record<string, string> = {
+              '매일': t.settings_page.daily,
+              '주 3회': t.settings_page.threePerWeek,
+              '주 1회': t.settings_page.weekly,
+            };
+            setUploadFrequency(slotMap[shop.insta_upload_time_slot] || shop.insta_upload_time_slot);
+          }
           if (shop.language === 'ko' || shop.language === 'en') setLanguage(shop.language);
-        } catch {}
+        } catch { }
       };
       fetchSettings();
     }
@@ -47,7 +54,12 @@ export default function SettingsPage() {
       if (shopId) {
         await apiClient.post(`/onboarding/${shopId}`, {
           insta_upload_time: uploadTime,
-          insta_upload_time_slot: uploadFrequency,
+          insta_upload_time_slot: (
+            uploadFrequency === t.settings_page.daily ? '매일' :
+              uploadFrequency === t.settings_page.threePerWeek ? '주 3회' :
+                uploadFrequency === t.settings_page.weekly ? '주 1회' :
+                  uploadFrequency
+          ),
           language,
           insta_auto_upload_yn: 'Y',
         });
