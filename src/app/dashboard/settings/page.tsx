@@ -41,6 +41,20 @@ export default function SettingsPage() {
             setUploadFrequency(slotMap[shop.insta_upload_time_slot] || shop.insta_upload_time_slot);
           }
           if (shop.language === 'ko' || shop.language === 'en') setLanguage(shop.language);
+          // ↓ 여기 두 줄 추가
+          if (shop.photo_range_max) setPhotoRange(shop.photo_range_max);
+          if (shop.brand_tone && Array.isArray(shop.brand_tone)) {
+            const emojiOptions = ['자주 씀', '가끔 씀', '안 씀'];
+            const foundEmoji = shop.brand_tone.find((v: string) => emojiOptions.includes(v));
+            if (foundEmoji) {
+              const emojiMap: Record<string, string> = {
+                '자주 씀': t.settings_page.often,
+                '가끔 씀': t.settings_page.sometimes,
+                '안 씀': t.settings_page.never,
+              };
+              setEmojiUsage(emojiMap[foundEmoji] || foundEmoji);
+            }
+          }
         } catch { }
       };
       fetchSettings();
@@ -62,6 +76,13 @@ export default function SettingsPage() {
           ),
           language,
           insta_auto_upload_yn: 'Y',
+          photo_range_max: photoRange,
+          brand_tone_emoji: (
+            emojiUsage === t.settings_page.often ? '자주 씀' :
+              emojiUsage === t.settings_page.sometimes ? '가끔 씀' :
+                emojiUsage === t.settings_page.never ? '안 씀' :
+                  emojiUsage
+          ),
         });
       }
       setSaveStatus('success');
