@@ -215,11 +215,15 @@ export default function AutoUploadPage() {
             uploadFrequency === 'Weekly' ? '주 1회' :
               uploadFrequency
       ),
-      shop_intro: `${shopName ? `샵명: ${shopName}\n` : ''}${shopDescription}`.trim(),
+      shop_intro: [
+        shopName ? `샵명: ${shopName}` : '',
+        shopDescription,
+        targetCustomText ? `타겟: ${targetCustomText}` : '',
+      ].filter(Boolean).join('\n').trim(),
       preferred_styles: [...selectedServices, ...customServices],
       language: localStorage.getItem('language') || 'ko',
       insta_auto_upload_yn: 'Y',
-      insta_review_bfr_upload_yn: 'Y',
+      insta_review_bfr_upload_yn: 'N',
     };
     try {
       if (shopId) {
