@@ -165,7 +165,7 @@ export default function AutoUploadPage() {
   };
 
   const handleServiceKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.nativeEvent.isComposing) return;
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && serviceInput.trim()) {
       e.preventDefault();
       const tag = serviceInput.trim().replace(/,$/, '');
@@ -181,7 +181,7 @@ export default function AutoUploadPage() {
   };
 
   const handleHashtagKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.nativeEvent.isComposing) return;
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && hashtagInput.trim()) {
       e.preventDefault();
       const tag = hashtagInput.trim().startsWith('#') ? hashtagInput.trim() : `#${hashtagInput.trim()}`;
@@ -191,7 +191,7 @@ export default function AutoUploadPage() {
   };
 
   const handleForbiddenKey = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.nativeEvent.isComposing) return;
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && forbiddenInput.trim()) {
       e.preventDefault();
       const tag = forbiddenInput.trim();
