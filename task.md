@@ -226,7 +226,8 @@
 | 법적 고지 문서 | 3 | 0 | 100% |
 | QR 코드 개선 | 2 | 0 | 100% |
 | 프로젝트 문서 정비 | 3 | 0 | 100% |
-| **전체** | **112** | **0** | **100%** |
+| 자동 업로드 온보딩 버그픽스 | 3 | 0 | 100% |
+| **전체** | **115** | **0** | **100%** |
 
 > 현재까지 커밋된 모든 기능이 완료 상태입니다. 향후 새로운 작업이 추가되면 이 문서에 기록합니다.
 
@@ -273,6 +274,16 @@
 |------|------|-----------|
 | 기존 단일 QR → Android/iOS 2개 QR로 교체 | ✅ 완료 | `login/page.tsx` |
 | 각 QR 하단에 기기 레이블(Android / iOS) 표시 | ✅ 완료 | `login/page.tsx` |
+
+---
+
+## 22. 자동 업로드 온보딩 버그픽스 (2026-06-05)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| 한글 IME 중복 입력 방지 (`isComposing` 가드, 해시태그/금칙어/서비스 입력) | ✅ 완료 | `app/dashboard/auto-upload/page.tsx` |
+| `fetchExisting`에 `photo_range_max` → `photoRange` 불러오기 추가 | ✅ 완료 | `app/dashboard/auto-upload/page.tsx` |
+| `handleComplete` payload에 `photo_range_max` 저장 추가 | ✅ 완료 | `app/dashboard/auto-upload/page.tsx` |
 
 ---
 

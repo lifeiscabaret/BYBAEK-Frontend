@@ -141,6 +141,7 @@ export default function AutoUploadPage() {
               };
               setUploadFrequency(slotMap[shop.insta_upload_time_slot] || shop.insta_upload_time_slot);
             }
+            if (shop.photo_range_max != null) setPhotoRange(Number(shop.photo_range_max));
           }
         } catch { }
       };
@@ -164,6 +165,7 @@ export default function AutoUploadPage() {
   };
 
   const handleServiceKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === 'Enter' && serviceInput.trim()) {
       e.preventDefault();
       const tag = serviceInput.trim().replace(/,$/, '');
@@ -179,6 +181,7 @@ export default function AutoUploadPage() {
   };
 
   const handleHashtagKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === 'Enter' && hashtagInput.trim()) {
       e.preventDefault();
       const tag = hashtagInput.trim().startsWith('#') ? hashtagInput.trim() : `#${hashtagInput.trim()}`;
@@ -188,6 +191,7 @@ export default function AutoUploadPage() {
   };
 
   const handleForbiddenKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === 'Enter' && forbiddenInput.trim()) {
       e.preventDefault();
       const tag = forbiddenInput.trim();
@@ -221,6 +225,7 @@ export default function AutoUploadPage() {
         targetCustomText ? `타겟: ${targetCustomText}` : '',
       ].filter(Boolean).join('\n').trim(),
       preferred_styles: [...selectedServices, ...customServices],
+      photo_range_max: photoRange,
       language: localStorage.getItem('language') || 'ko',
       insta_auto_upload_yn: 'Y',
       insta_review_bfr_upload_yn: 'N',
