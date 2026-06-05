@@ -225,9 +225,6 @@ export default function LoginScreen() {
                 <div className="flex flex-col items-center py-4">
                   <div className="w-10 h-10 border-3 border-[#8B0000] border-t-transparent rounded-full animate-spin mb-4" />
                   <p className="text-[0.9rem] text-[#5a2a2a] text-center" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 400 }}>{t.login.in_progress}</p>
-                  <button onClick={() => { localStorage.setItem('shop_id', '3sesac18'); setMsLoginStatus('COMPLETED'); }} className="mt-6 text-xs text-gray-400 underline cursor-pointer">
-                    {t.login.test_trigger}
-                  </button>
                 </div>
               )}
               {msLoginStatus === 'COMPLETED' && (
@@ -292,7 +289,6 @@ export default function LoginScreen() {
                 <div className="flex flex-col items-center py-4">
                   <div className="w-10 h-10 border-3 border-[#8B0000] border-t-transparent rounded-full animate-spin mb-4" />
                   <p className="text-[0.9rem] text-[#5a2a2a] text-center" style={{ fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif", fontWeight: 400 }}>{t.login.insta_in_progress}</p>
-                  <button onClick={() => setInstaLoginStatus('COMPLETED')} className="mt-6 text-xs text-gray-400 underline cursor-pointer">{t.login.test_trigger}</button>
                 </div>
               )}
               {instaLoginStatus === 'COMPLETED' && (
