@@ -145,8 +145,10 @@ export function PhotoSyncProgress() {
       return;
     }
     try {
-      await apiClient.post(`/onboarding/favorites/${shopId}`, {
-        favorite_photos: selectedFavorites,
+      await apiClient.post(`/onboarding/reference`, {
+        shop_id: shopId,
+        photo_ids: selectedFavorites,
+        label: 'good',
       });
       setAlertMessage(t.photo_sync.alert_setup_complete);
       setShowFavoriteModal(false);
