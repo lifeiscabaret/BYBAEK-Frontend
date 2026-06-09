@@ -97,7 +97,7 @@ export default function AIUploadPage() {
           return `mock_${i}`;
         });
         const [result] = await Promise.all([
-          runAgent({ shop_id: shopId || '', trigger: 'manual', photo_ids: photoIds }),
+          runAgent({ shop_id: shopId || '', trigger: 'manual', photo_ids: photoIds, message: extraRequest }),
           new Promise(resolve => setTimeout(resolve, 3000)),
         ]);
         setGeneratedCaption(result.caption || MOCK_CAPTION);

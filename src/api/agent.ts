@@ -8,6 +8,7 @@ export interface AgentRunRequest {
     shop_id: string;
     trigger: "auto" | "manual";
     photo_ids?: string[] | null;
+    message?: string;
 }
 
 export interface AgentReviewRequest {
