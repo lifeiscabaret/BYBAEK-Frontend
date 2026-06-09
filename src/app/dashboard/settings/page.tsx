@@ -7,12 +7,19 @@ import apiClient from '@/api/index';
 
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
+// 요일 라벨 (0=월 ... 6=일)
+const WEEKDAYS: Record<string, string[]> = {
+  ko: ['월', '화', '수', '목', '금', '토', '일'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+};
+
 export default function SettingsPage() {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
 
   const [uploadTime, setUploadTime] = useState('19:00');
   const [uploadFrequency, setUploadFrequency] = useState<string | null>(null);
+  const [uploadDays, setUploadDays] = useState<number[]>([]);
   const [photoRange, setPhotoRange] = useState(3);
   const [emojiUsage, setEmojiUsage] = useState<string | null>(null);
   const [language, setLanguage] = useState<'ko' | 'en'>('ko');
@@ -40,6 +47,7 @@ export default function SettingsPage() {
             };
             setUploadFrequency(slotMap[shop.insta_upload_time_slot] || shop.insta_upload_time_slot);
           }
+          if (shop.insta_upload_days) setUploadDays(shop.insta_upload_days);
           if (shop.language === 'ko' || shop.language === 'en') setLanguage(shop.language);
           // ↓ 여기 두 줄 추가
           if (shop.photo_range_max) setPhotoRange(shop.photo_range_max);
@@ -61,6 +69,16 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const requiredDays = uploadFrequency === t.settings_page.threePerWeek ? 3 : uploadFrequency === t.settings_page.weekly ? 1 : 0;
+
+  const toggleUploadDay = (day: number) => {
+    setUploadDays(prev => {
+      if (prev.includes(day)) return prev.filter(d => d !== day);
+      if (requiredDays > 0 && prev.length >= requiredDays) return prev; // 정확히 N개 초과 선택 방지
+      return [...prev, day].sort((a, b) => a - b);
+    });
+  };
+
   const handleSave = async () => {
     localStorage.setItem('language', language);
     setSaveStatus('saving');
@@ -76,6 +94,7 @@ export default function SettingsPage() {
           ),
           language,
           insta_auto_upload_yn: 'Y',
+          insta_upload_days: uploadDays,
           photo_range_max: photoRange,
           brand_tone_emoji: (
             emojiUsage === t.settings_page.often ? '자주 씀' :
@@ -125,7 +144,7 @@ export default function SettingsPage() {
             {[t.settings_page.daily, t.settings_page.threePerWeek, t.settings_page.weekly].map(opt => (
               <button
                 key={opt}
-                onClick={() => setUploadFrequency(opt)}
+                onClick={() => { setUploadFrequency(opt); setUploadDays([]); }}
                 className={`flex-1 max-w-[160px] py-3.5 rounded-[10px] border-2 text-[0.9rem] font-medium transition-all cursor-pointer ${uploadFrequency === opt ? 'border-[#8B0000] bg-[rgba(139,0,0,0.08)] text-[#8B0000]' : 'border-gray-200 text-[#1A1A1A] hover:border-gray-300'}`}
                 style={font}
               >
@@ -133,6 +152,31 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+
+          {requiredDays > 0 && (
+            <div className="mt-6">
+              <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>
+                {t.settings_page.uploadDays} ({uploadDays.length}/{requiredDays})
+              </label>
+              <div className="flex gap-2 max-w-[400px]">
+                {(WEEKDAYS[lang] || WEEKDAYS.ko).map((label, idx) => {
+                  const isSelected = uploadDays.includes(idx);
+                  const isFull = !isSelected && uploadDays.length >= requiredDays;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => toggleUploadDay(idx)}
+                      disabled={isFull}
+                      className={`flex-1 py-3 rounded-[10px] border-2 text-[0.9rem] font-medium transition-all ${isSelected ? 'border-[#8B0000] bg-[rgba(139,0,0,0.08)] text-[#8B0000] cursor-pointer' : isFull ? 'border-gray-100 text-gray-300 cursor-not-allowed' : 'border-gray-200 text-[#1A1A1A] hover:border-gray-300 cursor-pointer'}`}
+                      style={font}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ② 게시물 설정 */}

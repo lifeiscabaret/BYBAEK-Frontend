@@ -336,6 +336,7 @@ export const translations = {
       daily: "매일",
       threePerWeek: "주 3회",
       weekly: "주 1회",
+      uploadDays: "업로드 요일",
       photoCount: "게시물당 사진 수",
     },
     analytics_page: {
@@ -373,6 +374,7 @@ export const translations = {
       daily: "매일",
       threePerWeek: "주 3회",
       weekly: "주 1회",
+      uploadDays: "업로드 요일",
       postSettings: "게시물 설정",
       photoCount: "게시물당 사진 수",
       emojiUsage: "이모지 사용",
@@ -753,6 +755,7 @@ export const translations = {
       daily: "Daily",
       threePerWeek: "3x / week",
       weekly: "Weekly",
+      uploadDays: "Upload Days",
       photoCount: "Photos per Post",
     },
     analytics_page: {
@@ -790,6 +793,7 @@ export const translations = {
       daily: "Daily",
       threePerWeek: "3x / week",
       weekly: "Weekly",
+      uploadDays: "Upload Days",
       postSettings: "Post Settings",
       photoCount: "Photos per Post",
       emojiUsage: "Emoji Usage",
