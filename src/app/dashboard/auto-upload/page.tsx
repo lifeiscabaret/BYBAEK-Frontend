@@ -53,9 +53,15 @@ const CTA_SUGGESTIONS = [
   '프로필 링크로 예약 가능해요',
 ];
 
+// 요일 라벨 (0=월 ... 6=일)
+const WEEKDAYS: Record<string, string[]> = {
+  ko: ['월', '화', '수', '목', '금', '토', '일'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+};
+
 export default function AutoUploadPage() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [isInstaConnected, setIsInstaConnected] = useState(false);
   const [step, setStep] = useState(1);
@@ -86,6 +92,7 @@ export default function AutoUploadPage() {
   // Step 5
   const [uploadTime, setUploadTime] = useState('19:00');
   const [uploadFrequency, setUploadFrequency] = useState<string | null>(null);
+  const [uploadDays, setUploadDays] = useState<number[]>([]);
   const [photoRange, setPhotoRange] = useState(5);
 
   useEffect(() => {
@@ -141,6 +148,7 @@ export default function AutoUploadPage() {
               };
               setUploadFrequency(slotMap[shop.insta_upload_time_slot] || shop.insta_upload_time_slot);
             }
+            if (shop.insta_upload_days) setUploadDays(shop.insta_upload_days);
             if (shop.photo_range_max != null) setPhotoRange(Number(shop.photo_range_max));
           }
         } catch { }
@@ -206,6 +214,16 @@ export default function AutoUploadPage() {
     );
   };
 
+  const requiredDays = uploadFrequency === t.auto_upload.threePerWeek ? 3 : uploadFrequency === t.auto_upload.weekly ? 1 : 0;
+
+  const toggleUploadDay = (day: number) => {
+    setUploadDays(prev => {
+      if (prev.includes(day)) return prev.filter(d => d !== day);
+      if (requiredDays > 0 && prev.length >= requiredDays) return prev; // 정확히 N개 초과 선택 방지
+      return [...prev, day].sort((a, b) => a - b);
+    });
+  };
+
   const handleComplete = async () => {
     const payload = {
       brand_tone: [referenceStyle, ...(targetCustomers.length > 0 ? targetCustomers : []), emojiUsage].filter(Boolean),
@@ -225,6 +243,7 @@ export default function AutoUploadPage() {
         targetCustomText ? `타겟: ${targetCustomText}` : '',
       ].filter(Boolean).join('\n').trim(),
       preferred_styles: [...selectedServices, ...customServices],
+      insta_upload_days: uploadDays,
       photo_range_max: photoRange,
       language: localStorage.getItem('language') || 'ko',
       insta_auto_upload_yn: 'Y',
@@ -249,7 +268,10 @@ export default function AutoUploadPage() {
       case 2: return targetCustomers.length > 0;
       case 3: return referenceStyle !== null;
       case 4: return cta.trim().length > 0 && emojiUsage !== null;
-      case 5: return uploadFrequency !== null;
+      case 5:
+        if (uploadFrequency === null) return false;
+        if (requiredDays > 0) return uploadDays.length === requiredDays;
+        return true;
       default: return false;
     }
   };
@@ -561,7 +583,7 @@ export default function AutoUploadPage() {
                     {[t.auto_upload.daily, t.auto_upload.threePerWeek, t.auto_upload.weekly].map(opt => (
                       <button
                         key={opt}
-                        onClick={() => setUploadFrequency(opt)}
+                        onClick={() => { setUploadFrequency(opt); setUploadDays([]); }}
                         className={`flex-1 py-4 rounded-[12px] border-2 text-[0.95rem] font-medium transition-all cursor-pointer ${uploadFrequency === opt ? 'border-[#8B0000] bg-[rgba(139,0,0,0.08)] text-[#8B0000]' : 'border-gray-200 text-[#1A1A1A] hover:border-gray-300'}`}
                         style={font}
                       >
@@ -569,6 +591,31 @@ export default function AutoUploadPage() {
                       </button>
                     ))}
                   </div>
+
+                  {requiredDays > 0 && (
+                    <div className="mb-8">
+                      <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>
+                        {t.auto_upload.uploadDays} ({uploadDays.length}/{requiredDays})
+                      </label>
+                      <div className="flex gap-2">
+                        {(WEEKDAYS[lang] || WEEKDAYS.ko).map((label, idx) => {
+                          const isSelected = uploadDays.includes(idx);
+                          const isFull = !isSelected && uploadDays.length >= requiredDays;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => toggleUploadDay(idx)}
+                              disabled={isFull}
+                              className={`flex-1 py-3 rounded-[12px] border-2 text-[0.9rem] font-medium transition-all ${isSelected ? 'border-[#8B0000] bg-[rgba(139,0,0,0.08)] text-[#8B0000] cursor-pointer' : isFull ? 'border-gray-100 text-gray-300 cursor-not-allowed' : 'border-gray-200 text-[#1A1A1A] hover:border-gray-300 cursor-pointer'}`}
+                              style={font}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.photoCount}: {photoRange}</label>
                   <input
