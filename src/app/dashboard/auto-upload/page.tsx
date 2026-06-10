@@ -73,6 +73,7 @@ export default function AutoUploadPage() {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [customServices, setCustomServices] = useState<string[]>([]);
   const [serviceInput, setServiceInput] = useState('');
+  const [shakingTag, setShakingTag] = useState<string | null>(null);
 
   // Step 2
   const [targetCustomers, setTargetCustomers] = useState<string[]>([]);
@@ -124,8 +125,9 @@ export default function AutoUploadPage() {
               }
             }
             if (shop.preferred_styles) {
-              const presets = shop.preferred_styles.filter((v: string) => PRESET_SERVICES.includes(v));
-              const customs = shop.preferred_styles.filter((v: string) => !PRESET_SERVICES.includes(v));
+              const unique = [...new Set(shop.preferred_styles as string[])];
+              const presets = unique.filter((v) => PRESET_SERVICES.includes(v));
+              const customs = unique.filter((v) => !PRESET_SERVICES.includes(v));
               setSelectedServices(presets);
               setCustomServices(customs);
             }
@@ -177,15 +179,28 @@ export default function AutoUploadPage() {
     window.open(instaUrl, 'Insta_Login_Popup', 'width=500,height=600');
   };
 
+  const triggerShake = (tag: string) => {
+    setShakingTag(tag);
+    setTimeout(() => setShakingTag(null), 500);
+  };
+
+  const addCustomService = (raw: string) => {
+    const tag = raw.trim().replace(/,$/, '');
+    if (!tag) return;
+    // 프리셋/커스텀 어느 쪽이든 이미 존재하면 추가하지 않고 해당 태그 흔들기
+    if (PRESET_SERVICES.includes(tag) || customServices.includes(tag)) {
+      triggerShake(tag);
+      return;
+    }
+    setCustomServices([...customServices, tag]);
+    setServiceInput('');
+  };
+
   const handleServiceKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.nativeEvent.isComposing || e.keyCode === 229) return;
     if (e.key === 'Enter' && serviceInput.trim()) {
       e.preventDefault();
-      const tag = serviceInput.trim().replace(/,$/, '');
-      if (tag && !customServices.includes(tag) && !PRESET_SERVICES.includes(tag)) {
-        setCustomServices([...customServices, tag]);
-      }
-      setServiceInput('');
+      addCustomService(serviceInput);
     }
   };
 
@@ -247,7 +262,7 @@ export default function AutoUploadPage() {
         shopDescription,
         targetCustomText ? `타겟: ${targetCustomText}` : '',
       ].filter(Boolean).join('\n').trim(),
-      preferred_styles: [...selectedServices, ...customServices],
+      preferred_styles: [...new Set([...selectedServices, ...customServices])],
       insta_upload_days: uploadDays,
       photo_range_max: photoRange,
       language: localStorage.getItem('language') || 'ko',
@@ -287,6 +302,16 @@ export default function AutoUploadPage() {
 
   return (
     <div className="flex flex-row h-screen w-full bg-white overflow-hidden">
+      <style jsx>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-4px); }
+          40%, 80% { transform: translateX(4px); }
+        }
+        .animate-shake {
+          animation: shake 0.4s ease-in-out;
+        }
+      `}</style>
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
@@ -384,7 +409,7 @@ export default function AutoUploadPage() {
                         <button
                           key={s}
                           onClick={() => togglePresetService(s)}
-                          className={`text-[0.8rem] font-medium px-3.5 py-2 rounded-full border transition-all cursor-pointer ${isSelected ? 'border-[#8B0000] bg-[rgba(139,0,0,0.08)] text-[#8B0000]' : 'border-gray-200 text-[#1A1A1A] hover:border-gray-300'}`}
+                          className={`text-[0.8rem] font-medium px-3.5 py-2 rounded-full border transition-all cursor-pointer ${isSelected ? 'border-[#8B0000] bg-[rgba(139,0,0,0.08)] text-[#8B0000]' : 'border-gray-200 text-[#1A1A1A] hover:border-gray-300'} ${shakingTag === s ? 'animate-shake' : ''}`}
                           style={font}
                         >
                           {s}
@@ -392,9 +417,9 @@ export default function AutoUploadPage() {
                       );
                     })}
                     {customServices.map(tag => (
-                      <span key={tag} className="flex items-center gap-1.5 bg-[rgba(139,0,0,0.08)] text-[#8B0000] text-[0.8rem] font-medium px-3.5 py-2 rounded-full border border-[#8B0000]">
+                      <span key={tag} className={`flex items-center gap-1.5 bg-[rgba(139,0,0,0.08)] text-[#8B0000] text-[0.8rem] font-medium px-3.5 py-2 rounded-full border border-[#8B0000] ${shakingTag === tag ? 'animate-shake' : ''}`}>
                         {tag}
-                        <button onClick={() => setCustomServices(customServices.filter(s => s !== tag))} className="hover:opacity-70 cursor-pointer"><X size={12} /></button>
+                        <button onClick={() => { setCustomServices(prev => prev.filter(s => s !== tag)); setSelectedServices(prev => prev.filter(s => s !== tag)); }} className="hover:opacity-70 cursor-pointer"><X size={12} /></button>
                       </span>
                     ))}
                   </div>
@@ -409,12 +434,7 @@ export default function AutoUploadPage() {
                       style={font}
                     />
                     <button
-                      onClick={() => {
-                        if (serviceInput.trim() && !customServices.includes(serviceInput.trim()) && !PRESET_SERVICES.includes(serviceInput.trim())) {
-                          setCustomServices([...customServices, serviceInput.trim()]);
-                          setServiceInput('');
-                        }
-                      }}
+                      onClick={() => addCustomService(serviceInput)}
                       className="px-4 py-3 rounded-[12px] bg-[#8B0000] text-white text-[0.85rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer shrink-0"
                       style={font}
                     >
