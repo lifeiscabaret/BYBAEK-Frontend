@@ -123,7 +123,12 @@ export default function AutoUploadPage() {
                 setShopDescription(intro);
               }
             }
-            if (shop.preferred_styles) setSelectedServices(shop.preferred_styles);
+            if (shop.preferred_styles) {
+              const presets = shop.preferred_styles.filter((v: string) => PRESET_SERVICES.includes(v));
+              const customs = shop.preferred_styles.filter((v: string) => !PRESET_SERVICES.includes(v));
+              setSelectedServices(presets);
+              setCustomServices(customs);
+            }
             if (shop.brand_tone && Array.isArray(shop.brand_tone)) {
               const styleLabels = STYLE_OPTIONS.map(s => s.label);
               const emojiOptions = ['자주 씀', '가끔 씀', '안 씀'];
