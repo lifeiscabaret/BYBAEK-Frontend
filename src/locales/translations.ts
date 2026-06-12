@@ -338,6 +338,7 @@ export const translations = {
       weekly: "주 1회",
       uploadDays: "업로드 요일",
       photoCount: "게시물당 사진 수",
+      photoMaxNotice: "인스타그램 자동 업로드는 최대 10장까지 가능합니다",
     },
     analytics_page: {
       title: "마케팅 성과 분석",
@@ -377,6 +378,7 @@ export const translations = {
       uploadDays: "업로드 요일",
       postSettings: "게시물 설정",
       photoCount: "게시물당 사진 수",
+      photoMaxNotice: "인스타그램 자동 업로드는 최대 10장까지 가능합니다",
       emojiUsage: "이모지 사용",
       often: "자주 씀",
       sometimes: "가끔 씀",
@@ -757,6 +759,7 @@ export const translations = {
       weekly: "Weekly",
       uploadDays: "Upload Days",
       photoCount: "Photos per Post",
+      photoMaxNotice: "Instagram auto-upload supports up to 10 photos",
     },
     analytics_page: {
       title: "Marketing Analytics",
@@ -796,6 +799,7 @@ export const translations = {
       uploadDays: "Upload Days",
       postSettings: "Post Settings",
       photoCount: "Photos per Post",
+      photoMaxNotice: "Instagram auto-upload supports up to 10 photos",
       emojiUsage: "Emoji Usage",
       often: "Often",
       sometimes: "Sometimes",

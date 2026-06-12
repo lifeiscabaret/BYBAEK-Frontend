@@ -646,14 +646,15 @@ export default function AutoUploadPage() {
                   <input
                     type="range"
                     min={1}
-                    max={20}
+                    max={10}
                     value={photoRange}
                     onChange={e => setPhotoRange(Number(e.target.value))}
                     className="w-full accent-[#8B0000] cursor-pointer"
                   />
                   <div className="flex justify-between text-[0.75rem] text-gray-400 mt-1" style={font}>
-                    <span>1장</span><span>20장</span>
+                    <span>1장</span><span>10장</span>
                   </div>
+                  <p className="text-[0.75rem] text-gray-400 mt-2" style={font}>{t.auto_upload.photoMaxNotice}</p>
                 </div>
               )}
 
