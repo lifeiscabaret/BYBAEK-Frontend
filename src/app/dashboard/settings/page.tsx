@@ -187,14 +187,15 @@ export default function SettingsPage() {
           <input
             type="range"
             min={1}
-            max={20}
+            max={10}
             value={photoRange}
             onChange={e => setPhotoRange(Number(e.target.value))}
             className="w-full max-w-[400px] accent-[#8B0000] cursor-pointer"
           />
-          <div className="flex justify-between max-w-[400px] text-[0.75rem] text-gray-400 mt-1 mb-6" style={font}>
-            <span>1장</span><span>20장</span>
+          <div className="flex justify-between max-w-[400px] text-[0.75rem] text-gray-400 mt-1" style={font}>
+            <span>1장</span><span>10장</span>
           </div>
+          <p className="text-[0.75rem] text-gray-400 mt-2 mb-6" style={font}>{t.settings_page.photoMaxNotice}</p>
 
           <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.settings_page.emojiUsage}</label>
           <div className="flex gap-3">
