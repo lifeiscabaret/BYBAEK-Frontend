@@ -50,7 +50,7 @@ export default function SettingsPage() {
           if (shop.insta_upload_days) setUploadDays(shop.insta_upload_days);
           if (shop.language === 'ko' || shop.language === 'en') setLanguage(shop.language);
           // ↓ 여기 두 줄 추가
-          if (shop.photo_range_max) setPhotoRange(shop.photo_range_max);
+          if (shop.photo_range_max) setPhotoRange(Math.min(10, Number(shop.photo_range_max) || 5));
           if (shop.brand_tone && Array.isArray(shop.brand_tone)) {
             const emojiOptions = ['자주 씀', '가끔 씀', '안 씀'];
             const foundEmoji = shop.brand_tone.find((v: string) => emojiOptions.includes(v));

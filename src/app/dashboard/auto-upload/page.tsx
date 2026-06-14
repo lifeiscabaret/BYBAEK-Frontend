@@ -156,7 +156,7 @@ export default function AutoUploadPage() {
               setUploadFrequency(slotMap[shop.insta_upload_time_slot] || shop.insta_upload_time_slot);
             }
             if (shop.insta_upload_days) setUploadDays(shop.insta_upload_days);
-            if (shop.photo_range_max != null) setPhotoRange(Number(shop.photo_range_max));
+            if (shop.photo_range_max != null) setPhotoRange(Math.min(10, Number(shop.photo_range_max) || 5));
           }
         } catch { }
       };
