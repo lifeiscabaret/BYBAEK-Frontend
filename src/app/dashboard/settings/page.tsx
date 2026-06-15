@@ -25,6 +25,8 @@ export default function SettingsPage() {
   const [language, setLanguage] = useState<'ko' | 'en'>('ko');
   const [shopId, setShopId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [reanalyzing, setReanalyzing] = useState(false);
+  const [reanalyzeMsg, setReanalyzeMsg] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
@@ -77,6 +79,24 @@ export default function SettingsPage() {
       if (requiredDays > 0 && prev.length >= requiredDays) return prev; // 정확히 N개 초과 선택 방지
       return [...prev, day].sort((a, b) => a - b);
     });
+  };
+
+  const handleReanalyze = async () => {
+    if (reanalyzing) return; // 연타 방지
+    setReanalyzing(true);
+    setReanalyzeMsg('');
+    try {
+      const res = await apiClient.post(`/onboarding/${shopId}/reanalyze`);
+      if (res.data.status === 'success') {
+        setReanalyzeMsg(t.settings_page.reanalyzeSuccess);
+      } else {
+        setReanalyzeMsg(res.data.message || t.settings_page.reanalyzeFailed);
+      }
+    } catch {
+      setReanalyzeMsg(t.settings_page.reanalyzeError);
+    } finally {
+      setReanalyzing(false);
+    }
   };
 
   const handleSave = async () => {
@@ -212,7 +232,24 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ③ 언어 설정 */}
+        {/* ③ AI 개인화 */}
+        <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-6">
+          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-2" style={font}>{t.settings_page.aiPersonalization}</p>
+          <p className="text-[0.8rem] text-gray-500 mb-5" style={font}>{t.settings_page.reanalyzeDesc}</p>
+          <button
+            onClick={handleReanalyze}
+            disabled={reanalyzing}
+            className={`px-6 py-3 rounded-[10px] border-2 text-[0.9rem] font-medium transition-all ${reanalyzing ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-[#8B0000] text-[#8B0000] hover:bg-[rgba(139,0,0,0.08)] cursor-pointer'}`}
+            style={font}
+          >
+            {reanalyzing ? t.settings_page.reanalyzing : t.settings_page.reanalyzeBtn}
+          </button>
+          {reanalyzeMsg && (
+            <p className="text-[0.85rem] text-[#5a2a2a] mt-3" style={{ ...font, fontWeight: 500 }}>{reanalyzeMsg}</p>
+          )}
+        </div>
+
+        {/* ④ 언어 설정 */}
         <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-8">
           <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>{t.settings_page.language}</p>
           <div className="flex gap-3">
@@ -233,7 +270,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ④ 저장 */}
+        {/* ⑤ 저장 */}
         <button
           onClick={handleSave}
           disabled={saveStatus === 'saving'}
