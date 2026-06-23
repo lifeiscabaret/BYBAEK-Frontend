@@ -230,7 +230,8 @@
 | 업로드 요일 선택 기능 | 5 | 0 | 100% |
 | photo_range_max 표시 클램프 | 2 | 0 | 100% |
 | 말투 다시 분석 기능 | 3 | 0 | 100% |
-| **전체** | **125** | **0** | **100%** |
+| 사이드바 언어 토글 동기화 | 4 | 0 | 100% |
+| **전체** | **129** | **0** | **100%** |
 
 > 현재까지 커밋된 모든 기능이 완료 상태입니다. 향후 새로운 작업이 추가되면 이 문서에 기록합니다.
 
@@ -277,6 +278,19 @@
 |------|------|-----------|
 | 기존 단일 QR → Android/iOS 2개 QR로 교체 | ✅ 완료 | `login/page.tsx` |
 | 각 QR 하단에 기기 레이블(Android / iOS) 표시 | ✅ 완료 | `login/page.tsx` |
+
+---
+
+## 26. 사이드바 언어 토글 → 백엔드 language 동기화 (2026-06-23)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| KR/EN 토글 클릭 시 `POST /onboarding/{shop_id}`로 `{language}` 단일 필드 전송 (캡션 생성 언어 동기화) | ✅ 완료 | `components/Sidebar.tsx` |
+| shop_id 없으면 API 스킵, localStorage+reload만 진행 (비로그인도 토글 동작) | ✅ 완료 | `components/Sidebar.tsx` |
+| API 실패해도 finally에서 localStorage 저장+reload (UI 언어는 항상 전환) | ✅ 완료 | `components/Sidebar.tsx` |
+| `apiClient` import 추가 | ✅ 완료 | `components/Sidebar.tsx` |
+
+기존 백엔드 부분 병합(partial merge) 동작에 의존 — `{language}`만 보내므로 다른 온보딩 필드는 보존됨.
 
 ---
 
