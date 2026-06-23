@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '@/hooks/useTranslation';
+import apiClient from '@/api/index';
 
 export const Sidebar: React.FC = () => {
   const router = useRouter();
@@ -188,14 +189,38 @@ export const Sidebar: React.FC = () => {
       <div className="px-3 pb-6 flex justify-center">
         <div className="flex items-center gap-1 text-[0.8rem] text-white" style={{ opacity: 0.7 }}>
           <button
-            onClick={() => { localStorage.setItem('language', 'ko'); window.location.reload(); }}
+            onClick={async () => {
+              const shopId = localStorage.getItem('shop_id');
+              try {
+                if (shopId) {
+                  await apiClient.post(`/onboarding/${shopId}`, { language: 'ko' });
+                }
+              } catch (e) {
+                console.error('language sync failed', e);
+              } finally {
+                localStorage.setItem('language', 'ko');
+                window.location.reload();
+              }
+            }}
             className={`cursor-pointer ${lang === 'ko' ? 'font-bold opacity-100' : 'font-normal opacity-70'}`}
           >
             KR
           </button>
           <span>|</span>
           <button
-            onClick={() => { localStorage.setItem('language', 'en'); window.location.reload(); }}
+            onClick={async () => {
+              const shopId = localStorage.getItem('shop_id');
+              try {
+                if (shopId) {
+                  await apiClient.post(`/onboarding/${shopId}`, { language: 'en' });
+                }
+              } catch (e) {
+                console.error('language sync failed', e);
+              } finally {
+                localStorage.setItem('language', 'en');
+                window.location.reload();
+              }
+            }}
             className={`cursor-pointer ${lang === 'en' ? 'font-bold opacity-100' : 'font-normal opacity-70'}`}
           >
             EN
