@@ -1,6 +1,10 @@
-# BYBAEK — Frontend
+<div align="center">
+  <img src="public/BYBAEK_icon.svg" alt="BYBAEK" width="96" height="96" />
 
-> 바버샵 AI 마케팅 자동화 에이전트 — Next.js 프론트엔드
+  # BYBAEK — Frontend
+
+  > 바버샵 AI 마케팅 자동화 에이전트 — Next.js 프론트엔드
+</div>
 
 ---
 
@@ -8,8 +12,7 @@
 
 | 서비스 | URL |
 |---|---|
-| **Frontend** | https://bybaek-f-f2d2ara8b9bua8f6.koreacentral-01.azurewebsites.net |
-| **Backend** | https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net |
+| **Website** | https://bybaekofficial.com |
 
 ---
 
@@ -28,9 +31,10 @@
 
 ## 역할 분담
 
-| 팀원 | 담당 폴더 | 주요 작업 |
+| 팀원 | 담당 | 주요 작업 |
 |---|---|---|
-| 명근 (Frontend) | `src/app/`, `src/components/`, `src/hooks/` | 전체 화면 구현, Blob/Cosmos 연결 |
+| 차명근 ([@Etchroot](https://github.com/Etchroot)) | 레거시 | 초기 프론트엔드 구조 및 화면 구현 (레거시), Blob/Cosmos 연결 |
+| 이지현 ([@lifeiscabaret](https://github.com/lifeiscabaret)) | UI/UX · 프론트엔드 | UI/UX 개선 및 설계, 레거시 이후 모든 프론트엔드 작업 |
 
 ---
 
