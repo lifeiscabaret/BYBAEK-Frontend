@@ -34,7 +34,7 @@
 | 팀원 | 담당 | 주요 작업 |
 |---|---|---|
 | 차명근 ([@Etchroot](https://github.com/Etchroot)) | 레거시 | 초기 프론트엔드 구조 및 화면 구현 (레거시), Blob/Cosmos 연결 |
-| 이지현 ([@lifeiscabaret](https://github.com/lifeiscabaret)) | UI/UX · 프론트엔드 | UI/UX 개선 및 설계, 레거시 이후 모든 프론트엔드 작업 |
+| 이지현 ([@lifeiscabaret](https://github.com/lifeiscabaret)) | UI/UX · 프론트엔드 | UI/UX 개선 및 개선안 설계 |
 
 ---
 
