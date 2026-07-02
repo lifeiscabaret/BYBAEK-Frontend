@@ -373,3 +373,4 @@
 | Instagram client_id 교체(`2203308117098677`) + 하드코딩 3곳 → env 변수(`process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID`)화 | ✅ 완료 | `app/login/page.tsx`, `app/dashboard/auto-upload/page.tsx`, `components/SnsConnectionModal.tsx`, `.env` |
 | README 최신화 — 웹 로고 반영, 역할분담 재작성(차명근 레거시 / 이지현 UI·UX 개선·설계), 배포 URL을 `www.bybaekofficial.com` 단일화 | ✅ 완료 | `README.md` |
 | 개인 Azure(`rg-bybaek`)에 프론트 App Service `bybaek-frontend`(Node 22, `bybaek-plan` B1) 생성·standalone 배포 | ✅ 완료 | Azure 인프라 |
+| CI/CD 교체 — 죽은 구독 대상 워크플로 제거, 새 앱 배포 워크플로 추가(게시프로필 인증, `vars.AZURE_WEBAPP_NAME`·`NEXT_PUBLIC_*` 파라미터화, standalone 패키징 계승) | ✅ 완료 | `.github/workflows/deploy.yml` (신규), `.github/workflows/main_bybaek-f.yml` (삭제) |

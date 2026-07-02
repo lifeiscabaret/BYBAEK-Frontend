@@ -1,0 +1,49 @@
+name: Build and deploy Next.js app to Azure Web App - bybaek-frontend
+
+# 배포 대상/빌드 값은 GitHub Variables/Secrets로 파라미터화되어 있습니다.
+# 되돌리기(옛 구독 복귀): vars.AZURE_WEBAPP_NAME + secrets.AZURE_WEBAPP_PUBLISH_PROFILE
+#   (필요 시 vars.NEXT_PUBLIC_*) 값만 교체하면 됩니다. 파일 수정 불필요.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install & build
+        env:
+          # NEXT_PUBLIC_* 는 빌드 시점에 코드로 인라인되므로 반드시 여기서 주입해야 합니다.
+          # 공개값이라 Variables 등록을 권장하며, Secret에 넣은 경우에도 동작하도록 fallback 처리.
+          # 특히 NEXT_PUBLIC_INSTAGRAM_CLIENT_ID 는 코드에 기본값이 없어 비면 인스타 연동이 깨집니다.
+          NEXT_PUBLIC_INSTAGRAM_CLIENT_ID: ${{ vars.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID || secrets.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID }}
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+        run: |
+          npm ci
+          npm run build
+
+      # Next.js standalone: 런타임이 뜨려면 static / public 을 standalone 안으로 넣어야 함
+      # (현재 수동 배포와 동일한 패키징 방식)
+      - name: Assemble standalone package
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .next/standalone
