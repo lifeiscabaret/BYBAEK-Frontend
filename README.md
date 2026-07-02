@@ -13,6 +13,7 @@
 | 서비스 | URL |
 |---|---|
 | **Website** | https://www.bybaekofficial.com |
+| **Backend API** | https://api2.bybaekofficial.com |
 
 ---
 
@@ -20,12 +21,12 @@
 
 | 구분 | 기술 |
 |---|---|
-| Framework | Next.js 14 (App Router) |
+| Framework | Next.js 16 (App Router, standalone output) |
 | Language | TypeScript |
-| Styling | Tailwind CSS |
+| Styling | Tailwind CSS 4 |
 | HTTP 클라이언트 | Axios |
 | 런타임 | Node.js 22.x |
-| 배포 | Azure Static Web Apps |
+| 배포 | Azure App Service (standalone) · GitHub Actions (`main` push → 자동 배포) |
 
 ---
 
@@ -45,23 +46,23 @@ bybaek-frontend/
 ├── src/
 │   ├── app/                       # Next.js App Router 페이지
 │   │   ├── layout.tsx             # 공통 레이아웃
-│   │   ├── page.tsx               # 루트 → 로그인 리다이렉트
-│   │   ├── login/page.tsx         # MS 로그인 화면
-│   │   ├── onboarding/page.tsx    # 스무고개 온보딩
-│   │   ├── dashboard/page.tsx     # 메인 대시보드
-│   │   ├── preview/page.tsx       # 게시물 미리보기/검토
-│   │   └── schedule/page.tsx      # 업로드 스케줄 설정
+│   │   ├── page.tsx               # 루트 → 로그인/대시보드 분기
+│   │   ├── login/page.tsx         # 로그인 (언어→MS→OneDrive→Instagram)
+│   │   ├── auth/callback/page.tsx # OAuth 콜백 핸들러
+│   │   ├── onboarding/            # 온보딩 (intro + 설문)
+│   │   ├── dashboard/             # 메인 (posts / ai-upload / auto-upload / analytics / settings)
+│   │   ├── preview/page.tsx       # AI 게시물 생성/검토
+│   │   ├── review/page.tsx        # 이메일 기반 게시물 검토
+│   │   ├── photos/ · album/       # 사진 브라우저 / 앨범
+│   │   └── setting/ · mypage/     # 설정 / 마이페이지
 │   ├── components/                # 재사용 UI 컴포넌트
-│   ├── hooks/                     # 커스텀 React Hooks
+│   ├── hooks/                     # 커스텀 React Hooks (useTranslation 등)
 │   ├── api/
-│   │   ├── index.ts               # axios 기본 설정
-│   │   ├── agent.ts               # 게시물 생성 API
-│   │   ├── onboarding.ts          # 온보딩 API
-│   │   ├── instagram.ts           # 업로드 API
-│   │   └── schedule.ts            # 스케줄 API
-│   └── utils/
-│       └── constants/             # API URL 등 상수
-└── public/                        # 정적 파일
+│   │   ├── index.ts               # axios 기본 설정 (baseURL, withCredentials)
+│   │   └── agent.ts               # AI 에이전트 파이프라인 API
+│   └── locales/
+│       └── translations.ts        # 다국어(i18n) 번역 키
+└── public/                        # 정적 파일 (로고 등)
 ```
 
 ---
@@ -89,7 +90,10 @@ cp .env.local.example .env.local
 `.env.local` 파일:
 ```
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
+NEXT_PUBLIC_INSTAGRAM_CLIENT_ID=2203308117098677
 ```
+
+> `NEXT_PUBLIC_*` 값은 **빌드 시점에 코드로 인라인**됩니다. CI(GitHub Actions) 빌드에서는 동일 값을 repo의 Variables/Secrets에 등록해야 합니다.
 
 ### 3. 개발 서버 실행
 
@@ -103,15 +107,16 @@ npm run dev
 
 ## 백엔드 연동
 
-모든 API 요청은 `src/api/` 폴더에서 관리.
-백엔드 로컬 서버(`http://localhost:8000`)가 먼저 실행되어 있어야 함.
+모든 API 요청은 `src/api/` 폴더에서 관리. 프로덕션 백엔드는 `https://api2.bybaekofficial.com` 이며,
+로컬 개발 시에는 `.env.local`의 `NEXT_PUBLIC_API_BASE_URL`로 로컬 서버(`http://localhost:8000`)를 가리키도록 재정의한다.
 
 ```typescript
 // src/api/index.ts - axios 기본 설정
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api",
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://api2.bybaekofficial.com/api",
+  withCredentials: true,
 });
 
 export default apiClient;
@@ -123,11 +128,47 @@ export default apiClient;
 
 | 화면 | URL | 설명 |
 |---|---|---|
-| 로그인 | `/login` | MS OAuth 2.0 로그인 |
-| 온보딩 | `/onboarding` | 스무고개 + 레퍼런스 사진 업로드 |
-| 대시보드 | `/dashboard` | 메인 화면, 게시물 생성 트리거 |
+| 로그인 | `/login` | 언어 선택 → MS → OneDrive QR → Instagram |
+| 온보딩 | `/onboarding` | 스무고개(20문항) 개인화 설문 |
+| 대시보드 | `/dashboard` | 게시물 목록·생성 (`/posts`, `/ai-upload`, `/auto-upload`, `/analytics`, `/settings`) |
 | 미리보기 | `/preview` | AI 생성 게시물 검토 (OK/수정/취소) |
-| 스케줄 | `/schedule` | 업로드 시간/빈도 설정 |
+| 검토 | `/review` | 이메일 기반 게시물 검토 |
+| 사진/앨범 | `/photos`, `/album` | OneDrive 동기화 사진 브라우저·앨범 관리 |
+| 설정 | `/setting` | 개인화·계정 연결·업로드 스케줄 |
+
+---
+
+## 배포 (CI/CD)
+
+`main` 브랜치에 push되면 GitHub Actions가 자동으로 빌드하여 Azure App Service(`bybaek-frontend`, `rg-bybaek`)에 배포한다.
+
+- **워크플로:** `.github/workflows/deploy.yml`
+- **런타임:** Node 22, standalone 빌드 → 시작 명령 `node server.js`
+- **패키징:** `next build` 후 `.next/static`·`public`을 `.next/standalone/` 안으로 복사하여 그 폴더를 배포
+
+### 필요한 GitHub 설정 (repo → Settings → Secrets and variables → Actions)
+
+**Variables**
+| Name | Value |
+|---|---|
+| `AZURE_WEBAPP_NAME` | `bybaek-frontend` |
+| `NEXT_PUBLIC_INSTAGRAM_CLIENT_ID` | Instagram(Meta) 앱 ID |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://api2.bybaekofficial.com/api` |
+
+**Secrets**
+| Name | Value |
+|---|---|
+| `AZURE_WEBAPP_PUBLISH_PROFILE` | App Service 게시 프로필 XML 전체 |
+
+> ⚠️ `NEXT_PUBLIC_*`는 **빌드 시점에 인라인**되므로 CI 빌드 스텝의 env에 반드시 존재해야 한다. 없으면 빈 값이 박혀 인스타 연동 등이 깨진다.
+
+### 배포 대상 전환 / 되돌리기 (파일 수정 0)
+
+배포 대상은 워크플로에서 GitHub Variables/Secrets로 파라미터화되어 있다. 다른 App Service로 옮기거나 되돌릴 때는 값만 교체하면 된다.
+
+- `AZURE_WEBAPP_NAME` → 대상 App Service 이름
+- `AZURE_WEBAPP_PUBLISH_PROFILE` → 해당 App Service 게시 프로필
+- 필요 시 `NEXT_PUBLIC_*` 값도 함께 교체
 
 ---
 
