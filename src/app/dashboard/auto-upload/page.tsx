@@ -7,7 +7,7 @@ import { CheckCircle, X, Heart, MessageCircle, Send, Bookmark } from 'lucide-rea
 import { useTranslation } from '@/hooks/useTranslation';
 import apiClient from '@/api/index';
 
-const BACKEND_URL = 'https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net';
+const BACKEND_URL = 'https://api2.bybaekofficial.com';
 
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
@@ -175,7 +175,7 @@ export default function AutoUploadPage() {
 
   const handleInstaConnect = () => {
     const redirectUri = encodeURIComponent(`${BACKEND_URL}/api/auth/instagram`);
-    const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=3357678851057487&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+    const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     window.open(instaUrl, 'Insta_Login_Popup', 'width=500,height=600');
   };
 
