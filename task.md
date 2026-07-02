@@ -361,3 +361,15 @@
 | CLAUDE.md push 전 task.md 업데이트 규칙 추가 | ✅ 완료 | `CLAUDE.md` |
 | CLAUDE.md 작업 세션 후 날짜 기입 요약 규칙 추가 | ✅ 완료 | `CLAUDE.md` |
 | 리팩토링 커밋 분리 후 task.md 섹션 17 기록 | ✅ 완료 | `task.md` |
+
+---
+
+## 27. 개인 Azure 계정 이전 (죽은 회사 구독 → rg-bybaek) (2026-07-02)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| API base URL 죽은 백엔드 → 새 백엔드 `api2.bybaekofficial.com`로 이전 (5곳) | ✅ 완료 | `api/index.ts`, `app/api/sync-onedrive/route.ts`, `app/dashboard/auto-upload/page.tsx`, `app/login/page.tsx`, `components/SnsConnectionModal.tsx` |
+| Next/Image 허용 호스트에 새 스토리지 `bybaekstore1.blob.core.windows.net` 추가 | ✅ 완료 | `next.config.ts` |
+| Instagram client_id 교체(`2203308117098677`) + 하드코딩 3곳 → env 변수(`process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID`)화 | ✅ 완료 | `app/login/page.tsx`, `app/dashboard/auto-upload/page.tsx`, `components/SnsConnectionModal.tsx`, `.env` |
+| README 최신화 — 웹 로고 반영, 역할분담 재작성(차명근 레거시 / 이지현 UI·UX 개선·설계), 배포 URL을 `www.bybaekofficial.com` 단일화 | ✅ 완료 | `README.md` |
+| 개인 Azure(`rg-bybaek`)에 프론트 App Service `bybaek-frontend`(Node 22, `bybaek-plan` B1) 생성·standalone 배포 | ✅ 완료 | Azure 인프라 |
