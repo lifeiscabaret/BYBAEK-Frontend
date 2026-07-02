@@ -13,7 +13,7 @@ type LoginStep = 'LANGUAGE_SELECT' | 'MS_LOGIN' | 'ONEDRIVE_QR' | 'INSTA_LOGIN';
 type LoginStatus = 'IDLE' | 'IN_PROGRESS' | 'COMPLETED';
 
 // 🚨 [복구] 사장님이 깔끔하게 빼두셨던 백엔드 주소 상수!
-const BACKEND_URL = 'https://bybaek-b-bzhhgzh8d2gthpb3.koreacentral-01.azurewebsites.net'
+const BACKEND_URL = 'https://api2.bybaekofficial.com'
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -102,7 +102,7 @@ export default function LoginScreen() {
   const handleInstaLoginClick = () => {
     setInstaLoginStatus('IN_PROGRESS');
     const redirectUri = encodeURIComponent(`${BACKEND_URL}/api/auth/instagram`);
-    const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=3357678851057487&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
+    const instaUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${process.env.NEXT_PUBLIC_INSTAGRAM_CLIENT_ID}&redirect_uri=${redirectUri}&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights`;
     window.open(instaUrl, 'Insta_Login_Popup', 'width=500,height=600');
   };
 

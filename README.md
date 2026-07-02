@@ -12,7 +12,7 @@
 
 | 서비스 | URL |
 |---|---|
-| **Website** | https://bybaekofficial.com |
+| **Website** | https://www.bybaekofficial.com |
 
 ---
 
