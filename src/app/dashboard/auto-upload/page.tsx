@@ -53,6 +53,12 @@ const CTA_SUGGESTIONS = [
   '프로필 링크로 예약 가능해요',
 ];
 
+// [NEW] feed_style — 해시태그 개수 옵션
+const HASHTAG_COUNT_OPTIONS = [5, 8, 10, 15];
+
+// [NEW] feed_style — 캡션 길이 옵션
+const CAPTION_LENGTH_OPTIONS = ['1~2줄', '2~4줄', '4줄 이상'];
+
 // 요일 라벨 (0=월 ... 6=일)
 const WEEKDAYS: Record<string, string[]> = {
   ko: ['월', '화', '수', '목', '금', '토', '일'],
@@ -89,12 +95,18 @@ export default function AutoUploadPage() {
   const [hashtagInput, setHashtagInput] = useState('');
   const [cta, setCta] = useState('');
   const [emojiUsage, setEmojiUsage] = useState<string | null>(null);
+  // [NEW] feed_style 필드 — 해시태그 개수 / 캡션 길이 (기본값은 백엔드 기본값과 동일하게)
+  const [hashtagCount, setHashtagCount] = useState<number>(10);
+  const [captionLength, setCaptionLength] = useState<string>('2~4줄');
 
   // Step 5
   const [uploadTime, setUploadTime] = useState('19:00');
   const [uploadFrequency, setUploadFrequency] = useState<string | null>(null);
   const [uploadDays, setUploadDays] = useState<number[]>([]);
   const [photoRange, setPhotoRange] = useState(5);
+
+  // [NEW] 저장 실패 시 사용자에게 보여줄 에러 메시지 (기존엔 조용히 무시되고 완료 화면으로 넘어갔음)
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -146,6 +158,11 @@ export default function AutoUploadPage() {
             if (shop.forbidden_words) setForbiddenWords(shop.forbidden_words);
             if (shop.hashtag_style) setHashtags(shop.hashtag_style);
             if (shop.cta) setCta(shop.cta);
+            // [NEW] feed_style 복원 (hashtag_count / caption_length)
+            if (shop.feed_style) {
+              if (shop.feed_style.hashtag_count) setHashtagCount(Number(shop.feed_style.hashtag_count));
+              if (shop.feed_style.caption_length) setCaptionLength(shop.feed_style.caption_length);
+            }
             if (shop.insta_upload_time) setUploadTime(shop.insta_upload_time);
             if (shop.insta_upload_time_slot) {
               const slotMap: Record<string, string> = {
@@ -250,6 +267,9 @@ export default function AutoUploadPage() {
       forbidden_words: forbiddenWords,
       cta,
       hashtag_style: hashtags,
+      // [NEW] feed_style — 백엔드가 hashtag_count/caption_length를 feed_style로 묶어 저장
+      hashtag_count: hashtagCount,
+      caption_length: captionLength,
       insta_upload_time: uploadTime,
       insta_upload_time_slot: (
         uploadFrequency === 'Daily' ? '매일' :
@@ -269,13 +289,22 @@ export default function AutoUploadPage() {
       insta_auto_upload_yn: 'Y',
       insta_review_bfr_upload_yn: 'N',
     };
+
+    setSaveError(null);
+
+    // [FIX] 저장 실패를 조용히 무시하지 않음 — 실패 시 완료 화면(step 6)으로 넘어가지 않고
+    // 에러 메시지를 보여준 뒤 재시도할 수 있게 함. (기존엔 catch{}로 삼키고 그냥 진행해서
+    // 서버엔 데이터가 없는데 클라이언트는 완료 상태가 되는 불일치가 발생했음)
     try {
       if (shopId) {
         await apiClient.post(`/onboarding/${shopId}`, payload);
       }
-    } catch {
-      // fallback: just proceed
+    } catch (err) {
+      console.error('[onboarding] 저장 실패:', err);
+      setSaveError('설정 저장에 실패했어요. 네트워크 상태를 확인하고 다시 시도해주세요.');
+      return;
     }
+
     localStorage.setItem('onboarding_completed', 'true');
     setStep(6);
   };
@@ -551,6 +580,36 @@ export default function AutoUploadPage() {
                   />
                   <p className="text-[0.75rem] text-gray-400 mb-8" style={font}>{t.auto_upload.hashtagHint}</p>
 
+                  {/* [NEW] feed_style — 해시태그 개수 */}
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>해시태그는 몇 개 정도가 좋으세요?</label>
+                  <div className="flex gap-3 mb-8">
+                    {HASHTAG_COUNT_OPTIONS.map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setHashtagCount(n)}
+                        className={`px-5 py-3 rounded-[10px] border-2 text-[0.9rem] font-medium transition-all cursor-pointer ${hashtagCount === n ? 'border-[#8B0000] bg-[rgba(139,0,0,0.08)] text-[#8B0000]' : 'border-gray-200 text-[#1A1A1A] hover:border-gray-300'}`}
+                        style={font}
+                      >
+                        {n}개
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* [NEW] feed_style — 캡션 길이 */}
+                  <label className="block text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>캡션 길이는 어느 정도가 좋으세요?</label>
+                  <div className="flex gap-3 mb-8">
+                    {CAPTION_LENGTH_OPTIONS.map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => setCaptionLength(opt)}
+                        className={`px-5 py-3 rounded-[10px] border-2 text-[0.9rem] font-medium transition-all cursor-pointer ${captionLength === opt ? 'border-[#8B0000] bg-[rgba(139,0,0,0.08)] text-[#8B0000]' : 'border-gray-200 text-[#1A1A1A] hover:border-gray-300'}`}
+                        style={font}
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+
                   <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>{t.auto_upload.ctaLabel}</label>
                   <input
                     type="text"
@@ -656,6 +715,11 @@ export default function AutoUploadPage() {
                   </div>
                   <p className="text-[0.75rem] text-gray-400 mt-2" style={font}>{t.auto_upload.photoMaxNotice}</p>
                 </div>
+              )}
+
+              {/* [NEW] 저장 실패 에러 메시지 — 조용히 무시하지 않고 사용자에게 알림 */}
+              {step === 5 && saveError && (
+                <p className="text-[0.8rem] text-red-600 mt-4 text-center" style={font}>{saveError}</p>
               )}
 
               {/* 네비게이션 버튼 */}
