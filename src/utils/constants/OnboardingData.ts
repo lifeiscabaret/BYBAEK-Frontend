@@ -1,14 +1,14 @@
 // 타겟 경로: src/utils/constants/OnboardingData.ts
 
-export type SurveyType = 'SELECT' | 'TEXT' | 'SELECT_TEXT' | 'SCHEDULE'; 
-export type SurveyCategory = 'PERSONAL' | 'APP'; 
+export type SurveyType = 'SELECT' | 'TEXT' | 'SELECT_TEXT' | 'SCHEDULE';
+export type SurveyCategory = 'PERSONAL' | 'APP';
 
 export interface SurveyQuestion {
   id: number;
   category: SurveyCategory;
   type: SurveyType;
   question: string;
-  isMultiSelect?: boolean; 
+  isMultiSelect?: boolean;
   options?: string[];
   placeholder?: string;
 }
@@ -21,8 +21,8 @@ export const getOnboardingQuestions = (lang: string): SurveyQuestion[] => {
     {
       id: 1, category: 'PERSONAL', type: 'SELECT_TEXT',
       question: isEn ? 'What is the vibe of your shop?' : '우리 샵은 어떤 느낌인가요?',
-      isMultiSelect: true, 
-      options: isEn 
+      isMultiSelect: true,
+      options: isEn
         ? ['Masculine/Classic', 'Trendy/Modern', 'Friendly/Comfortable', 'Premium/Luxury', 'Minimalist', 'Vintage']
         : ['남성적/클래식', '트렌디/모던', '친근/편안', '프리미엄/고급', '미니멀', '빈티지'],
       placeholder: isEn ? 'Please enter other vibes directly.' : '그 외 느낌을 직접 입력해주세요.'
@@ -37,7 +37,7 @@ export const getOnboardingQuestions = (lang: string): SurveyQuestion[] => {
       placeholder: isEn ? 'Please enter other procedures directly.' : '그 외 시술을 직접 입력해주세요.'
     },
     {
-      id: 3, category: 'PERSONAL', type: 'SELECT_TEXT', 
+      id: 3, category: 'PERSONAL', type: 'SELECT_TEXT',
       question: isEn ? 'Are there any types of photos you want to avoid?' : '올리기 싫은 사진 유형이 있나요?',
       isMultiSelect: true,
       options: isEn
@@ -53,6 +53,18 @@ export const getOnboardingQuestions = (lang: string): SurveyQuestion[] => {
         ? ['Men\'s Hair Specialist', 'Include Region Name', 'Emotional/Trend Tags']
         : ['남성 헤어 전문', '지역명 포함', '감성/트렌드 태그'],
       placeholder: isEn ? 'Please enter other preferred directions.' : '그 외 선호하는 방향을 입력해주세요.'
+    },
+    // [NEW] feed_style — 해시태그 개수 (SELECT, 단일선택)
+    {
+      id: 15, category: 'PERSONAL', type: 'SELECT',
+      question: isEn ? 'How many hashtags do you prefer per post?' : '게시물당 해시태그는 몇 개 정도가 좋으세요?',
+      options: isEn ? ['5', '8', '10', '15'] : ['5개', '8개', '10개', '15개']
+    },
+    // [NEW] feed_style — 캡션 길이 (SELECT, 단일선택)
+    {
+      id: 16, category: 'PERSONAL', type: 'SELECT',
+      question: isEn ? 'How long do you want your captions to be?' : '캡션 길이는 어느 정도가 좋으세요?',
+      options: isEn ? ['1-2 lines', '2-4 lines', '4+ lines'] : ['1~2줄', '2~4줄', '4줄 이상']
     },
     {
       id: 5, category: 'PERSONAL', type: 'TEXT',
@@ -74,7 +86,7 @@ export const getOnboardingQuestions = (lang: string): SurveyQuestion[] => {
       question: isEn ? 'Please provide the URL or content of a previously well-received post.' : '기존에 반응 좋았던 게시물 URL 혹은 내용을 알려주세요.',
       placeholder: isEn ? 'Enter Insta post URL or features (for RAG data)' : '인스타 게시물 URL이나 특징을 적어주세요 (RAG 데이터 활용)'
     },
-    { 
+    {
       id: 10, category: 'PERSONAL', type: 'TEXT',
       question: isEn ? 'Where is your shop located? (Include city)' : '샵의 위치는 어디인가요? (도시까지 입력)',
       placeholder: isEn ? 'Ex: Gangnam-gu, Seoul' : '예: 서울 강남구, 부산 해운대구'
@@ -103,17 +115,24 @@ export const mapDBToSurveyAnswers = (data: any, lang: string): Record<number, an
   if (!data) return {};
   const isEn = lang === 'en';
 
+  // [NEW] feed_style 하위 필드 복원용 (백엔드가 hashtag_count/caption_length를
+  // shop_info.feed_style 중첩 객체로 저장하므로 여기서 풀어서 매핑)
+  const feedStyle = data.feed_style || {};
+
   return {
-    1: data.brand_tone || [], 
+    1: data.brand_tone || [],
     2: data.preferred_styles || [],
     3: Array.isArray(data.exclude_conditions) ? data.exclude_conditions : (data.exclude_conditions ? [data.exclude_conditions] : []),
     4: Array.isArray(data.hashtag_style) ? data.hashtag_style : (data.hashtag_style ? [data.hashtag_style] : []),
+    // [NEW] hashtag_count(숫자) → "10개" 형태 문자열로 복원, caption_length는 그대로
+    15: feedStyle.hashtag_count ? (isEn ? String(feedStyle.hashtag_count) : `${feedStyle.hashtag_count}개`) : '',
+    16: feedStyle.caption_length || '',
     5: data.cta || '',
     6: data.shop_intro || '',
     7: data.forbidden_words || [],
     8: data.rag_reference || '',
     9: data.city || '',
-    
+
     11: data.insta_auto_upload_yn === 'Y' ? (isEn ? 'Yes (Recommended)' : '예 (추천)') : (isEn ? 'No' : '아니오'),
     12: data.owner_email || '',
     13: {
@@ -122,6 +141,5 @@ export const mapDBToSurveyAnswers = (data: any, lang: string): Record<number, an
       hour: data.insta_upload_time ? data.insta_upload_time.split(' ')[0].split(':')[0] : '10',
       minute: data.insta_upload_time ? data.insta_upload_time.split(' ')[0].split(':')[1] : '30'
     }
-    // 🚨 [삭제됨] 14번 맵핑 로직 제거
   };
 };
