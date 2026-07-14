@@ -28,9 +28,6 @@ const STYLE_KEYS = ['trendy', 'classic', 'premium', 'street'] as const;
 const PURPOSE_KEYS = ['promo', 'event', 'review', 'newCustomer'] as const;
 const LOADING_KEYS = ['loading1', 'loading2', 'loading3'] as const;
 
-const MOCK_CAPTION = '페이드컷 전문점이 있다고?! 바로 여기 US바버샵으로 오세요! 20년 경력의 용산미군부대출신 원장, 주니어부터 시니어까지 바로 예약 가능합니다 ✂️';
-const MOCK_HASHTAGS = ['#페이드컷', '#삼각지', '#US바버샵', '#유에스바버샵', '#남성커트전문'];
-
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
 export default function AIUploadPage() {
@@ -73,7 +70,7 @@ export default function AIUploadPage() {
       try {
         const res = await apiClient.get(`/photos/all/${shopId}`);
         setPhotos(res.data.photos || []);
-      } catch {}
+      } catch { }
     };
     fetchPhotos();
   }, [shopId]);
@@ -91,29 +88,43 @@ export default function AIUploadPage() {
 
     const generate = async () => {
       const grid = photos.length > 0 ? photos.map(p => p.blob_url) : PHOTO_GRID;
+      const photoIds = selectedPhotos.map(i => {
+        if (photos.length > 0 && photos[i]) return photos[i].id;
+        return `mock_${i}`;
+      });
+
+      // [FIX] 실패 시 목업(MOCK_CAPTION)으로 조용히 바꿔치기하던 로직 제거.
+      // 데모 중 실제 생성이 실패하거나 타임아웃돼도 지현님이 알아채지 못한 채
+      // "20년 경력 용산미군부대..." 같은 가짜 게시물이 그대로 노출되는 문제가 있었음.
+      // 이제는 실패 시 명확한 에러를 보여주고 Step 2(사진/스타일 선택 유지)로 돌려보내 재시도 가능하게 함.
       try {
-        const photoIds = selectedPhotos.map(i => {
-          if (photos.length > 0 && photos[i]) return photos[i].id;
-          return `mock_${i}`;
-        });
         const [result] = await Promise.all([
           runAgent({ shop_id: shopId || '', trigger: 'manual', photo_ids: photoIds, message: extraRequest }),
           new Promise(resolve => setTimeout(resolve, 3000)),
         ]);
-        setGeneratedCaption(result.caption || MOCK_CAPTION);
-        setGeneratedHashtags(result.hashtags || MOCK_HASHTAGS);
+
+        if (!result || !result.caption) {
+          throw new Error('AI 응답에 캡션이 없습니다 (응답 형식 불일치 가능성)');
+        }
+
+        setGeneratedCaption(result.caption);
+        setGeneratedHashtags(result.hashtags || []);
         setGeneratedPhotoUrl(result.photo_urls?.[0] || grid[selectedPhotos[0]] || '/demo/pass_01.jpg');
         setGeneratedCta(result.cta || '');
         setPostId(result.post_id || null);
         if (loadingInterval.current) clearInterval(loadingInterval.current);
         setStep(4);
-      } catch {
-        await new Promise(resolve => setTimeout(resolve, 1500));
+      } catch (err: any) {
+        console.error('[ai-upload] 캡션 생성 실패:', err);
         if (loadingInterval.current) clearInterval(loadingInterval.current);
-        setGeneratedCaption(MOCK_CAPTION);
-        setGeneratedHashtags(MOCK_HASHTAGS);
-        setGeneratedPhotoUrl(grid[selectedPhotos[0]] || '/demo/pass_01.jpg');
-        setStep(4);
+
+        const isTimeout = err?.code === 'ECONNABORTED' || /timeout/i.test(err?.message || '');
+        setApiError(
+          isTimeout
+            ? 'AI 생성이 너무 오래 걸려서 중단됐어요. 다시 시도해주세요.'
+            : 'AI 캡션 생성에 실패했어요. 잠시 후 다시 시도해주세요.'
+        );
+        setStep(2);
       }
     };
     generate();
@@ -222,6 +233,13 @@ export default function AIUploadPage() {
                 {t.ai_upload.styleAndPurpose}
               </h2>
 
+              {/* [NEW] 생성 실패 시 에러 배너 — 이전엔 목업으로 조용히 넘어갔음 */}
+              {apiError && (
+                <div className="mb-6 px-4 py-3 rounded-[10px] bg-red-50 border border-red-200 text-red-700 text-[0.85rem]" style={font}>
+                  {apiError}
+                </div>
+              )}
+
               <p className="text-[0.85rem] text-[#5a2a2a] mb-3" style={{ ...font, fontWeight: 500 }}>{t.ai_upload.styleLabel}</p>
               <div className="grid grid-cols-4 gap-3 mb-8">
                 {STYLE_OPTIONS.map((s) => (
@@ -327,10 +345,10 @@ export default function AIUploadPage() {
                 <div className="px-3 pb-3">
                   <p className="text-xs text-gray-800 leading-relaxed">
                     <span className="font-bold">barber_studio</span>{' '}
-                    {generatedCaption || MOCK_CAPTION}
+                    {generatedCaption || '(캡션 없음)'}
                   </p>
                   <div className="flex flex-wrap gap-1.5 mt-2">
-                    {(generatedHashtags.length > 0 ? generatedHashtags : MOCK_HASHTAGS).map((tag, i) => (
+                    {generatedHashtags.map((tag, i) => (
                       <span key={i} className="text-[11px] text-[#8B0000] font-medium">{tag}</span>
                     ))}
                   </div>
@@ -354,7 +372,7 @@ export default function AIUploadPage() {
                     if (postId && shopId) {
                       try {
                         await reviewPost({ shop_id: shopId, post_id: postId, action: 'ok' });
-                      } catch {}
+                      } catch { }
                     }
                     setStep(5);
                   }}
