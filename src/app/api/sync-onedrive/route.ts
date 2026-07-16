@@ -1,9 +1,6 @@
-// 타겟 경로: src/app/api/sync-onedrive/route.ts
-// 역할: 프론트엔드에서 백엔드 OneDrive sync를 프록시 호출
-// 쿠키를 서버사이드에서 백엔드로 전달하여 토큰 문제 해결
-
 import { NextRequest, NextResponse } from 'next/server';
 
+// fallback을 새 백엔드 커스텀 도메인으로 갱신.
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL ||
     'https://api2.bybaekofficial.com';
 
@@ -52,7 +49,7 @@ export async function GET(request: NextRequest) {
         const authSession = request.cookies.get('AppServiceAuthSession')?.value;
 
         const statusRes = await fetch(
-            `${BACKEND_URL}/api/photos/status/${shopId}`,  // ← 수정
+            `${BACKEND_URL}/api/photos/status/${shopId}`,
             { headers: authSession ? { Cookie: `AppServiceAuthSession=${authSession}` } : {} }
         );
 
