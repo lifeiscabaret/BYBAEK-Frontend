@@ -33,12 +33,13 @@ export interface PostSaveRequest {
  * 에이전트 파이프라인 실행
  *
  * [FIX] manual(=full 티어) 트리거는 웹서치 → 사진선택(Claude 확장 포함 가능) → RAG검색 →
- * 캡션작성(재시도 루프 포함)까지 순차로 거쳐서 apiClient 기본 타임아웃(60초)보다
- * 오래 걸리는 경우가 실제로 있었음 (실측 59.76초에 취소되는 현상 확인).
- * 이 호출에만 타임아웃을 120초로 늘려서, 다른 가벼운 API 호출들의 타임아웃엔 영향 없게 함.
+ * 캡션작성(재시도 루프 포함)까지 순차로 거쳐서 apiClient 기본 타임아웃보다
+ * 오래 걸리는 경우가 실제로 있었음 (실측 manual/full 약 134초, auto 약 167초).
+ * 기존 120초 오버라이드로도 타임아웃되던 현상 확인 → 200초로 상향
+ * (Azure App Service ARR 하드 리밋 230초 미만으로 유지). apiClient 기본값도 200초로 맞춤.
  */
 export const runAgent = async (req: AgentRunRequest) => {
-    const response = await apiClient.post("/agent/run", req, { timeout: 120000 });
+    const response = await apiClient.post("/agent/run", req, { timeout: 200000 });
     return response.data;
 };
 
