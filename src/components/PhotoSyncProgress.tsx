@@ -14,6 +14,11 @@ interface SyncStatus {
   message: string;
 }
 
+// 폭주 방지 파라미터
+const MAX_CONSECUTIVE_FAILURES = 5;   // 연속 실패 N회 이상이면 폴링 중단 + 에러 전환
+const BASE_POLL_DELAY = 5000;         // 정상 폴링 간격
+const MAX_POLL_DELAY = 60000;         // 백오프 상한
+
 export function PhotoSyncProgress() {
   const [shopId, setShopId] = useState<string | null>(null);
   const { t } = useTranslation();
@@ -26,22 +31,115 @@ export function PhotoSyncProgress() {
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const wasRunningRef = useRef<boolean>(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const syncStartedRef = useRef<boolean>(false);
+  const failureCountRef = useRef<number>(0);   // 연속 실패 횟수
+  const stoppedRef = useRef<boolean>(false);   // 폴링 완전 중단 플래그
 
   useEffect(() => {
     const storedId = localStorage.getItem('shop_id');
     setShopId(storedId);
   }, []);
 
-  // sync 시작 + 폴링
+  // sync 시작 + 폴링 (백오프 재시도 + 연속 실패 서킷브레이커)
   useEffect(() => {
     if (!shopId) return;
 
-    const startSyncAndPoll = async () => {
-      const isLoggedIn = localStorage.getItem('isLoggedIn');
-      if (isLoggedIn !== 'true') return;
+    const isLoggedIn = localStorage.getItem('isLoggedIn');
+    if (isLoggedIn !== 'true') return;
 
+    // shopId가 바뀌면 폴링 상태를 새로 시작 (실패 카운터/중단 플래그 리셋)
+    stoppedRef.current = false;
+    failureCountRef.current = 0;
+    let cancelled = false;
+
+    const stopPolling = () => {
+      stoppedRef.current = true;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+
+    const scheduleNext = (delay: number) => {
+      if (cancelled || stoppedRef.current) return;
+      timeoutRef.current = setTimeout(poll, delay);
+    };
+
+    const poll = async () => {
+      if (cancelled || stoppedRef.current) return;
+      try {
+        const response = await fetch(`/api/sync-onedrive?shop_id=${shopId}`);
+        // 404 등은 fetch가 throw하지 않으므로 명시적으로 실패로 처리 (기존 무한 재시도의 원인).
+        if (!response.ok) throw new Error(`sync status HTTP ${response.status}`);
+        const raw = await response.json();
+
+        // 정상 응답 → 연속 실패 카운터 리셋
+        failureCountRef.current = 0;
+
+        const data: SyncStatus = {
+          shop_id: raw.shop_id || shopId,
+          status: raw.status === 'done' ? 'done' : raw.pending > 0 ? 'running' : raw.status,
+          total_scanned: raw.total || 0,
+          stage1_passed: raw.passed || 0,
+          stage2_passed: raw.passed || 0,
+          message: raw.status === 'done' ? t.photo_sync.sync_complete_msg : t.photo_sync.syncing_msg,
+        };
+        setStatus(data);
+
+        if (data.status === 'running') {
+          setIsVisible(true);
+          wasRunningRef.current = true;
+          scheduleNext(BASE_POLL_DELAY);
+        } else if (data.status === 'done') {
+          if (wasRunningRef.current) {
+            wasRunningRef.current = false;
+            // 완료 후 5초 뒤 숨김
+            setTimeout(() => setIsVisible(false), 5000);
+            // 최초 sync 완료면 사진 선택 모달
+            const isFirstSync = !localStorage.getItem('sync_done');
+            if (isFirstSync) {
+              localStorage.setItem('sync_done', 'true');
+              fetchPhotosForSelection();
+              setShowFavoriteModal(true);
+            }
+          }
+          stopPolling(); // 완료 → 폴링 종료
+        } else if (data.status === 'error') {
+          stopPolling();
+        } else {
+          // idle 등 미확정 상태(정상 응답) → 기본 간격으로 재시도 (실패 아님)
+          scheduleNext(BASE_POLL_DELAY);
+        }
+      } catch (error) {
+        failureCountRef.current += 1;
+
+        // 연속 실패 N회 이상 → 폴링 중단 + 에러 상태로 전환 (폭주 차단)
+        if (failureCountRef.current >= MAX_CONSECUTIVE_FAILURES) {
+          console.error(
+            `[PhotoSyncProgress] 연속 ${MAX_CONSECUTIVE_FAILURES}회 실패 — 폴링 중단`,
+            error
+          );
+          setStatus((prev) => (prev ? { ...prev, status: 'error' } : null));
+          setIsVisible(false);
+          stopPolling();
+          return;
+        }
+
+        // 지수 백오프: 5s → 10s → 20s → 40s ... (최대 60s)
+        const delay = Math.min(
+          BASE_POLL_DELAY * 2 ** (failureCountRef.current - 1),
+          MAX_POLL_DELAY
+        );
+        console.warn(
+          `[PhotoSyncProgress] 폴링 실패 ${failureCountRef.current}/${MAX_CONSECUTIVE_FAILURES} — ${delay}ms 후 재시도`,
+          error
+        );
+        scheduleNext(delay);
+      }
+    };
+
+    const start = async () => {
       // 최초 1회만 sync 트리거
       if (!syncStartedRef.current) {
         syncStartedRef.current = true;
@@ -64,55 +162,14 @@ export function PhotoSyncProgress() {
         } catch { }
       }
 
-      // 상태 폴링
-      const poll = async () => {
-        try {
-          const response = await fetch(`/api/sync-onedrive?shop_id=${shopId}`);
-          const raw = await response.json();
-
-          // 필드 매핑
-          const data: SyncStatus = {
-            shop_id: raw.shop_id || shopId,
-            status: raw.status === 'done' ? 'done' : raw.pending > 0 ? 'running' : raw.status,
-            total_scanned: raw.total || 0,
-            stage1_passed: raw.passed || 0,
-            stage2_passed: raw.passed || 0,
-            message: raw.status === 'done' ? t.photo_sync.sync_complete_msg : t.photo_sync.syncing_msg,
-          };
-
-          if (data.status === 'running') {
-            setIsVisible(true);
-            wasRunningRef.current = true;
-          } else if (data.status === 'done' && wasRunningRef.current) {
-            wasRunningRef.current = false;
-            // 완료 후 5초 뒤 숨김
-            setTimeout(() => setIsVisible(false), 5000);
-            // 최초 sync 완료면 사진 선택 모달
-            const isFirstSync = !localStorage.getItem('sync_done');
-            if (isFirstSync) {
-              localStorage.setItem('sync_done', 'true');
-              fetchPhotosForSelection();
-              setShowFavoriteModal(true);
-            }
-            // 폴링 중단
-            if (intervalRef.current) clearInterval(intervalRef.current);
-          } else if (data.status === 'error') {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-          }
-        } catch (error) {
-          // 에러 시 폴링 중단
-          if (intervalRef.current) clearInterval(intervalRef.current);
-        }
-      };
-
       poll();
-      intervalRef.current = setInterval(poll, 5000);
     };
 
-    startSyncAndPoll();
+    start();
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      cancelled = true;
+      stopPolling();
     };
   }, [shopId]);
 
