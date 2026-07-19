@@ -13,6 +13,7 @@ export default function MyPage() {
   const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
   const [shopId, setShopId] = useState('');
+  const [msConnected, setMsConnected] = useState(false);
   const [onedriveConnected, setOnedriveConnected] = useState(false);
   const [instaConnected, setInstaConnected] = useState(false);
   const [userName, setUserName] = useState('');
@@ -22,15 +23,23 @@ export default function MyPage() {
     setIsMounted(true);
     const storedShopId = localStorage.getItem('shop_id') || '';
     setShopId(storedShopId);
+    // MS 로그인이 shop_id의 유일한 발급원 → shop_id 보유 = MS 연결됨 (localStorage 기준, 다른 페이지와 동일).
+    setMsConnected(!!storedShopId);
+    // 신원 표시도 localStorage(shop_id) 기준 — photos/ai-upload 등과 동일.
+    // 근본 해결(세션 TTL·크로스도메인 헤더·백엔드 하드코딩 폴백)은 task #16.
+    setUserName(storedShopId);
     setOnedriveConnected(localStorage.getItem('onedrive_connected') === 'true');
     setInstaConnected(localStorage.getItem('insta_connected') === 'true');
 
+    // /auth/me는 보조: 반환 shop_id가 로그인된 shop_id와 일치할 때만 이름/이메일 보강.
+    // Easy Auth 헤더 부재 시 백엔드가 test_barber_jiyeon 폴백을 반환하므로, 불일치하면 무시한다.
     const fetchUserInfo = async () => {
       try {
         const res = await apiClient.get('/auth/me');
-        if (res.data) {
-          setUserName(res.data.name || res.data.shop_id || '');
-          setUserEmail(res.data.email || '');
+        const meShopId = res.data?.shop_id;
+        if (res.data && storedShopId && meShopId === storedShopId) {
+          if (res.data.name) setUserName(res.data.name);
+          if (res.data.email) setUserEmail(res.data.email);
         }
       } catch {}
     };
@@ -41,8 +50,8 @@ export default function MyPage() {
         try {
           const statusRes = await apiClient.get(`/auth/status/${storedShopId}`);
           if (statusRes.data) {
-            setOnedriveConnected(statusRes.data.onedrive_connected ?? localStorage.getItem('onedrive_connected') === 'true');
-            setInstaConnected(statusRes.data.insta_connected ?? localStorage.getItem('insta_connected') === 'true');
+            setOnedriveConnected(statusRes.data.is_onedrive_connected ?? localStorage.getItem('onedrive_connected') === 'true');
+            setInstaConnected(statusRes.data.is_insta_connected ?? localStorage.getItem('insta_connected') === 'true');
           }
         } catch {
           // fallback to localStorage
@@ -99,7 +108,17 @@ export default function MyPage() {
                 </svg>
                 <span className="text-[0.9rem] text-[#1A1A1A]" style={font}>Microsoft</span>
               </div>
-              <span className="text-[0.8rem] text-green-600 font-medium" style={font}>✓ {t.mypage_page.connected}</span>
+              {msConnected ? (
+                <span className="text-[0.8rem] text-green-600 font-medium" style={font}>✓ {t.mypage_page.connected}</span>
+              ) : (
+                <button
+                  onClick={() => router.push('/login')}
+                  className="text-[0.8rem] text-[#8B0000] font-bold px-3 py-1.5 border border-[#8B0000] rounded-[8px] hover:bg-[rgba(139,0,0,0.06)] transition-colors cursor-pointer"
+                  style={font}
+                >
+                  {t.mypage_page.connect}
+                </button>
+              )}
             </div>
 
             {/* OneDrive */}
