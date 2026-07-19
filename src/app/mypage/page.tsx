@@ -16,7 +16,7 @@ export default function MyPage() {
   const [msConnected, setMsConnected] = useState(false);
   const [onedriveConnected, setOnedriveConnected] = useState(false);
   const [instaConnected, setInstaConnected] = useState(false);
-  const [userName, setUserName] = useState('');
+  const [instagramUsername, setInstagramUsername] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
@@ -25,22 +25,14 @@ export default function MyPage() {
     setShopId(storedShopId);
     // MS 로그인이 shop_id의 유일한 발급원 → shop_id 보유 = MS 연결됨 (localStorage 기준, 다른 페이지와 동일).
     setMsConnected(!!storedShopId);
-    // 신원 표시도 localStorage(shop_id) 기준 — photos/ai-upload 등과 동일.
-    // 근본 해결(세션 TTL·크로스도메인 헤더·백엔드 하드코딩 폴백)은 task #16.
-    setUserName(storedShopId);
     setOnedriveConnected(localStorage.getItem('onedrive_connected') === 'true');
     setInstaConnected(localStorage.getItem('insta_connected') === 'true');
 
-    // /auth/me는 보조: 반환 shop_id가 로그인된 shop_id와 일치할 때만 이름/이메일 보강.
-    // Easy Auth 헤더 부재 시 백엔드가 test_barber_jiyeon 폴백을 반환하므로, 불일치하면 무시한다.
+    // /auth/me는 백엔드 upsert/refresh_token 갱신 목적으로 호출. 표시용 이름/이메일은
+    // /auth/status(shop_id 기준, 폴백 취약성 없음)에서 받으므로 여기 응답에는 의존하지 않는다.
     const fetchUserInfo = async () => {
       try {
-        const res = await apiClient.get('/auth/me');
-        const meShopId = res.data?.shop_id;
-        if (res.data && storedShopId && meShopId === storedShopId) {
-          if (res.data.name) setUserName(res.data.name);
-          if (res.data.email) setUserEmail(res.data.email);
-        }
+        await apiClient.get('/auth/me');
       } catch {}
     };
     fetchUserInfo();
@@ -52,6 +44,9 @@ export default function MyPage() {
           if (statusRes.data) {
             setOnedriveConnected(statusRes.data.is_onedrive_connected ?? localStorage.getItem('onedrive_connected') === 'true');
             setInstaConnected(statusRes.data.is_insta_connected ?? localStorage.getItem('insta_connected') === 'true');
+            // 프로필 표시: 인스타 계정명(백필 안 됐으면 null) + MS 로그인 이메일.
+            setInstagramUsername(statusRes.data.instagram_username ?? null);
+            if (statusRes.data.email) setUserEmail(statusRes.data.email);
           }
         } catch {
           // fallback to localStorage
@@ -70,7 +65,9 @@ export default function MyPage() {
 
   if (!isMounted) return null;
 
-  const initial = shopId ? shopId.charAt(0).toUpperCase() : 'U';
+  // 프로필 이름: 인스타 계정명 우선, 없으면(백필 안 된 샵) shop_id 폴백.
+  const displayName = instagramUsername ? `@${instagramUsername}` : (shopId || '샵 이름 미설정');
+  const initial = (instagramUsername || shopId || 'U').charAt(0).toUpperCase();
 
   return (
     <div className="flex flex-row h-screen w-full bg-[#F5F0EB] overflow-hidden">
@@ -86,7 +83,7 @@ export default function MyPage() {
               <span className="text-white text-[2rem] font-bold">{initial}</span>
             </div>
             <div>
-              <p className="text-[1.1rem] text-[#1A1A1A] font-bold" style={font}>{userName || shopId || '사용자'}</p>
+              <p className="text-[1.1rem] text-[#1A1A1A] font-bold" style={font}>{displayName}</p>
               {userEmail && <p className="text-[0.85rem] text-gray-500 mt-0.5" style={font}>{userEmail}</p>}
               <p className="text-[0.85rem] text-gray-500 mt-1" style={font}>{t.mypage_page.accountInfo}</p>
             </div>
