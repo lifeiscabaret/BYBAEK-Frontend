@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/components/Toast';
+import { CustomButton } from '@/components/CustomButton';
 import apiClient from '@/api/index';
 
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
@@ -15,6 +17,7 @@ const WEEKDAYS: Record<string, string[]> = {
 
 export default function SettingsPage() {
   const { t, lang } = useTranslation();
+  const toast = useToast();
   const [isMounted, setIsMounted] = useState(false);
 
   const [uploadTime, setUploadTime] = useState('19:00');
@@ -101,34 +104,37 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     localStorage.setItem('language', language);
+    // shopId가 없으면 실제로 저장할 수 없음 — 성공으로 위장하지 않고 에러 토스트.
+    if (!shopId) {
+      toast.error(t.toast.save_failed);
+      return;
+    }
     setSaveStatus('saving');
     try {
-      if (shopId) {
-        await apiClient.post(`/onboarding/${shopId}`, {
-          insta_upload_time: uploadTime,
-          insta_upload_time_slot: (
-            uploadFrequency === t.settings_page.daily ? '매일' :
-              uploadFrequency === t.settings_page.threePerWeek ? '주 3회' :
-                uploadFrequency === t.settings_page.weekly ? '주 1회' :
-                  uploadFrequency
-          ),
-          language,
-          insta_auto_upload_yn: 'Y',
-          insta_upload_days: uploadDays,
-          photo_range_max: photoRange,
-          brand_tone_emoji: (
-            emojiUsage === t.settings_page.often ? '자주 씀' :
-              emojiUsage === t.settings_page.sometimes ? '가끔 씀' :
-                emojiUsage === t.settings_page.never ? '안 씀' :
-                  emojiUsage
-          ),
-        });
-      }
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 2000);
+      await apiClient.post(`/onboarding/${shopId}`, {
+        insta_upload_time: uploadTime,
+        insta_upload_time_slot: (
+          uploadFrequency === t.settings_page.daily ? '매일' :
+            uploadFrequency === t.settings_page.threePerWeek ? '주 3회' :
+              uploadFrequency === t.settings_page.weekly ? '주 1회' :
+                uploadFrequency
+        ),
+        language,
+        insta_auto_upload_yn: 'Y',
+        insta_upload_days: uploadDays,
+        photo_range_max: photoRange,
+        brand_tone_emoji: (
+          emojiUsage === t.settings_page.often ? '자주 씀' :
+            emojiUsage === t.settings_page.sometimes ? '가끔 씀' :
+              emojiUsage === t.settings_page.never ? '안 씀' :
+                emojiUsage
+        ),
+      });
+      toast.success(t.toast.saved);
     } catch {
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      toast.error(t.toast.save_failed);
+    } finally {
+      setSaveStatus('idle');
     }
   };
 
@@ -271,14 +277,14 @@ export default function SettingsPage() {
         </div>
 
         {/* ⑤ 저장 */}
-        <button
+        <CustomButton
+          title={t.settings_page.saveBtn}
           onClick={handleSave}
-          disabled={saveStatus === 'saving'}
-          className={`px-10 py-3.5 rounded-[10px] text-white text-[0.95rem] font-medium transition-colors cursor-pointer ${saveStatus === 'saving' ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#8B0000] hover:bg-[#6b0000]'}`}
+          loading={saveStatus === 'saving'}
+          loadingText={t.toast.saving}
+          className="px-10 !py-3.5 !rounded-[10px]"
           style={font}
-        >
-          {saveStatus === 'saving' ? '...' : saveStatus === 'success' ? '저장됨 ✓' : saveStatus === 'error' ? '저장 실패' : t.settings_page.saveBtn}
-        </button>
+        />
       </div>
     </div>
   );

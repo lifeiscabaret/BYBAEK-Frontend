@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { CheckCircle, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/components/Toast';
+import { CustomButton } from '@/components/CustomButton';
 import apiClient from '@/api/index';
 import { runAgent, reviewPost } from '@/api/agent';
 import type { Photo } from '@/types';
@@ -33,6 +35,7 @@ const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 export default function AIUploadPage() {
   const router = useRouter();
   const { t } = useTranslation();
+  const toast = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -367,20 +370,23 @@ export default function AIUploadPage() {
                 >
                   {t.ai_upload.regenerate}
                 </button>
-                <button
+                <CustomButton
+                  title={t.ai_upload.uploadBtn}
+                  loadingText={t.toast.publishing}
                   onClick={async () => {
-                    if (postId && shopId) {
-                      try {
-                        await reviewPost({ shop_id: shopId, post_id: postId, action: 'ok' });
-                      } catch { }
+                    if (!postId || !shopId) return;
+                    // 발행 실패 시 성공 화면(step 5)으로 넘어가지 않고 에러 토스트만 — 조용한 성공 위장 방지.
+                    try {
+                      await reviewPost({ shop_id: shopId, post_id: postId, action: 'ok' });
+                      toast.success(t.toast.published);
+                      setStep(5);
+                    } catch {
+                      toast.error(t.toast.publish_failed);
                     }
-                    setStep(5);
                   }}
-                  className="px-8 py-3 rounded-[10px] bg-[#8B0000] text-white text-[0.95rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
+                  className="px-8 !rounded-[10px]"
                   style={font}
-                >
-                  {t.ai_upload.uploadBtn}
-                </button>
+                />
               </div>
             </div>
           )}

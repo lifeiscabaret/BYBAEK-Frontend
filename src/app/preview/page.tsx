@@ -5,6 +5,8 @@ import React, { useState, useRef, useEffect, FormEvent } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import apiClient from '@/api/index';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/components/Toast';
+import { CustomButton } from '@/components/CustomButton';
 import type { Photo, Album } from '@/types';
 
 interface ChatMessage {
@@ -22,12 +24,12 @@ export default function PreviewScreen() {
   }, []);
 
   const { t } = useTranslation();
+  const toast = useToast();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -198,7 +200,7 @@ export default function PreviewScreen() {
 
   const handleUpload = async () => {
     if (images.length === 0) {
-      setAlertMessage(t.preview.alert_no_photo);
+      toast.error(t.preview.alert_no_photo);
       return;
     }
 
@@ -206,7 +208,7 @@ export default function PreviewScreen() {
       !generatedCaption.trim() ||
       generatedCaption === t.preview.default_caption
     ) {
-      setAlertMessage(t.preview.alert_no_caption);
+      toast.error(t.preview.alert_no_caption);
       return;
     }
 
@@ -230,10 +232,10 @@ export default function PreviewScreen() {
       });
 
       if (reviewRes.data.status === 'uploaded') {
-        setAlertMessage(t.preview.alert_upload_success);
+        toast.success(t.toast.published);
       }
     } catch (error: any) {
-      setAlertMessage(error.response?.data?.detail || t.preview.alert_upload_fail);
+      toast.error(error.response?.data?.detail || t.toast.publish_failed);
     } finally {
       setIsLoading(false);
     }
@@ -476,12 +478,13 @@ export default function PreviewScreen() {
           </div>
 
           <div className="shrink-0 flex flex-row gap-3 h-[52px]">
-            <button
+            <CustomButton
+              title={t.preview.btn_upload_insta}
               onClick={handleUpload}
-              className="flex-[2] h-full bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform hover:scale-[1.01] active:scale-[0.99] shadow-md cursor-pointer"
-            >
-              {t.preview.btn_upload_insta}
-            </button>
+              loading={isLoading}
+              loadingText={t.toast.publishing}
+              className="flex-[2] h-full !rounded-lg text-[16px] shadow-md"
+            />
 
             <a
               href="https://instagram.com"
@@ -682,29 +685,6 @@ export default function PreviewScreen() {
         </div>
       )}
 
-      {/* 커스텀 알림창 UI */}
-      {alertMessage && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-[10001] backdrop-blur-sm">
-          <div className="bg-background rounded-xl shadow-2xl p-8 w-[360px] flex flex-col items-center">
-
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 shrink-0">
-              <span className="text-red-500 text-2xl font-bold">!</span>
-            </div>
-
-            <p className="text-sm text-text-primary text-center mb-6 font-bold whitespace-pre-wrap leading-relaxed">
-              {alertMessage}
-            </p>
-
-            <button
-              onClick={() => setAlertMessage(null)}
-              className="w-full py-3 bg-accent text-white rounded-lg font-bold cursor-pointer hover:bg-accent-dark transition-colors focus:outline-none"
-            >
-              {t.common?.confirm || '확인'}
-            </button>
-
-          </div>
-        </div>
-      )}
     </>
   );
 }

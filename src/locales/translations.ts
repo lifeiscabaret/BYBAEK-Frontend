@@ -10,6 +10,14 @@ export const translations = {
       select: "선택",
       no_date: "날짜 없음",
     },
+    toast: {
+      saving: "저장 중...",
+      saved: "저장되었습니다",
+      save_failed: "저장에 실패했어요. 다시 시도해주세요.",
+      publishing: "발행 중...",
+      published: "게시물이 발행되었습니다",
+      publish_failed: "발행에 실패했어요. 다시 시도해주세요.",
+    },
     album: {
       title: "내 앨범",
       delete_selected: "선택된 앨범 삭제",
@@ -438,6 +446,14 @@ export const translations = {
       confirm: "OK",
       select: "Select",
       no_date: "No Date",
+    },
+    toast: {
+      saving: "Saving...",
+      saved: "Saved",
+      save_failed: "Failed to save. Please try again.",
+      publishing: "Publishing...",
+      published: "Post published",
+      publish_failed: "Failed to publish. Please try again.",
     },
     album: {
       title: "My Album",
