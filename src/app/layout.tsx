@@ -5,6 +5,7 @@ import { Noto_Sans_KR, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
 import { PhotoSyncProgress } from '@/components/PhotoSyncProgress';
 import { TutorialTour } from '@/components/TutorialTour';
+import { ToastProvider } from '@/components/Toast';
 
 // 2. 폰트 객체 생성 및 굵기 설정
 const notoSansKr = Noto_Sans_KR({
@@ -38,13 +39,16 @@ export default function RootLayout({
         하드코딩된 헥스 코드 대신 tailwind.config.ts에 정의한 시맨틱 컬러 사용 
       */}
       <body className={`${notoSansKr.className} ${notoSansKr.variable} ${cormorantGaramond.variable} bg-background text-text-primary min-h-screen flex flex-col`}>
-        {children}
+        {/* 전역 토스트: 어디서든 useToast()로 동일한 성공/실패 피드백 */}
+        <ToastProvider>
+          {children}
 
-        {/* 🚨 최상위 뼈대에 동기화 알림창 부착! (항상 모든 화면 위를 덮게 됩니다) */}
-        <PhotoSyncProgress />
+          {/* 🚨 최상위 뼈대에 동기화 알림창 부착! (항상 모든 화면 위를 덮게 됩니다) */}
+          <PhotoSyncProgress />
 
-        {/* 🚨 튜토리얼 투어 컴포넌트 부착 */}
-        <TutorialTour />
+          {/* 🚨 튜토리얼 투어 컴포넌트 부착 */}
+          <TutorialTour />
+        </ToastProvider>
       </body>
     </html>
   );
