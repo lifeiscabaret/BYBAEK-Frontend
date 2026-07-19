@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { CheckCircle, X, Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/components/Toast';
+import { CustomButton } from '@/components/CustomButton';
 import apiClient from '@/api/index';
 
 const BACKEND_URL = 'https://api2.bybaekofficial.com';
@@ -68,6 +70,7 @@ const WEEKDAYS: Record<string, string[]> = {
 export default function AutoUploadPage() {
   const router = useRouter();
   const { t, lang } = useTranslation();
+  const toast = useToast();
   const [isMounted, setIsMounted] = useState(false);
   const [isInstaConnected, setIsInstaConnected] = useState(false);
   const [step, setStep] = useState(1);
@@ -106,7 +109,6 @@ export default function AutoUploadPage() {
   const [photoRange, setPhotoRange] = useState(5);
 
   // [NEW] 저장 실패 시 사용자에게 보여줄 에러 메시지 (기존엔 조용히 무시되고 완료 화면으로 넘어갔음)
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -290,22 +292,20 @@ export default function AutoUploadPage() {
       insta_review_bfr_upload_yn: 'N',
     };
 
-    setSaveError(null);
-
-    // [FIX] 저장 실패를 조용히 무시하지 않음 — 실패 시 완료 화면(step 6)으로 넘어가지 않고
-    // 에러 메시지를 보여준 뒤 재시도할 수 있게 함. (기존엔 catch{}로 삼키고 그냥 진행해서
-    // 서버엔 데이터가 없는데 클라이언트는 완료 상태가 되는 불일치가 발생했음)
+    // 저장 실패를 조용히 무시하지 않음 — 실패 시 완료 화면(step 6)으로 넘어가지 않고
+    // 에러 토스트를 보여준 뒤 재시도할 수 있게 함.
     try {
       if (shopId) {
         await apiClient.post(`/onboarding/${shopId}`, payload);
       }
     } catch (err) {
       console.error('[onboarding] 저장 실패:', err);
-      setSaveError('설정 저장에 실패했어요. 네트워크 상태를 확인하고 다시 시도해주세요.');
+      toast.error(t.toast.save_failed);
       return;
     }
 
     localStorage.setItem('onboarding_completed', 'true');
+    toast.success(t.toast.saved);
     setStep(6);
   };
 
@@ -717,11 +717,6 @@ export default function AutoUploadPage() {
                 </div>
               )}
 
-              {/* [NEW] 저장 실패 에러 메시지 — 조용히 무시하지 않고 사용자에게 알림 */}
-              {step === 5 && saveError && (
-                <p className="text-[0.8rem] text-red-600 mt-4 text-center" style={font}>{saveError}</p>
-              )}
-
               {/* 네비게이션 버튼 */}
               <div className="flex items-center justify-between mt-auto pt-10">
                 <button
@@ -742,14 +737,14 @@ export default function AutoUploadPage() {
                     {t.auto_upload.next}
                   </button>
                 ) : (
-                  <button
-                    onClick={() => canNext() && handleComplete()}
+                  <CustomButton
+                    title={t.auto_upload.done}
+                    onClick={() => { if (canNext()) return handleComplete(); }}
                     disabled={!canNext()}
-                    className={`px-8 py-3 rounded-[10px] text-[0.95rem] font-medium transition-all cursor-pointer ${canNext() ? 'bg-[#8B0000] text-white hover:bg-[#6b0000]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                    loadingText={t.toast.saving}
+                    className="px-8 !rounded-[10px]"
                     style={font}
-                  >
-                    {t.auto_upload.done}
-                  </button>
+                  />
                 )}
               </div>
             </div>
