@@ -384,9 +384,29 @@ export default function AllPhotosScreen() {
     try {
       const storedShopId = localStorage.getItem('shop_id');
       setShopId(storedShopId);
+      // localStorage는 초기 페인트용 캐시로만 사용. 진실의 소스는 아래 /auth/status.
       setIsOnedriveConnected(localStorage.getItem('onedrive_connected') === 'true');
     } catch {}
   }, []);
+
+  // OneDrive 연결 여부는 백엔드(/auth/status)를 진실의 소스로 확인. 응답으로 상태·캐시를 덮어씀.
+  // (튜토리얼이 localStorage 플래그만 조작하던 가짜 "연결됨"도 여기서 실제값으로 교정됨)
+  useEffect(() => {
+    if (!shopId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiClient.get(`/auth/status/${shopId}`);
+        if (cancelled) return;
+        const connected = !!res.data?.is_onedrive_connected;
+        setIsOnedriveConnected(connected);
+        localStorage.setItem('onedrive_connected', connected ? 'true' : 'false'); // 캐시 갱신
+      } catch {
+        // 조회 실패 시엔 캐시된 값 유지 (진실의 소스 아님, 최선의 캐시)
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [shopId]);
 
   const fetchPhotos = async () => {
     if (!shopId) return;
