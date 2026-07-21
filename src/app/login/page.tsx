@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useTranslation } from '@/hooks/useTranslation';
-import apiClient from '@/api/index';
+import apiClient, { ACCESS_TOKEN_KEY } from '@/api/index';
 import Image from 'next/image';
 
 // 🚨 [유지] LANGUAGE_SELECT 단계 포함 완벽한 타입 정의
@@ -43,31 +43,45 @@ export default function LoginScreen() {
   useEffect(() => {
     if (!isMounted) return;
 
-    const handleAuthMessage = async (event: MessageEvent) => {
-      if (event.data === 'MS_LOGIN_SUCCESS') {
-        try {
-          const response = await apiClient.get('/auth/me');
-          const { shop_id } = response.data;
+    const handleAuthMessage = (event: MessageEvent) => {
+      const data = event.data;
 
-          if (shop_id) {
-            localStorage.setItem('shop_id', shop_id);
-            setMsLoginStatus('COMPLETED');
+      // ── MS 로그인: 백엔드(api2) 팝업이 객체로 shop_id/access_token까지 담아 postMessage ──
+      // /auth/me 재호출 불필요 — postMessage에 필요한 값이 이미 다 들어있음.
+      if (
+        data && typeof data === 'object' &&
+        (data.type === 'MS_LOGIN_SUCCESS' || data.type === 'MS_LOGIN_ERROR')
+      ) {
+        // origin 검증: 백엔드 origin에서 온 메시지만 신뢰 (스푸핑 방지)
+        if (event.origin !== BACKEND_URL) return;
 
-            try {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              await apiClient.post('/onedrive/sync-photos', {
-                root_folder_item_id: 'root',
-                overwrite: false
-              });
-            } catch {
-              // OneDrive 동기화 실패 시 무시 (이미 실행 중이거나 연동 안 됨)
-            }
-          }
-        } catch {
-          // MS 유저 동기화 실패
+        if (data.type === 'MS_LOGIN_ERROR') {
+          setMsLoginStatus('IDLE');
+          setAlertData({
+            isOpen: true,
+            message: data.message || 'Microsoft 로그인에 실패했습니다. 다시 시도해주세요.',
+            onConfirm: () => setAlertData({ isOpen: false, message: '' }),
+          });
+          return;
         }
+
+        // MS_LOGIN_SUCCESS
+        const { shop_id, access_token } = data;
+        if (access_token) sessionStorage.setItem(ACCESS_TOKEN_KEY, access_token);
+        if (shop_id) {
+          localStorage.setItem('shop_id', shop_id);
+          setMsLoginStatus('COMPLETED');
+          // OneDrive 초기 동기화 트리거 (이제 Bearer 토큰이 실림). 실패는 무시.
+          apiClient
+            .post('/onedrive/sync-photos', { root_folder_item_id: 'root', overwrite: false })
+            .catch(() => {});
+        }
+        return;
       }
-      if (event.data === 'INSTA_LOGIN_SUCCESS') {
+
+      // ── Instagram 로그인: 프론트 /auth/callback(same-origin)이 문자열로 postMessage ──
+      if (data === 'INSTA_LOGIN_SUCCESS') {
+        if (event.origin !== window.location.origin) return; // same-origin 검증
         setInstaLoginStatus('COMPLETED');
       }
     };

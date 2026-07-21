@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { useTranslation } from '@/hooks/useTranslation';
-import apiClient from '@/api/index';
+import apiClient, { ACCESS_TOKEN_KEY } from '@/api/index';
 
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 
@@ -28,14 +28,9 @@ export default function MyPage() {
     setOnedriveConnected(localStorage.getItem('onedrive_connected') === 'true');
     setInstaConnected(localStorage.getItem('insta_connected') === 'true');
 
-    // /auth/me는 백엔드 upsert/refresh_token 갱신 목적으로 호출. 표시용 이름/이메일은
-    // /auth/status(shop_id 기준, 폴백 취약성 없음)에서 받으므로 여기 응답에는 의존하지 않는다.
-    const fetchUserInfo = async () => {
-      try {
-        await apiClient.get('/auth/me');
-      } catch {}
-    };
-    fetchUserInfo();
+    // /auth/me는 새 로그인 계약상 SPA에서 호출하지 않음 (토큰은 로그인 postMessage로 수신).
+    // 크로스오리진 /auth/me 호출은 쿠키 부재 시 401→로그인 리다이렉트 유발 위험이 있어 제거함.
+    // 표시용 값은 아래 /auth/status(shop_id 기준)에서 받는다.
 
     if (storedShopId) {
       const fetchStatus = async () => {
@@ -60,6 +55,7 @@ export default function MyPage() {
 
   const handleLogout = () => {
     localStorage.clear();
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY); // Bearer 토큰도 정리
     router.push('/login');
   };
 

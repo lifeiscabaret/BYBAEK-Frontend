@@ -183,6 +183,8 @@ export default function AutoUploadPage() {
     }
 
     const handleMessage = (event: MessageEvent) => {
+      // Instagram 콜백은 프론트 /auth/callback(same-origin)에서 옴 — origin 검증 (스푸핑 방지)
+      if (event.origin !== window.location.origin) return;
       if (event.data === 'INSTA_LOGIN_SUCCESS') {
         localStorage.setItem('insta_connected', 'true');
         setIsInstaConnected(true);

@@ -1,10 +1,17 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, AlertCircle } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'info';
+
+// React 밖(예: axios 인터셉터)에서도 토스트를 띄우기 위한 모듈 레벨 브릿지.
+// ToastProvider가 마운트되면 실제 핸들러를 등록한다.
+let toastEmitter: ((type: ToastType, message: string) => void) | null = null;
+export function emitToast(type: ToastType, message: string) {
+  toastEmitter?.(type, message);
+}
 
 interface ToastItem {
   id: number;
@@ -51,6 +58,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     error: (m) => push('error', m),
     info: (m) => push('info', m),
   };
+
+  // 모듈 레벨 브릿지에 실제 핸들러 등록 (axios 인터셉터 등 React 밖에서 호출 가능하게)
+  useEffect(() => {
+    toastEmitter = (type, message) => push(type, message);
+    return () => { toastEmitter = null; };
+  }, [push]);
 
   return (
     <ToastContext.Provider value={api}>
