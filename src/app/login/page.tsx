@@ -109,7 +109,9 @@ export default function LoginScreen() {
 
   const handleMsLoginClick = () => {
     setMsLoginStatus('IN_PROGRESS');
-    const loginUrl = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${encodeURIComponent(BACKEND_URL + '/api/auth/ms/callback')}&scope=openid+profile+email+Files.ReadWrite.All+offline_access`;
+    // 백엔드가 OAuth 왕복을 자체 구현으로 대체 (구 Easy Auth 로그인 엔드포인트 폐기 — Nonce 쿠키 의존 제거).
+    // postMessage 계약(shop_id/is_new/access_token, origin 검증)은 이전과 동일.
+    const loginUrl = `${BACKEND_URL}/api/auth/login`;
     window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
   };
 
