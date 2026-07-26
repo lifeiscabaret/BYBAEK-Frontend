@@ -109,9 +109,10 @@ export default function LoginScreen() {
 
   const handleMsLoginClick = () => {
     setMsLoginStatus('IN_PROGRESS');
-    // 백엔드가 OAuth 왕복을 자체 구현으로 대체 (구 Easy Auth 로그인 엔드포인트 폐기 — Nonce 쿠키 의존 제거).
-    // postMessage 계약(shop_id/is_new/access_token, origin 검증)은 이전과 동일.
-    const loginUrl = `${BACKEND_URL}/api/auth/login`;
+    // [응급조치] 자체 콜백(/api/auth/callback)이 Chrome Safe Browsing "Deceptive pages"로 차단되어
+    // Azure 관리 로그인 경로(/.auth/login/aad)로 복귀. 착지 지점 /ms/callback에서 Bearer 토큰 발급.
+    // (트레이드오프: 시크릿창은 Nonce 쿠키 이슈로 실패 가능 — 현 단계에서 감수. 최종 해결은 Part 2.)
+    const loginUrl = `${BACKEND_URL}/.auth/login/aad?post_login_redirect_uri=${encodeURIComponent(BACKEND_URL + '/api/auth/ms/callback')}&scope=openid+profile+email+Files.ReadWrite.All+offline_access`;
     window.open(loginUrl, 'MS_Login_Popup', 'width=500,height=600');
   };
 
