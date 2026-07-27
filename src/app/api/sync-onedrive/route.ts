@@ -8,20 +8,17 @@ export async function POST(request: NextRequest) {
     try {
         const body = await request.json().catch(() => ({}));
 
-        // ✅ 프론트에서 넘긴 토큰 그대로 사용
-        const accessToken = request.headers.get('x-access-token') || '';
-        const principalId = request.headers.get('x-principal-id') || '';
-
-        if (!accessToken) {
-            return NextResponse.json({ success: false, message: 'MS 로그인 필요' }, { status: 401 });
+        // 클라이언트가 넘긴 Bearer 토큰을 그대로 백엔드 호출에 재첨부 (Bearer 인증 방식).
+        const authHeader = request.headers.get('authorization') || '';
+        if (!authHeader) {
+            return NextResponse.json({ success: false, message: '인증 토큰 필요' }, { status: 401 });
         }
 
         const syncRes = await fetch(`${BACKEND_URL}/api/onedrive/sync-photos`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-ms-token-aad-access-token': accessToken,
-                'X-MS-CLIENT-PRINCIPAL-ID': principalId,
+                Authorization: authHeader,
             },
             body: JSON.stringify(body),
         });
@@ -46,11 +43,12 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'shop_id 필요' }, { status: 400 });
         }
 
-        const authSession = request.cookies.get('AppServiceAuthSession')?.value;
+        // 폐기된 AppServiceAuthSession 쿠키 대신, 클라이언트 Bearer 토큰을 백엔드로 재첨부.
+        const authHeader = request.headers.get('authorization') || '';
 
         const statusRes = await fetch(
             `${BACKEND_URL}/api/photos/status/${shopId}`,
-            { headers: authSession ? { Cookie: `AppServiceAuthSession=${authSession}` } : {} }
+            { headers: authHeader ? { Authorization: authHeader } : {} }
         );
 
         const statusData = await statusRes.json();

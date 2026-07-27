@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import apiClient from '@/api/index';
+import apiClient, { ACCESS_TOKEN_KEY } from '@/api/index';
 import { useTranslation } from '@/hooks/useTranslation';
 
 interface SyncStatus {
@@ -69,7 +69,11 @@ export function PhotoSyncProgress() {
     const poll = async () => {
       if (cancelled || stoppedRef.current) return;
       try {
-        const response = await fetch(`/api/sync-onedrive?shop_id=${shopId}`);
+        // Bearer 토큰을 프록시 라우트로 전달 → 프록시가 백엔드 호출에 재첨부.
+        const token = sessionStorage.getItem(ACCESS_TOKEN_KEY);
+        const response = await fetch(`/api/sync-onedrive?shop_id=${shopId}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         // 404 등은 fetch가 throw하지 않으므로 명시적으로 실패로 처리 (기존 무한 재시도의 원인).
         if (!response.ok) throw new Error(`sync status HTTP ${response.status}`);
         const raw = await response.json();
@@ -144,18 +148,13 @@ export function PhotoSyncProgress() {
       if (!syncStartedRef.current) {
         syncStartedRef.current = true;
         try {
-          const meRes = await fetch('/.auth/me');
-          if (!meRes.ok) throw new Error('auth endpoint unavailable');
-          const meData = await meRes.json();
-          const accessToken = meData?.[0]?.access_token || '';
-          const principalId = meData?.[0]?.user_id || '';
-
+          // 폐기된 Easy Auth 토큰 엔드포인트(www에서 404) 대신 sessionStorage의 Bearer 토큰을 프록시로 전달.
+          const token = sessionStorage.getItem(ACCESS_TOKEN_KEY);
           await fetch('/api/sync-onedrive', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-access-token': accessToken,
-              'x-principal-id': principalId,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify({ shop_id: shopId }),
           });
