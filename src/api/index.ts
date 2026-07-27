@@ -22,8 +22,11 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // ── 응답 인터셉터: 401/403 통일 처리 ──
-// 401(인증 실패/토큰 만료·무효) → 토큰 정리 후 로그인 페이지로 이동
-// 403(다른 샵 접근 등 권한 없음) → 토스트만 표시
+// 401(인증 실패/토큰 만료·무효) / 403(권한 없음) 처리.
+// [전환기 진단] 백엔드 Bearer 수용이 확정되기 전까지, 401에서 자동으로 /login으로 튕기지 않는다.
+//   - 이유: 로그인 직후 어떤 호출이 401을 내면 인터셉터가 즉시 리다이렉트해서 대시보드 진입 자체가 막히고,
+//     "어느 요청이 왜 401인지"도 안 보였음. 지금은 실패 URL/상태를 콘솔에 남겨 원인 추적을 우선한다.
+//   - 근본 원인(백엔드가 해당 엔드포인트에서 Bearer를 수용하는지)이 확정되면 자동 리다이렉트를 다시 켠다.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -31,11 +34,12 @@ apiClient.interceptors.response.use(
 
     if (typeof window !== "undefined") {
       if (status === 401) {
-        sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-        // 이미 로그인 페이지면 리다이렉트 생략 (무한 루프 방지)
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
-        }
+        // 어느 요청이 401인지 그대로 노출 (진단용).
+        console.error("[auth] 401 Unauthorized:", error?.config?.url, error?.response?.data);
+        // 자동 /login 리다이렉트는 전환기 동안 비활성화 (대시보드 진입 차단 방지).
+        // 필요 시 아래 두 줄을 되살려 재활성화:
+        //   sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+        //   if (window.location.pathname !== "/login") window.location.href = "/login";
       } else if (status === 403) {
         emitToast("error", "접근 권한이 없습니다.");
       }
