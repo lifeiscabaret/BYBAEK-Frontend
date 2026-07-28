@@ -366,6 +366,8 @@ export const translations = {
       insight1: "짧은 스타일 컷 게시물의 반응이 좋습니다",
       insight2: "저녁 7~9시 업로드 성과가 높습니다",
       insight3: "fade 관련 해시태그 반응이 좋습니다",
+      chartEmpty: "아직 표시할 성과 데이터가 없습니다",
+      popularEmpty: "아직 인기 게시물 데이터가 없습니다",
     },
     mypage_page: {
       title: "마이페이지",
@@ -802,6 +804,8 @@ export const translations = {
       insight1: "Short style cut posts get the best engagement",
       insight2: "Evening 7-9pm uploads perform best",
       insight3: "Fade-related hashtags get strong reactions",
+      chartEmpty: "No performance data yet",
+      popularEmpty: "No popular posts data yet",
     },
     mypage_page: {
       title: "My Page",
