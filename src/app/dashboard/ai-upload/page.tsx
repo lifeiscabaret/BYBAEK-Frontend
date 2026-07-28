@@ -11,21 +11,6 @@ import apiClient from '@/api/index';
 import { runAgent, reviewPost } from '@/api/agent';
 import type { Photo } from '@/types';
 
-const PHOTO_GRID = [
-  '/demo/pass_01.jpg',
-  '/demo/pass_02.jpg',
-  '/demo/pass_03.jpg',
-  '/demo/pass_04.jpg',
-  'https://picsum.photos/seed/barber1/300/300',
-  'https://picsum.photos/seed/barber2/300/300',
-  'https://picsum.photos/seed/barber3/300/300',
-  'https://picsum.photos/seed/barber4/300/300',
-  'https://picsum.photos/seed/barber5/300/300',
-  'https://picsum.photos/seed/barber6/300/300',
-  'https://picsum.photos/seed/barber7/300/300',
-  'https://picsum.photos/seed/barber8/300/300',
-];
-
 const STYLE_KEYS = ['trendy', 'classic', 'premium', 'street'] as const;
 const PURPOSE_KEYS = ['promo', 'event', 'review', 'newCustomer'] as const;
 const LOADING_KEYS = ['loading1', 'loading2', 'loading3'] as const;
@@ -90,11 +75,8 @@ export default function AIUploadPage() {
     }, 1500);
 
     const generate = async () => {
-      const grid = photos.length > 0 ? photos.map(p => p.blob_url) : PHOTO_GRID;
-      const photoIds = selectedPhotos.map(i => {
-        if (photos.length > 0 && photos[i]) return photos[i].id;
-        return `mock_${i}`;
-      });
+      const grid = photos.map(p => p.blob_url);
+      const photoIds = selectedPhotos.map(i => photos[i]?.id).filter(Boolean) as string[];
 
       // [FIX] 실패 시 목업(MOCK_CAPTION)으로 조용히 바꿔치기하던 로직 제거.
       // 데모 중 실제 생성이 실패하거나 타임아웃돼도 지현님이 알아채지 못한 채
@@ -112,7 +94,7 @@ export default function AIUploadPage() {
 
         setGeneratedCaption(result.caption);
         setGeneratedHashtags(result.hashtags || []);
-        setGeneratedPhotoUrl(result.photo_urls?.[0] || grid[selectedPhotos[0]] || '/demo/pass_01.jpg');
+        setGeneratedPhotoUrl(result.photo_urls?.[0] || grid[selectedPhotos[0]] || '');
         setGeneratedCta(result.cta || '');
         setPostId(result.post_id || null);
         if (loadingInterval.current) clearInterval(loadingInterval.current);
@@ -159,9 +141,8 @@ export default function AIUploadPage() {
 
   if (!isMounted) return null;
 
-  const photoGrid = photos.length > 0
-    ? photos.map(p => p.blob_url)
-    : PHOTO_GRID;
+  // 실제 연동된 사진만 사용 (mock 스톡 사진 폴백 제거). 없으면 빈 배열 → 아래에서 빈 상태 표시.
+  const photoGrid = photos.map(p => p.blob_url);
 
   const progressPercent = (step / 5) * 100;
 
@@ -194,38 +175,59 @@ export default function AIUploadPage() {
               <h2 className="text-[1.4rem] text-[#1A1A1A] mb-6" style={{ ...font, fontWeight: 700 }}>
                 {t.ai_upload.selectPhotos}
               </h2>
-              <div className="grid grid-cols-4 gap-4 mb-8">
-                {photoGrid.map((src, i) => {
-                  const isSelected = selectedPhotos.includes(i);
-                  return (
-                    <div
-                      key={i}
-                      className={`relative aspect-square rounded-[12px] overflow-hidden cursor-pointer border-2 transition-all ${isSelected ? 'border-[#8B0000] ring-2 ring-[#8B0000]/20' : 'border-transparent hover:border-gray-200'}`}
-                      onClick={() => togglePhoto(i)}
-                    >
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                      {isSelected && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-[#8B0000] rounded-full flex items-center justify-center">
-                          <span className="text-white text-xs font-bold">✓</span>
+              {photoGrid.length === 0 ? (
+                /* 연동된 사진이 없을 때: mock 스톡 사진 대신 명확한 빈 상태 */
+                <div className="border-2 border-dashed border-gray-200 rounded-[16px] py-20 flex flex-col items-center justify-center text-center">
+                  <p className="text-[1.05rem] text-[#1A1A1A] mb-2" style={{ ...font, fontWeight: 700 }}>
+                    {t.ai_upload.noPhotosTitle}
+                  </p>
+                  <p className="text-[0.9rem] text-[#5a2a2a] mb-6 whitespace-pre-line" style={font}>
+                    {t.ai_upload.noPhotosDesc}
+                  </p>
+                  <button
+                    onClick={() => router.push('/photos')}
+                    className="px-6 py-3 rounded-[10px] bg-[#8B0000] text-white text-[0.9rem] font-medium hover:bg-[#6b0000] transition-colors cursor-pointer"
+                    style={font}
+                  >
+                    {t.ai_upload.noPhotosCta}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-4 gap-4 mb-8">
+                    {photoGrid.map((src, i) => {
+                      const isSelected = selectedPhotos.includes(i);
+                      return (
+                        <div
+                          key={i}
+                          className={`relative aspect-square rounded-[12px] overflow-hidden cursor-pointer border-2 transition-all ${isSelected ? 'border-[#8B0000] ring-2 ring-[#8B0000]/20' : 'border-transparent hover:border-gray-200'}`}
+                          onClick={() => togglePhoto(i)}
+                        >
+                          <img src={src} alt="" className="w-full h-full object-cover" />
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 w-6 h-6 bg-[#8B0000] rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">✓</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[0.9rem] text-[#5a2a2a]" style={font}>
-                  {selectedPhotos.length}{t.ai_upload.selectedCount}
-                </span>
-                <button
-                  onClick={() => selectedPhotos.length > 0 && setStep(2)}
-                  disabled={selectedPhotos.length === 0}
-                  className={`px-8 py-3 rounded-[10px] text-[0.95rem] font-medium transition-all cursor-pointer ${selectedPhotos.length > 0 ? 'bg-[#8B0000] text-white hover:bg-[#6b0000]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                  style={font}
-                >
-                  {t.ai_upload.next}
-                </button>
-              </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[0.9rem] text-[#5a2a2a]" style={font}>
+                      {selectedPhotos.length}{t.ai_upload.selectedCount}
+                    </span>
+                    <button
+                      onClick={() => selectedPhotos.length > 0 && setStep(2)}
+                      disabled={selectedPhotos.length === 0}
+                      className={`px-8 py-3 rounded-[10px] text-[0.95rem] font-medium transition-all cursor-pointer ${selectedPhotos.length > 0 ? 'bg-[#8B0000] text-white hover:bg-[#6b0000]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                      style={font}
+                    >
+                      {t.ai_upload.next}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
