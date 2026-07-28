@@ -274,6 +274,9 @@ export const translations = {
     ai_upload: {
       selectPhotos: "사진을 선택하세요",
       selectedCount: "장 선택됨",
+      noPhotosTitle: "연동된 사진이 없습니다",
+      noPhotosDesc: "먼저 OneDrive 사진을 동기화한 뒤 이용해주세요.",
+      noPhotosCta: "사진 관리로 이동",
       styleAndPurpose: "스타일과 목적을 선택하세요",
       styleLabel: "스타일",
       purposeLabel: "목적",
@@ -712,6 +715,9 @@ export const translations = {
     ai_upload: {
       selectPhotos: "Select photos",
       selectedCount: " selected",
+      noPhotosTitle: "No synced photos yet",
+      noPhotosDesc: "Please sync your OneDrive photos first.",
+      noPhotosCta: "Go to photo manager",
       styleAndPurpose: "Select style and purpose",
       styleLabel: "Style",
       purposeLabel: "Purpose",
