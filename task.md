@@ -231,7 +231,11 @@
 | photo_range_max 표시 클램프 | 2 | 0 | 100% |
 | 말투 다시 분석 기능 | 3 | 0 | 100% |
 | 사이드바 언어 토글 동기화 | 4 | 0 | 100% |
-| **전체** | **129** | **0** | **100%** |
+| 앱 버전 버그픽스 웹 반영 | 10 | 0 | 100% |
+| 개인 Azure 계정 이전 | 6 | 0 | 100% |
+| 가짜 데이터 정리 (분석/AI 업로드) | 4 | 0 | 100% |
+| 가짜 데이터 정리 (사진 페이지) | 9 | 0 | 100% |
+| **전체** | **158** | **0** | **100%** |
 
 > 현재까지 커밋된 모든 기능이 완료 상태입니다. 향후 새로운 작업이 추가되면 이 문서에 기록합니다.
 
@@ -374,3 +378,30 @@
 | README 최신화 — 웹 로고 반영, 역할분담 재작성(차명근 레거시 / 이지현 UI·UX 개선·설계), 배포 URL을 `www.bybaekofficial.com` 단일화 | ✅ 완료 | `README.md` |
 | 개인 Azure(`rg-bybaek`)에 프론트 App Service `bybaek-frontend`(Node 22, `bybaek-plan` B1) 생성·standalone 배포 | ✅ 완료 | Azure 인프라 |
 | CI/CD 교체 — 죽은 구독 대상 워크플로 제거, 새 앱 배포 워크플로 추가(게시프로필 인증, `vars.AZURE_WEBAPP_NAME`·`NEXT_PUBLIC_*` 파라미터화, standalone 패키징 계승) | ✅ 완료 | `.github/workflows/deploy.yml` (신규), `.github/workflows/main_bybaek-f.yml` (삭제) |
+
+---
+
+## 28. 가짜 데이터 정리 — 분석 / AI 업로드 (2026-07-28)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| `MOCK_DATA`(가짜 KPI·좋아요/댓글 시계열·인기 게시물 3건) 제거, 실데이터 없으면 KPI `-` 표시 및 증감 배지 숨김 | ✅ 완료 | `app/dashboard/analytics/page.tsx` |
+| 성과 추이 차트·인기 게시물에 빈 상태 문구 적용 | ✅ 완료 | `app/dashboard/analytics/page.tsx` |
+| `PHOTO_GRID`(picsum·demo 스톡 사진 12장) 제거, 사진 미연동 시 빈 상태 + "사진 관리로 이동" CTA | ✅ 완료 | `app/dashboard/ai-upload/page.tsx` |
+| 빈 상태 다국어 키 추가 (`chartEmpty`, `popularEmpty`, `noPhotosTitle/Desc/Cta`) | ✅ 완료 | `locales/translations.ts` |
+
+---
+
+## 29. 가짜 데이터 정리 — 사진 페이지 (2026-08-03)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| `MOCK_PHOTOS`(picsum·demo 스톡 사진 16장) 제거 | ✅ 완료 | `app/photos/page.tsx` |
+| `DEFAULT_ALBUMS`(페이드컷/사이드파트/아이비리그/포마드 가짜 앨범) 제거 | ✅ 완료 | `app/photos/page.tsx` |
+| `useMockGrid` 개념 제거 — 그리드 노출 조건을 `hasPhotos`만으로 판단 | ✅ 완료 | `app/photos/page.tsx` |
+| OneDrive 연결 + 동기화 사진 0장 전용 빈 상태 추가 (미연결 안내와 구분) | ✅ 완료 | `app/photos/page.tsx` |
+| 앨범 목록 실제 API 연동 (`GET /photos/albums/{shop_id}`), 초기값 빈 배열 + 앨범 없을 때 안내 문구 | ✅ 완료 | `app/photos/page.tsx` |
+| 앨범 필터링을 인덱스 하드코딩 → 앨범 사진 id 조회(`GET /photos/albums/{shop_id}/{album_id}`) 기반으로 교체 | ✅ 완료 | `app/photos/page.tsx` |
+| 앨범 생성 로컬 state → 백엔드 저장(`POST /photos/albums`) 전환, 실패 시 안내 모달 | ✅ 완료 | `app/photos/page.tsx` |
+| 앨범 썸네일 없을 때 목업 이미지 대신 플레이스홀더 아이콘 표시 | ✅ 완료 | `app/photos/page.tsx` |
+| 빈 상태·실패 안내 다국어 키 추가 (`syncedEmptyTitle/Desc`, `albumEmpty`, `albumCreateFailed`) | ✅ 완료 | `locales/translations.ts` |
