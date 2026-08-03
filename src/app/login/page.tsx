@@ -59,7 +59,8 @@ export default function LoginScreen() {
           setMsLoginStatus('IDLE');
           setAlertData({
             isOpen: true,
-            message: data.message || 'Microsoft 로그인에 실패했습니다. 다시 시도해주세요.',
+            // 백엔드는 실패 사유를 `detail`로 보낸다. `message`만 읽으면 사유가 묻힌다.
+            message: data.detail || data.message || 'Microsoft 로그인에 실패했습니다. 다시 시도해주세요.',
             onConfirm: () => setAlertData({ isOpen: false, message: '' }),
           });
           return;
@@ -67,7 +68,22 @@ export default function LoginScreen() {
 
         // MS_LOGIN_SUCCESS
         const { shop_id, access_token } = data;
-        if (access_token) sessionStorage.setItem(ACCESS_TOKEN_KEY, access_token);
+
+        // 토큰 없는 성공은 성공이 아니다. 예전엔 그냥 통과시켜서 shop_id만 저장하고
+        // 대시보드로 넘어갔고, 이후 모든 API가 401("인증 토큰이 필요합니다")로 실패하면서도
+        // 화면상으론 로그인된 것처럼 보였다. 여기서 명시적으로 실패 처리한다.
+        if (!access_token) {
+          console.error('[login] MS_LOGIN_SUCCESS에 access_token이 없음', data);
+          setMsLoginStatus('IDLE');
+          setAlertData({
+            isOpen: true,
+            message: '로그인 토큰을 받지 못했습니다. 다시 시도해주세요.',
+            onConfirm: () => setAlertData({ isOpen: false, message: '' }),
+          });
+          return;
+        }
+
+        sessionStorage.setItem(ACCESS_TOKEN_KEY, access_token);
         if (shop_id) {
           localStorage.setItem('shop_id', shop_id);
           setMsLoginStatus('COMPLETED');
