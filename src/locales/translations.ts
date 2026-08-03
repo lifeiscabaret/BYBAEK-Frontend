@@ -248,6 +248,10 @@ export const translations = {
     },
     photos_page: {
       empty: "아직 연동된 사진이 없습니다",
+      syncedEmptyTitle: "아직 동기화된 사진이 없습니다",
+      syncedEmptyDesc: "OneDrive 카메라 백업이 켜져 있는지 확인해주세요.\n첫 동기화는 몇 분 정도 걸릴 수 있어요.",
+      albumEmpty: "아직 앨범이 없습니다.\n사진을 선택해 앨범을 만들어보세요.",
+      albumCreateFailed: "앨범을 만들지 못했습니다.\n잠시 후 다시 시도해주세요.",
       connectBtn: "사진연동 시작하기",
       benefit1: "자동으로 게시물 생성",
       benefit2: "해시태그 추천",
@@ -689,6 +693,10 @@ export const translations = {
     },
     photos_page: {
       empty: "No photos connected yet",
+      syncedEmptyTitle: "No synced photos yet",
+      syncedEmptyDesc: "Check that OneDrive camera backup is turned on.\nThe first sync may take a few minutes.",
+      albumEmpty: "No albums yet.\nSelect photos to create one.",
+      albumCreateFailed: "Could not create the album.\nPlease try again in a moment.",
       connectBtn: "Connect OneDrive",
       benefit1: "Auto-generate posts",
       benefit2: "Hashtag recommendations",

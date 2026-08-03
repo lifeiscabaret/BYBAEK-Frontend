@@ -9,30 +9,14 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useRouter } from 'next/navigation';
 import type { Photo } from '@/types';
 
-const MOCK_PHOTOS = [
-  '/demo/pass_01.jpg', '/demo/pass_02.jpg', '/demo/pass_03.jpg', '/demo/pass_04.jpg',
-  'https://picsum.photos/seed/bp1/300/300', 'https://picsum.photos/seed/bp2/300/300',
-  'https://picsum.photos/seed/bp3/300/300', 'https://picsum.photos/seed/bp4/300/300',
-  'https://picsum.photos/seed/bp5/300/300', 'https://picsum.photos/seed/bp6/300/300',
-  'https://picsum.photos/seed/bp7/300/300', 'https://picsum.photos/seed/bp8/300/300',
-  'https://picsum.photos/seed/bp9/300/300', 'https://picsum.photos/seed/bp10/300/300',
-  'https://picsum.photos/seed/bp11/300/300', 'https://picsum.photos/seed/bp12/300/300',
-];
-
-const DEFAULT_ALBUMS = [
-  { name: '페이드컷', thumb: '/demo/pass_01.jpg', photoIndexes: [0, 4, 8] },
-  { name: '사이드파트', thumb: '/demo/pass_02.jpg', photoIndexes: [1, 5, 9] },
-  { name: '아이비리그', thumb: '/demo/pass_03.jpg', photoIndexes: [2, 6, 10] },
-  { name: '포마드', thumb: '/demo/pass_04.jpg', photoIndexes: [3, 7, 11] },
-];
-
 const font = { fontFamily: "'NanumSquare Neo', 'NanumSquare', sans-serif" };
 const tutorialFont = { fontFamily: "'S-Core Dream', sans-serif" };
 
+/** 백엔드(/photos/albums)에서 내려오는 실제 앨범. 목업 기본 앨범은 사용하지 않는다. */
 interface Album {
+  id: string;
   name: string;
-  thumb: string;
-  photoIndexes: number[];
+  thumb?: string;
 }
 
 interface CustomAlertState {
@@ -369,8 +353,10 @@ export default function AllPhotosScreen() {
   const [showShareDropdown, setShowShareDropdown] = useState(false);
   const [showAlbumModal, setShowAlbumModal] = useState(false);
   const [albumNameInput, setAlbumNameInput] = useState('');
-  const [albums, setAlbums] = useState<Album[]>(DEFAULT_ALBUMS);
-  const [activeAlbum, setActiveAlbum] = useState<string | null>(null);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  // 선택된 앨범 id와 그 앨범에 담긴 사진 id 목록(로딩 중엔 null).
+  const [activeAlbumId, setActiveAlbumId] = useState<string | null>(null);
+  const [activeAlbumPhotoIds, setActiveAlbumPhotoIds] = useState<string[] | null>(null);
 
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [currentViewIndex, setCurrentViewIndex] = useState(0);
@@ -429,14 +415,61 @@ export default function AllPhotosScreen() {
     }
   }, [shopId, isOnedriveConnected]);
 
+  // 앨범 목록도 백엔드가 진실의 소스. 실패하면 목업 대신 빈 목록으로 둔다.
+  const fetchAlbums = async () => {
+    if (!shopId) return;
+    try {
+      const response = await apiClient.get(`/photos/albums/${shopId}`);
+      const list = response.data?.albums || [];
+      setAlbums(list.map((a: { id: string; album_name: string; thumbnail_url?: string }) => ({
+        id: a.id,
+        name: a.album_name,
+        thumb: a.thumbnail_url,
+      })));
+    } catch (error) {
+      console.error("앨범 로딩 실패:", error);
+      setAlbums([]);
+    }
+  };
+
+  useEffect(() => {
+    if (shopId && isOnedriveConnected) fetchAlbums();
+  }, [shopId, isOnedriveConnected]);
+
+  // 앨범을 열 때만 소속 사진 id를 조회 (목록 조회에는 사진 정보가 없음).
+  useEffect(() => {
+    if (!shopId || !activeAlbumId) {
+      setActiveAlbumPhotoIds(null);
+      return;
+    }
+    let cancelled = false;
+    setActiveAlbumPhotoIds(null);
+    (async () => {
+      try {
+        const response = await apiClient.get(`/photos/albums/${shopId}/${activeAlbumId}`);
+        if (cancelled) return;
+        setActiveAlbumPhotoIds((response.data?.photos || []).map((p: { id: string }) => p.id));
+      } catch (error) {
+        if (cancelled) return;
+        console.error("앨범 사진 로딩 실패:", error);
+        setActiveAlbumPhotoIds([]);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [shopId, activeAlbumId]);
+
   const hasPhotos = photos.length > 0;
-  const useMockGrid = isOnedriveConnected && !hasPhotos && !loading;
-  const totalItems = hasPhotos ? photos.length : (useMockGrid ? MOCK_PHOTOS.length : 0);
+  const totalItems = photos.length;
+  const activeAlbumName = albums.find(a => a.id === activeAlbumId)?.name ?? null;
 
   const getVisibleIndexes = (): number[] => {
-    if (!activeAlbum) return Array.from({ length: totalItems }, (_, i) => i);
-    const album = albums.find(a => a.name === activeAlbum);
-    return album ? album.photoIndexes.filter(i => i < totalItems) : [];
+    if (!activeAlbumId) return Array.from({ length: totalItems }, (_, i) => i);
+    if (!activeAlbumPhotoIds) return [];
+    const idSet = new Set(activeAlbumPhotoIds);
+    return photos.reduce<number[]>((acc, photo, i) => {
+      if (idSet.has(photo.id)) acc.push(i);
+      return acc;
+    }, []);
   };
 
   const visibleIndexes = getVisibleIndexes();
@@ -479,25 +512,29 @@ export default function AllPhotosScreen() {
     });
   };
 
-  const handleCreateAlbum = () => {
-    if (!albumNameInput.trim() || selectedIndexes.length === 0) return;
-    const firstIdx = selectedIndexes[0];
-    let thumb = '/demo/pass_01.jpg';
-    if (hasPhotos && photos[firstIdx]) {
-      thumb = photos[firstIdx].blob_url;
-    } else if (useMockGrid && MOCK_PHOTOS[firstIdx]) {
-      thumb = MOCK_PHOTOS[firstIdx];
+  // 앨범 생성도 백엔드에 저장 (기존엔 로컬 state에만 쌓여 새로고침하면 사라졌음).
+  const handleCreateAlbum = async () => {
+    const name = albumNameInput.trim();
+    const photoIds = selectedIndexes.map(i => photos[i]?.id).filter(Boolean) as string[];
+    if (!name || photoIds.length === 0) return;
+    try {
+      await apiClient.post("/photos/albums", {
+        shop_id: shopId,
+        album_id: 'new',
+        album_name: name,
+        description: '',
+        photo_ids: photoIds,
+      });
+      await fetchAlbums();
+      setShowAlbumModal(false);
+      setAlbumNameInput('');
+      setSelectedIndexes([]);
+      setShowAlbumSidebar(true);
+    } catch (error) {
+      console.error("앨범 생성 실패:", error);
+      setShowAlbumModal(false);
+      setCustomAlert({ isOpen: true, message: t.photos_page.albumCreateFailed, type: 'ALERT' });
     }
-    const newAlbum: Album = {
-      name: albumNameInput.trim(),
-      thumb,
-      photoIndexes: [...selectedIndexes],
-    };
-    setAlbums([...albums, newAlbum]);
-    setShowAlbumModal(false);
-    setAlbumNameInput('');
-    setSelectedIndexes([]);
-    setShowAlbumSidebar(true);
   };
 
   const openViewer = (index: number) => {
@@ -505,10 +542,8 @@ export default function AllPhotosScreen() {
     setIsViewerOpen(true);
   };
 
-  const getPhotoSrc = (index: number): string => {
-    if (hasPhotos) return photos[index]?.blob_url || '';
-    return MOCK_PHOTOS[index] || '';
-  };
+  // 실제 동기화된 사진만 렌더 (목업 폴백 제거).
+  const getPhotoSrc = (index: number): string => photos[index]?.blob_url || '';
 
   const handleStartConnect = () => {
     setShowTutorial(true);
@@ -562,8 +597,23 @@ export default function AllPhotosScreen() {
           </div>
         )}
 
-        {/* Grid state - OneDrive 연결됨 */}
-        {!loading && isOnedriveConnected && (hasPhotos || useMockGrid) && (
+        {/* Empty state - OneDrive는 연결됐지만 동기화된 사진이 0장 (목업 그리드 대신 노출) */}
+        {!loading && isOnedriveConnected && !hasPhotos && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex flex-col items-center max-w-[380px] text-center">
+              <Camera size={80} className="text-[#d9c6c6] mb-6" strokeWidth={1.2} />
+              <p className="text-[1.1rem] text-[#1A1A1A] mb-3" style={{ ...font, fontWeight: 700 }}>
+                {t.photos_page.syncedEmptyTitle}
+              </p>
+              <p className="text-[0.9rem] text-[#5a2a2a] whitespace-pre-line" style={{ ...font, fontWeight: 300 }}>
+                {t.photos_page.syncedEmptyDesc}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Grid state - OneDrive 연결 + 실제 사진 있음 */}
+        {!loading && isOnedriveConnected && hasPhotos && (
           <div className="flex-1 flex flex-col h-full">
             {/* 상단 툴바 */}
             <div className="shrink-0 h-[66px] bg-[#FBFBFB] border-b border-gray-100 flex items-center justify-between px-6">
@@ -631,17 +681,17 @@ export default function AllPhotosScreen() {
             </div>
 
             {/* 탭 (전체 / 앨범명) */}
-            {activeAlbum && (
+            {activeAlbumId && (
               <div className="shrink-0 px-6 py-3 bg-[#FBFBFB] border-b border-gray-100 flex items-center gap-3">
                 <button
-                  onClick={() => { setActiveAlbum(null); setSelectedIndexes([]); }}
+                  onClick={() => { setActiveAlbumId(null); setSelectedIndexes([]); }}
                   className="text-[13px] text-gray-500 hover:text-[#1A1A1A] cursor-pointer transition-colors"
                   style={font}
                 >
                   {t.photos_page.all}
                 </button>
                 <span className="text-gray-300">/</span>
-                <span className="text-[13px] text-[#8B0000] font-medium" style={font}>{activeAlbum}</span>
+                <span className="text-[13px] text-[#8B0000] font-medium" style={font}>{activeAlbumName}</span>
               </div>
             )}
 
@@ -678,21 +728,32 @@ export default function AllPhotosScreen() {
               {/* 우측 앨범 사이드바 */}
               {showAlbumSidebar && (
                 <div className="w-[220px] shrink-0 bg-[#F4F1EC] border-l border-gray-100 overflow-y-auto py-6 px-4">
-                  <p className="text-[18px] text-[#6B0F1A] mb-6 font-bold" style={font}>앨범</p>
-                  <div className="space-y-5">
-                    {albums.map(album => (
-                      <button
-                        key={album.name}
-                        onClick={() => { setActiveAlbum(album.name === activeAlbum ? null : album.name); setSelectedIndexes([]); }}
-                        className={`flex items-center gap-3 w-full text-left cursor-pointer hover:opacity-80 transition-opacity rounded-lg p-1 ${activeAlbum === album.name ? 'bg-white/60' : ''}`}
-                      >
-                        <div className="w-[60px] h-[60px] rounded-full overflow-hidden shrink-0" style={{ boxShadow: '0 4px 4px rgba(0,0,0,0.25)' }}>
-                          <img src={album.thumb} alt={album.name} className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-[12px] text-[#6B0F1A] font-bold" style={font}>{album.name}</span>
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-[18px] text-[#6B0F1A] mb-6 font-bold" style={font}>{t.photos_page.album}</p>
+                  {albums.length === 0 ? (
+                    <p className="text-[12px] text-[#9b8585] leading-relaxed" style={font}>
+                      {t.photos_page.albumEmpty}
+                    </p>
+                  ) : (
+                    <div className="space-y-5">
+                      {albums.map(album => (
+                        <button
+                          key={album.id}
+                          onClick={() => { setActiveAlbumId(album.id === activeAlbumId ? null : album.id); setSelectedIndexes([]); }}
+                          className={`flex items-center gap-3 w-full text-left cursor-pointer hover:opacity-80 transition-opacity rounded-lg p-1 ${activeAlbumId === album.id ? 'bg-white/60' : ''}`}
+                        >
+                          {/* 썸네일이 없는 앨범은 목업 이미지 대신 플레이스홀더 */}
+                          <div className="w-[60px] h-[60px] rounded-full overflow-hidden shrink-0 bg-white/70 flex items-center justify-center" style={{ boxShadow: '0 4px 4px rgba(0,0,0,0.25)' }}>
+                            {album.thumb ? (
+                              <img src={album.thumb} alt={album.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <FolderOpen size={22} className="text-[#c4a5a5]" />
+                            )}
+                          </div>
+                          <span className="text-[12px] text-[#6B0F1A] font-bold" style={font}>{album.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
