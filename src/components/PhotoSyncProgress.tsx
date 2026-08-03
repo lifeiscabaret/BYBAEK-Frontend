@@ -48,6 +48,12 @@ export function PhotoSyncProgress() {
     const isLoggedIn = localStorage.getItem('isLoggedIn');
     if (isLoggedIn !== 'true') return;
 
+    // isLoggedIn(localStorage, 브라우저 재시작에도 유지)만 믿으면 안 된다.
+    // 실제 인증에 쓰는 Bearer 토큰은 sessionStorage(탭 닫으면 소멸)에 있어서,
+    // "로그인된 것처럼 보이지만 토큰은 없는" 상태가 생긴다. 그대로 폴링하면
+    // 401만 5회 재시도하며 콘솔을 채우므로, 토큰이 없으면 아예 시작하지 않는다.
+    if (!sessionStorage.getItem(ACCESS_TOKEN_KEY)) return;
+
     // shopId가 바뀌면 폴링 상태를 새로 시작 (실패 카운터/중단 플래그 리셋)
     stoppedRef.current = false;
     failureCountRef.current = 0;
@@ -74,6 +80,13 @@ export function PhotoSyncProgress() {
         const response = await fetch(`/api/sync-onedrive?shop_id=${shopId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
+        // 401/403은 재시도해도 절대 풀리지 않는다(세션 만료/토큰 없음). 백오프 재시도 대상에서 제외.
+        if (response.status === 401 || response.status === 403) {
+          console.warn(`[PhotoSyncProgress] 인증 만료(HTTP ${response.status}) — 폴링 중단, 재로그인 필요`);
+          setIsVisible(false);
+          stopPolling();
+          return;
+        }
         // 404 등은 fetch가 throw하지 않으므로 명시적으로 실패로 처리 (기존 무한 재시도의 원인).
         if (!response.ok) throw new Error(`sync status HTTP ${response.status}`);
         const raw = await response.json();

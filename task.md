@@ -236,7 +236,8 @@
 | 가짜 데이터 정리 (분석/AI 업로드) | 4 | 0 | 100% |
 | 가짜 데이터 정리 (사진 페이지) | 9 | 0 | 100% |
 | sync-onedrive 프록시 경로 수정 | 3 | 0 | 100% |
-| **전체** | **161** | **0** | **100%** |
+| 토큰 없는 세션 401 폭주 차단 | 4 | 0 | 100% |
+| **전체** | **165** | **0** | **100%** |
 
 > 현재까지 커밋된 모든 기능이 완료 상태입니다. 향후 새로운 작업이 추가되면 이 문서에 기록합니다.
 
@@ -416,3 +417,14 @@
 | `BACKEND_URL` fallback을 `/api` 포함으로 통일 (`api/index.ts`·README와 동일 규칙) | ✅ 완료 | `app/api/sync-onedrive/route.ts` |
 | 동기화 트리거 호출 경로에서 중복 `/api` 제거 (`/api/onedrive/sync-photos` → `/onedrive/sync-photos`) | ✅ 완료 | `app/api/sync-onedrive/route.ts` |
 | 진행률 폴링 호출 경로에서 중복 `/api` 제거 (`/api/photos/status/{id}` → `/photos/status/{id}`) | ✅ 완료 | `app/api/sync-onedrive/route.ts` |
+
+---
+
+## 31. 토큰 없는 세션의 401 폭주 차단 (2026-08-03)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| 폴링 시작 조건에 Bearer 토큰 존재 여부 추가 (`isLoggedIn`만으로 판단하던 것 보완) | ✅ 완료 | `components/PhotoSyncProgress.tsx` |
+| 폴링 중 401/403은 재시도 대상에서 제외하고 즉시 중단 (기존: 5회 백오프 재시도) | ✅ 완료 | `components/PhotoSyncProgress.tsx` |
+| `MS_LOGIN_SUCCESS`에 `access_token`이 없으면 실패 처리 (기존: 조용히 통과 후 전 API 401) | ✅ 완료 | `app/login/page.tsx` |
+| MS 로그인 실패 사유를 백엔드 필드명(`detail`)에서 읽도록 수정 (기존 `message`는 항상 비어 일반 문구로 대체됨) | ✅ 완료 | `app/login/page.tsx` |
