@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// fallback을 새 백엔드 커스텀 도메인으로 갱신.
+// NEXT_PUBLIC_API_BASE_URL은 `/api`까지 포함한 값이다 (api/index.ts·README와 동일 규칙).
+// 이전엔 fallback에만 `/api`가 빠져 있고 호출부에서 `/api/`를 다시 붙여서,
+// 환경변수가 설정된 배포 환경에서만 `/api/api/...`가 되어 항상 404였다.
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL ||
-    'https://api2.bybaekofficial.com';
+    'https://api2.bybaekofficial.com/api';
 
 export async function POST(request: NextRequest) {
     try {
@@ -14,7 +16,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, message: '인증 토큰 필요' }, { status: 401 });
         }
 
-        const syncRes = await fetch(`${BACKEND_URL}/api/onedrive/sync-photos`, {
+        const syncRes = await fetch(`${BACKEND_URL}/onedrive/sync-photos`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
         const authHeader = request.headers.get('authorization') || '';
 
         const statusRes = await fetch(
-            `${BACKEND_URL}/api/photos/status/${shopId}`,
+            `${BACKEND_URL}/photos/status/${shopId}`,
             { headers: authHeader ? { Authorization: authHeader } : {} }
         );
 

@@ -235,7 +235,8 @@
 | 개인 Azure 계정 이전 | 6 | 0 | 100% |
 | 가짜 데이터 정리 (분석/AI 업로드) | 4 | 0 | 100% |
 | 가짜 데이터 정리 (사진 페이지) | 9 | 0 | 100% |
-| **전체** | **158** | **0** | **100%** |
+| sync-onedrive 프록시 경로 수정 | 3 | 0 | 100% |
+| **전체** | **161** | **0** | **100%** |
 
 > 현재까지 커밋된 모든 기능이 완료 상태입니다. 향후 새로운 작업이 추가되면 이 문서에 기록합니다.
 
@@ -405,3 +406,13 @@
 | 앨범 생성 로컬 state → 백엔드 저장(`POST /photos/albums`) 전환, 실패 시 안내 모달 | ✅ 완료 | `app/photos/page.tsx` |
 | 앨범 썸네일 없을 때 목업 이미지 대신 플레이스홀더 아이콘 표시 | ✅ 완료 | `app/photos/page.tsx` |
 | 빈 상태·실패 안내 다국어 키 추가 (`syncedEmptyTitle/Desc`, `albumEmpty`, `albumCreateFailed`) | ✅ 완료 | `locales/translations.ts` |
+
+---
+
+## 30. sync-onedrive 프록시 이중 `/api` 경로 수정 (2026-08-03)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| `BACKEND_URL` fallback을 `/api` 포함으로 통일 (`api/index.ts`·README와 동일 규칙) | ✅ 완료 | `app/api/sync-onedrive/route.ts` |
+| 동기화 트리거 호출 경로에서 중복 `/api` 제거 (`/api/onedrive/sync-photos` → `/onedrive/sync-photos`) | ✅ 완료 | `app/api/sync-onedrive/route.ts` |
+| 진행률 폴링 호출 경로에서 중복 `/api` 제거 (`/api/photos/status/{id}` → `/photos/status/{id}`) | ✅ 완료 | `app/api/sync-onedrive/route.ts` |
