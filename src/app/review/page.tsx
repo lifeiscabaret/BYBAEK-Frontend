@@ -13,6 +13,9 @@ function ReviewContent() {
 
   const shopId = searchParams.get('shop_id');
   const postId = searchParams.get('post_id') || '';
+  // 메일 알림 링크에 실려오는 검토 전용 토큰. 세션 토큰(sessionStorage)은 탭 단위라
+  // 메일 앱에서 새로 열린 탭엔 없다 — 그 경우 이 토큰으로만 초안에 접근한다.
+  const reviewToken = searchParams.get('t') || '';
 
   const { t } = useTranslation();
 
@@ -21,6 +24,17 @@ function ReviewContent() {
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [isUploadSuccess, setIsUploadSuccess] = useState(false);
 
+  // 검토 토큰은 해당 post_id 하나에만 통하므로, 사진/앨범 목록 API는 401이 난다.
+  // 그럴 땐 사진 교체 UI를 감춘다 (앱에 로그인하면 그대로 쓸 수 있다).
+  const [canEditPhotos, setCanEditPhotos] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  // 화면에 처음 채워진 캡션. 제출 시 사장님이 실제로 고쳤는지(ok vs edit) 판별하는 기준.
+  // (AI 원본 보존은 백엔드가 ai_caption 필드로 처리한다 — 여기서 볼 필요 없다.)
+  const [loadedCaption, setLoadedCaption] = useState('');
+  const [hashtags, setHashtags] = useState<string[]>([]);
+  const [cta, setCta] = useState('');
+
   const [isClosedFallback, setIsClosedFallback] = useState(false);
 
   const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
@@ -28,6 +42,8 @@ function ReviewContent() {
 
   const [images, setImages] = useState<Photo[]>([]);
   const [tempSelectedPhotos, setTempSelectedPhotos] = useState<Photo[]>([]);
+  // 초안에 원래 담겨 있던 사진 순서. 제출 시 사진을 바꿨는지 비교하는 기준.
+  const [originalPhotoIds, setOriginalPhotoIds] = useState<string[]>([]);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -66,24 +82,77 @@ function ReviewContent() {
     }
   };
 
+  // 검토 토큰이 있으면 헤더로 실어 보낸다. apiClient 인터셉터가 붙이는
+  // Authorization(sessionStorage)과 공존하며, 백엔드는 Authorization을 우선한다.
+  const reviewHeaders = React.useMemo(
+    () => (reviewToken ? { 'X-Review-Token': reviewToken } : undefined),
+    [reviewToken]
+  );
+
   useEffect(() => {
+    if (!shopId) {
+      setLoadFailed(true);
+      setIsPageLoading(false);
+      setAlertMessage(t.review.load_error);
+      return;
+    }
+
     const fetchInitialData = async () => {
       setIsPageLoading(true);
-      try {
-        const allRes = await apiClient.get(`/photos/all/${shopId}`);
-        setAllPhotos(allRes.data.photos || []);
 
-        const albumRes = await apiClient.get(`/album/${shopId}`);
+      // 1) 초안 본문. 이 페이지의 존재 이유 — 예전엔 post_id를 읽고도 쓰질 않아서
+      //    캡션이 늘 빈 문자열로 시작했다. 실패하면 검토 자체가 불가능하므로 중단한다.
+      if (postId) {
+        try {
+          const res = await apiClient.get(`/agent/post/detail/${postId}`, {
+            params: { shop_id: shopId },
+            headers: reviewHeaders,
+          });
+          const post = res.data || {};
+          const caption: string = post.caption || '';
+          const photos: Photo[] = (post.photo_details || [])
+            .filter((p: { blob_url?: string }) => p?.blob_url)
+            .map((p: { id: string; blob_url: string; original_name?: string }, i: number) => ({
+              id: p.id,
+              blob_url: p.blob_url,
+              original_name: p.original_name || `photo_${i + 1}`,
+            }));
+
+          setGeneratedCaption(caption);
+          setLoadedCaption(caption);
+          setHashtags(post.hashtags || []);
+          setCta(post.cta || '');
+          setImages(photos);
+          setOriginalPhotoIds(photos.map((p) => p.id));
+        } catch (error) {
+          const status = (error as { response?: { status?: number } })?.response?.status;
+          console.error('초안 로딩 실패:', error);
+          setLoadFailed(true);
+          setAlertMessage(status === 401 ? t.review.link_expired : t.review.load_error);
+          setIsPageLoading(false);
+          return;
+        }
+      }
+
+      // 2) 사진/앨범 목록은 '사진 교체' 부가 기능용이다. 이 두 API는 세션 토큰만 받으므로
+      //    메일 링크(검토 토큰)로 들어온 경우 401이 난다. 페이지는 살리고 교체 UI만 감춘다.
+      try {
+        const [allRes, albumRes] = await Promise.all([
+          apiClient.get(`/photos/all/${shopId}`),
+          apiClient.get(`/album/${shopId}`),
+        ]);
+        setAllPhotos(allRes.data.photos || []);
         setAlbums(albumRes.data.albums || albumRes.data || []);
       } catch (error) {
-        console.error('데이터 로딩 실패:', error);
-        setAlertMessage(t.review.load_error);
-      } finally {
-        setIsPageLoading(false);
+        console.warn('사진/앨범 목록 로딩 실패 → 사진 교체 비활성화', error);
+        setCanEditPhotos(false);
       }
+
+      setIsPageLoading(false);
     };
+
     fetchInitialData();
-  }, [shopId, postId]);
+  }, [shopId, postId, reviewHeaders]);
 
   const openPhotoModal = () => {
     setTempSelectedPhotos(images);
@@ -158,29 +227,51 @@ function ReviewContent() {
     setIsUploadSuccess(false);
 
     try {
-      // 1단계: 초안 저장
-      const saveRes = await apiClient.post('/agent/save', {
-        shop_id: shopId,
-        caption: generatedCaption,
-        hashtags: [],
-        photo_ids: images.map((img) => img.id),
-        cta: "",
-      });
+      const photoIds = images.map((img) => img.id);
+      let targetPostId = postId;
+      let action: 'ok' | 'edit' = 'ok';
+      const edits: Record<string, unknown> = {};
 
-      // 2단계: 인스타 업로드
-      const reviewRes = await apiClient.post('/agent/review', {
-        shop_id: shopId,
-        post_id: saveRes.data.post_id,
-        action: "ok",
-      });
+      if (targetPostId) {
+        // 검토 대상 초안이 이미 있다. 예전엔 여기서도 /agent/save로 새 post_id를 발급해
+        // 매번 별개의 게시물을 만들어버렸고, 그래서 edit 경로를 한 번도 타지 않았다.
+        // 원래 초안을 그대로 승인하거나 수정한다.
+        if (generatedCaption.trim() !== loadedCaption.trim()) {
+          action = 'edit';
+          edits.edited_caption = generatedCaption;
+        }
+        const photosChanged =
+          photoIds.length !== originalPhotoIds.length ||
+          photoIds.some((id, i) => id !== originalPhotoIds[i]);
+        if (photosChanged) {
+          edits.edited_photo_ids = photoIds;
+        }
+      } else {
+        // post_id 없이 진입한 경우(직접 작성 흐름)에만 새 초안을 만든다.
+        const saveRes = await apiClient.post('/agent/save', {
+          shop_id: shopId,
+          caption: generatedCaption,
+          hashtags: [],
+          photo_ids: photoIds,
+          cta: "",
+        });
+        targetPostId = saveRes.data.post_id;
+      }
+
+      const reviewRes = await apiClient.post(
+        '/agent/review',
+        { shop_id: shopId, post_id: targetPostId, action, ...edits },
+        { headers: reviewHeaders }
+      );
 
       if (reviewRes.data.status === 'uploaded') {
         setAlertMessage(t.review.upload_success);
         setIsUploadSuccess(true);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('업로드 실패:', error);
-      setAlertMessage(error.response?.data?.detail || t.review.upload_error);
+      const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setAlertMessage(detail || t.review.upload_error);
     } finally {
       setIsLoading(false);
     }
@@ -285,7 +376,16 @@ function ReviewContent() {
             )}
           </div>
 
-          {images.length === 0 || currentImageIndex === images.length - 1 ? (
+          {images.length > 0 && currentImageIndex < images.length - 1 ? (
+            <button
+              onClick={handleNextImage}
+              className="absolute right-2 z-10 flex items-center justify-center text-white text-4xl drop-shadow-md cursor-pointer hover:scale-110 transition-transform focus:outline-none"
+            >
+              {'>'}
+            </button>
+          ) : canEditPhotos ? (
+            /* 사진 추가는 앨범/전체사진 목록이 있어야 한다. 메일 링크(검토 토큰)로
+               들어오면 그 목록 API가 401이므로 버튼을 감춘다. */
             <button
               onClick={openPhotoModal}
               className="absolute right-3 z-10 w-12 h-12 rounded-full border-2 border-text-primary bg-[#E0E0E0]/80 flex items-center justify-center hover:bg-gray-300 transition-colors shadow-sm cursor-pointer focus:outline-none hover:scale-105"
@@ -294,14 +394,7 @@ function ReviewContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </button>
-          ) : (
-            <button
-              onClick={handleNextImage}
-              className="absolute right-2 z-10 flex items-center justify-center text-white text-4xl drop-shadow-md cursor-pointer hover:scale-110 transition-transform focus:outline-none"
-            >
-              {'>'}
-            </button>
-          )}
+          ) : null}
         </div>
 
         <button
@@ -323,14 +416,35 @@ function ReviewContent() {
             onChange={(e) => setGeneratedCaption(e.target.value)}
             placeholder={t.review.placeholder_caption}
           />
+
+          {/* 해시태그/CTA는 발행 시 백엔드가 캡션 뒤에 붙인다. 여기서 같이 편집하게 두면
+              edited_caption에 섞여 들어가 중복 발행되므로, 보여주기만 한다. */}
+          {(hashtags.length > 0 || cta) && (
+            <div className="mt-3 pt-3 border-t border-border shrink-0 overflow-y-auto max-h-[35%] scrollbar-hide">
+              <p className="text-[11px] font-bold text-text-secondary mb-1">
+                {t.review.tags_readonly}
+              </p>
+              {hashtags.length > 0 && (
+                <p className="text-[13px] text-accent leading-relaxed break-words">
+                  {hashtags.join(' ')}
+                </p>
+              )}
+              {cta && (
+                <p className="text-[13px] text-text-secondary leading-relaxed break-words mt-1">
+                  {cta}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       <div className="p-4 bg-white border-t border-border shrink-0 pb-safe">
         <button
           onClick={handleUpload}
-          disabled={isLoading}
-          className="w-full py-4 bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform active:scale-[0.98] shadow-md cursor-pointer flex justify-center items-center disabled:opacity-70"
+          // 초안을 못 불러온 상태에서 누르면 빈 캡션으로 발행될 수 있다.
+          disabled={isLoading || loadFailed}
+          className="w-full py-4 bg-accent rounded-lg text-white font-bold text-[16px] hover:bg-accent-dark transition-all transform active:scale-[0.98] shadow-md cursor-pointer flex justify-center items-center disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
