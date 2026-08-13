@@ -238,7 +238,8 @@
 | sync-onedrive 프록시 경로 수정 | 3 | 0 | 100% |
 | 토큰 없는 세션 401 폭주 차단 | 4 | 0 | 100% |
 | "(주)" 표기 제거 | 3 | 0 | 100% |
-| **전체** | **168** | **0** | **100%** |
+| 검토 알림 이메일·검토 토글 설정 노출 | 7 | 0 | 100% |
+| **전체** | **175** | **0** | **100%** |
 
 > 현재까지 커밋된 모든 기능이 완료 상태입니다. 향후 새로운 작업이 추가되면 이 문서에 기록합니다.
 
@@ -439,3 +440,17 @@
 | 푸터 사업자 정보에서 "(주)바이백" → "바이백" | ✅ 완료 | `components/Footer.tsx` |
 | 개인정보처리방침 3곳(도입부·보호책임자 소속·하단) "(주)" 제거 | ✅ 완료 | `public/privacy.html` |
 | 이용약관 3곳(도입부·문의처·하단) "(주)" 제거 | ✅ 완료 | `public/terms.html` |
+
+---
+
+## 33. 검토 알림 이메일·업로드 전 검토 토글 설정 노출 (2026-08-13)
+
+| 작업 | 상태 | 대상 파일 |
+|------|------|-----------|
+| `owner_email` 수정 필드 추가 — 어떤 라이브 화면에서도 입력받지 못하던 값(`OnboardingSurvey.tsx`는 미사용 컴포넌트) | ✅ 완료 | `app/dashboard/settings/page.tsx` |
+| `owner_email` 프리필 — 저장값 없으면 MS 로그인 principal(`shop_info.name`)을 이메일 형식 검증 후 자동 채움 | ✅ 완료 | `app/dashboard/settings/page.tsx` |
+| `insta_review_bfr_upload_yn` ON/OFF 토글 추가 — 켤 방법이 없어 검토 플로우 자체가 죽어 있던 상태 해소 | ✅ 완료 | `app/dashboard/settings/page.tsx` |
+| 검토 ON인데 이메일이 비면 저장 차단 (초안만 쌓이고 알림이 안 가는 조합 방지) | ✅ 완료 | `app/dashboard/settings/page.tsx` |
+| 이메일 형식 검증 — 백엔드 `EmailStr` 422 방지, 빈 값은 payload에서 제외 | ✅ 완료 | `app/dashboard/settings/page.tsx` |
+| 검토 섹션 다국어 키 추가 (`reviewTitle`, `notifyEmail`, `notifyEmailTip` 등 ko/en 11개) | ✅ 완료 | `locales/translations.ts` |
+| 위저드 저장 payload에서 `insta_review_bfr_upload_yn: 'N'` 하드코딩 제거 — 키를 안 보내면 `save_onboarding()` 부분 병합이 기존 설정값을 보존하고, 신규 샵은 백엔드 기본값 `"Y"` 적용 | ✅ 완료 | `app/dashboard/auto-upload/page.tsx` |
