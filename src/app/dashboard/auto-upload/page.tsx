@@ -291,7 +291,12 @@ export default function AutoUploadPage() {
       photo_range_max: photoRange,
       language: localStorage.getItem('language') || 'ko',
       insta_auto_upload_yn: 'Y',
-      insta_review_bfr_upload_yn: 'N',
+      // insta_review_bfr_upload_yn은 일부러 보내지 않는다.
+      // save_onboarding()이 부분 병합(data에 있는 키만 덮어씀)이라, 이 키를 빼면
+      //   - 기존 샵: 설정 화면에서 저장한 값을 위저드 재실행이 덮어쓰지 않는다.
+      //   - 신규 샵: 키가 없으므로 백엔드 기본값 "Y"(검토 ON)로 안전하게 동작한다.
+      // 예전엔 여기서 'N'을 하드코딩해 모든 샵의 검토 플로우를 꺼버렸고, 켤 UI도 없었다.
+      // 검토 ON/OFF는 /dashboard/settings에서만 바꾼다.
     };
 
     // 저장 실패를 조용히 무시하지 않음 — 실패 시 완료 화면(step 6)으로 넘어가지 않고

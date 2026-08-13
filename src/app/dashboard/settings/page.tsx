@@ -15,6 +15,10 @@ const WEEKDAYS: Record<string, string[]> = {
   en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
 };
 
+// 백엔드가 owner_email을 EmailStr로 검증하므로(routers/onboarding.py), 형식이 틀리면
+// 422가 떨어진다. 저장 버튼을 누르기 전에 화면에서 먼저 걸러준다.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function SettingsPage() {
   const { t, lang } = useTranslation();
   const toast = useToast();
@@ -30,6 +34,11 @@ export default function SettingsPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [reanalyzing, setReanalyzing] = useState(false);
   const [reanalyzeMsg, setReanalyzeMsg] = useState('');
+  // 업로드 전 검토 ON/OFF + 검토 알림을 받을 이메일.
+  // 이 둘이 비어 있으면 초안 대기(node_save_draft)와 알림 메일이 둘 다 안 걸린다.
+  const [reviewBeforeUpload, setReviewBeforeUpload] = useState(false);
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   useEffect(() => {
     setIsMounted(true);
@@ -54,6 +63,14 @@ export default function SettingsPage() {
           }
           if (shop.insta_upload_days) setUploadDays(shop.insta_upload_days);
           if (shop.language === 'ko' || shop.language === 'en') setLanguage(shop.language);
+          // 검토 플래그는 'Y'/'N' 문자열로 저장된다. 값이 없으면 OFF로 본다
+          // (백엔드 _get_brand_settings의 기본값은 Y지만, 온보딩 위저드가 N으로 저장해온
+          //  이력이 있어서 화면에선 저장된 값을 그대로 보여주는 쪽이 덜 헷갈린다).
+          setReviewBeforeUpload(String(shop.insta_review_bfr_upload_yn ?? '').toUpperCase() === 'Y');
+          // owner_email이 아직 비어 있으면 MS 로그인 principal(name)로 채운다.
+          // name은 보통 UPN(=이메일)이지만 표시 이름이 들어오는 경우도 있어 형식 검사를 건다.
+          const fallbackEmail = EMAIL_RE.test(shop.name || '') ? shop.name : '';
+          setOwnerEmail(shop.owner_email || fallbackEmail || '');
           // ↓ 여기 두 줄 추가
           if (shop.photo_range_max) setPhotoRange(Math.min(10, Number(shop.photo_range_max) || 5));
           if (shop.brand_tone && Array.isArray(shop.brand_tone)) {
@@ -109,6 +126,22 @@ export default function SettingsPage() {
       toast.error(t.toast.save_failed);
       return;
     }
+    const trimmedEmail = ownerEmail.trim();
+
+    // 검토를 켰는데 받을 주소가 없으면 초안만 쌓이고 아무도 모른다 → 저장 자체를 막는다.
+    if (reviewBeforeUpload && !trimmedEmail) {
+      setEmailError(t.settings_page.notifyEmailRequired);
+      toast.error(t.settings_page.notifyEmailRequired);
+      return;
+    }
+    // 입력했으면 형식은 맞아야 한다 (백엔드 EmailStr가 422로 거절).
+    if (trimmedEmail && !EMAIL_RE.test(trimmedEmail)) {
+      setEmailError(t.settings_page.notifyEmailInvalid);
+      toast.error(t.settings_page.notifyEmailInvalid);
+      return;
+    }
+    setEmailError('');
+
     setSaveStatus('saving');
     try {
       await apiClient.post(`/onboarding/${shopId}`, {
@@ -121,6 +154,9 @@ export default function SettingsPage() {
         ),
         language,
         insta_auto_upload_yn: 'Y',
+        insta_review_bfr_upload_yn: reviewBeforeUpload ? 'Y' : 'N',
+        // 빈 문자열을 보내면 EmailStr 검증에서 422가 난다 → 값이 있을 때만 실어보낸다.
+        ...(trimmedEmail ? { owner_email: trimmedEmail } : {}),
         insta_upload_days: uploadDays,
         photo_range_max: photoRange,
         brand_tone_emoji: (
@@ -255,7 +291,54 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* ④ 언어 설정 */}
+        {/* ④ 업로드 전 검토 */}
+        <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-6">
+          <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>{t.settings_page.reviewTitle}</p>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={reviewBeforeUpload}
+            onClick={() => setReviewBeforeUpload(v => !v)}
+            className="flex items-center gap-4 w-full text-left cursor-pointer group"
+          >
+            <span
+              className={`relative shrink-0 w-[52px] h-[30px] rounded-full transition-colors duration-200 ${reviewBeforeUpload ? 'bg-[#8B0000]' : 'bg-gray-300 group-hover:bg-gray-400'}`}
+            >
+              <span
+                className={`absolute top-[3px] left-[3px] w-[24px] h-[24px] rounded-full bg-white shadow-sm transition-transform duration-200 ${reviewBeforeUpload ? 'translate-x-[22px]' : 'translate-x-0'}`}
+              />
+            </span>
+            <span className="text-[0.9rem] text-[#1A1A1A] font-medium" style={font}>
+              {t.settings_page.reviewToggleLabel}
+            </span>
+          </button>
+
+          <p className="text-[0.8rem] text-gray-500 mt-3 leading-relaxed" style={font}>
+            {reviewBeforeUpload ? t.settings_page.reviewOnDesc : t.settings_page.reviewOffDesc}
+          </p>
+
+          {reviewBeforeUpload && (
+            <div className="mt-6 pt-6 border-t border-[#f0e8e8]">
+              <label className="block text-[0.85rem] text-[#5a2a2a] mb-2" style={{ ...font, fontWeight: 500 }}>
+                {t.settings_page.notifyEmail}
+              </label>
+              <input
+                type="email"
+                value={ownerEmail}
+                onChange={e => { setOwnerEmail(e.target.value); if (emailError) setEmailError(''); }}
+                placeholder={t.settings_page.notifyEmailPlaceholder}
+                className={`w-full max-w-[400px] border rounded-[10px] px-4 py-3 text-[0.9rem] text-[#1A1A1A] focus:outline-none transition-colors ${emailError ? 'border-[#8B0000] focus:border-[#8B0000]' : 'border-gray-200 focus:border-[#8B0000]'}`}
+                style={font}
+              />
+              {emailError
+                ? <p className="text-[0.75rem] text-[#8B0000] mt-2" style={font}>{emailError}</p>
+                : <p className="text-[0.75rem] text-gray-400 mt-2" style={font}>{t.settings_page.notifyEmailTip}</p>}
+            </div>
+          )}
+        </div>
+
+        {/* ⑤ 언어 설정 */}
         <div className="bg-white border border-[#f0e8e8] rounded-[16px] p-7 mb-8">
           <p className="text-[0.95rem] text-[#1A1A1A] font-bold mb-5" style={font}>{t.settings_page.language}</p>
           <div className="flex gap-3">
@@ -276,7 +359,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ⑤ 저장 */}
+        {/* ⑥ 저장 */}
         <CustomButton
           title={t.settings_page.saveBtn}
           onClick={handleSave}
