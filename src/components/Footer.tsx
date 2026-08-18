@@ -8,7 +8,7 @@ export function Footer() {
       className="w-full text-center"
       style={{ padding: '24px', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}
     >
-      <p>바이백 | 대표: 이지현 | 사업자등록번호: 424-22-02512 | contact@bybaekofficial.com</p>
+      <p>바이백 | 대표: 이지현 | 사업자등록번호: 424-22-02512 | 통신판매업신고번호: 제2026-서울마포-2012호 | contact@bybaekofficial.com</p>
       <p className="mt-1">
         <Link href="/terms" target="_blank" className="underline hover:text-white/60 transition-colors">이용약관</Link>
         {' | '}
