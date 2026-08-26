@@ -95,10 +95,10 @@ input[type=text]{width:100%;padding:13px;border:1.5px solid #d5d9e0;border-radiu
 
 <div id="done" class="hidden done">
   <h2>다 하셨습니다. 감사합니다!</h2>
-  <p style="color:#555">아래 버튼을 누르면 파일이 저장됩니다.<br>그 파일을 지현님께 보내주세요.</p>
+  <p style="color:#555">아래 <b>파란 버튼</b>을 누르면 카카오톡으로 바로 보낼 수 있는 화면이 뜹니다.<br>(화면 위·아래 테두리에 있는 브라우저 공유 아이콘이 아니라, <b>이 화면 안의 파란 버튼</b>이에요.)</p>
   <button id="dl" class="opt" style="background:#2f6fed;color:#fff;border-color:#2f6fed;
-     font-weight:600;padding:16px;margin-top:14px">결과 파일 저장하기</button>
-  <p style="color:#888;font-size:13px;margin-top:24px">저장이 안 되면 이 화면을 캡처해서 보내주셔도 됩니다.</p>
+     font-weight:600;padding:16px;margin-top:14px">👇 여기 눌러서 카톡으로 보내기</button>
+  <p style="color:#888;font-size:13px;margin-top:24px">위 버튼이 안 되면 이 화면을 그대로 캡처해서 카톡으로 보내주셔도 됩니다. (화면이 길면 여러 장 나눠서 캡처)</p>
   <pre id="raw" style="text-align:left;background:#fff;padding:12px;border-radius:10px;
      font-size:11px;overflow:auto;max-height:240px;margin-top:12px"></pre>
 </div>
@@ -215,11 +215,28 @@ function finish() {
   $("raw").textContent = payload();
 }
 
-$("dl").onclick = () => {
-  const blob = new Blob([payload()], {type: "application/json"});
+$("dl").onclick = async () => {
+  const filename = `평가결과_${state.rater || "익명"}.json`;
+  const text = payload();
+
+  // [FIX2] 파일 기반 공유(File + canShare({files}))는 기기/브라우저 지원이 들쭉날쭉하고,
+  // 실패해도 왜 실패했는지 사용자에게 안 보여서 "다운로드로 조용히 대체"가 오히려 혼란을 더 줬다
+  // (사파리 자체 공유 아이콘과 페이지 내 버튼을 혼동하는 사례 발생).
+  // 텍스트 공유(navigator.share({text}))는 iOS 12+/대부분 모바일 브라우저에서 훨씬 폭넓게 지원되고,
+  // 카카오톡이 텍스트를 바로 대화창에 붙여넣는 형태로 받아준다. 이걸 1순위로 바꾼다.
+  try {
+    if (navigator.share) {
+      await navigator.share({title: "바이백 캡션 평가 결과", text: text});
+      return;
+    }
+  } catch (e) {
+    // 사용자가 공유를 취소했거나 API 실패 — 아래 다운로드 폴백으로 진행
+  }
+
+  const blob = new Blob([text], {type: "application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `평가결과_${state.rater || "익명"}.json`;
+  a.download = filename;
   a.click();
 };
 
